@@ -11,7 +11,7 @@
 | Current Phase | 1 — Context gathered |
 | Completed Phases | 0 / 4 |
 | Requirements Done | 0 / 13 |
-| Last Action | Phase 1 context gathered (discuss-phase) |
+| Last Action | Phase 1 UI-SPEC approved (ui-phase) |
 
 ## Phase Status
 
@@ -34,4 +34,4 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 1. Run `/gsd-plan-phase 1` to create execution plan for Phase 1
 
 ---
-*Last updated: 2026-04-29 after Phase 1 context gathered*
+*Last updated: 2026-04-29 after Phase 1 UI-SPEC approved*
