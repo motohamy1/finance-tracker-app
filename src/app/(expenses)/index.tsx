@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, FlatList, StyleSheet, Alert,
   ActionSheetIOS, Platform, TouchableOpacity, Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
@@ -173,15 +174,22 @@ export default function ExpensesScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <EmptyState icon="hourglass-outline" title="Loading..." body="Preparing your expense tracker." />
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
   if (categories.length === 0) {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <BalanceCard />
         <EmptyState
           icon="wallet-outline"
@@ -207,12 +215,16 @@ export default function ExpensesScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       <TouchableOpacity
         style={styles.fab}
         onPress={() => openAddForm()}
@@ -283,7 +295,7 @@ export default function ExpensesScreen() {
         editingExpense={editingExpense}
         preselectedCategoryId={selectedCategoryId}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
