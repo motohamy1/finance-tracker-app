@@ -8,16 +8,16 @@
 | Metric | Value |
 |--------|-------|
 | Milestone | 1 (initial) |
-| Current Phase | 1 — Context gathered |
+| Current Phase | 1 — Plan created (3 plans) |
 | Completed Phases | 0 / 4 |
 | Requirements Done | 0 / 13 |
-| Last Action | Phase 1 UI-SPEC approved (ui-phase) |
+| Last Action | Phase 1 plans created (3 plans, 3 waves) |
 
 ## Phase Status
 
 | Phase | Name | Status | Requirements | Started | Completed |
 |-------|------|--------|--------------|---------|-----------|
-| 1 | Shell + Expense Tracker | ◇ Context | 7 | 2026-04-29 | — |
+| 1 | Shell + Expense Tracker | ◆ Planned | 7 | 2026-04-29 | — |
 | 2 | OCR Pipeline | ○ Pending | 3 | — | — |
 | 3 | Investment Analytics | ○ Pending | 2 | — | — |
 | 4 | Cloud Sync | ○ Pending | 1 | — | — |
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ## Next Actions
 
-1. Run `/gsd-plan-phase 1` to create execution plan for Phase 1
+1. Run `/gsd-execute-phase 1` to execute the 3 plans for Phase 1
 
 ---
-*Last updated: 2026-04-29 after Phase 1 UI-SPEC approved*
+*Last updated: 2026-04-29 after Phase 1 planning*
