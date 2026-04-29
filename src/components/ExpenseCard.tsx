@@ -19,18 +19,12 @@ export function ExpenseCard({ expense, accentColor }: ExpenseCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 150,
-    height: 110,
-    backgroundColor: '#FFFFFF',
+    width: 148,
+    height: 108,
+    backgroundColor: 'transparent',
     borderRadius: 8,
     borderLeftWidth: 3,
     padding: 8,
-    marginRight: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
     justifyContent: 'center',
   },
   title: {
@@ -40,7 +34,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   amount: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 4,

@@ -64,3 +64,22 @@ export type CategoryAccentColor = typeof CATEGORY_ACCENT_PALETTE[number];
 export function getNextAccentColor(existingCategoryCount: number): string {
   return CATEGORY_ACCENT_PALETTE[existingCategoryCount % CATEGORY_ACCENT_PALETTE.length];
 }
+
+// Convert hex to a tinted version (mixes with white at given ratio 0-1)
+export function hexToTint(hex: string, ratio: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * (1 - ratio));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Light tint for category section backgrounds (soft, readable)
+export function getCategoryLightTint(hex: string): string {
+  return hexToTint(hex, 0.12);
+}
+
+// Medium tint for expense cards (more visible color)
+export function getCategoryCardTint(hex: string): string {
+  return hexToTint(hex, 0.18);
+}

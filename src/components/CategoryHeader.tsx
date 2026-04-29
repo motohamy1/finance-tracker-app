@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Category, Expense } from '@/types';
+import { getCategoryLightTint, getCategoryCardTint } from '@/types';
 import { ExpenseCard } from './ExpenseCard';
 
 interface CategoryHeaderProps {
@@ -21,60 +22,64 @@ interface CategoryHeaderProps {
 const CARD_WIDTH = 150 + 8;
 
 export function CategoryHeader({ category, expenses, isExpanded, onToggle, onLongPress, onAddExpense }: CategoryHeaderProps) {
-  const animationHeight = useSharedValue(0);
   const [contentHeight, setContentHeight] = useState(0);
+  const animHeight = useSharedValue(0);
+  const lightTint = getCategoryLightTint(category.colorHex);
+  const cardTint = getCategoryCardTint(category.colorHex);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isExpanded && contentHeight > 0) {
-      animationHeight.value = withTiming(contentHeight, { duration: 250 });
+      animHeight.value = withTiming(contentHeight, { duration: 250 });
     } else {
-      animationHeight.value = withTiming(0, { duration: 250 });
+      animHeight.value = withTiming(0, { duration: 250 });
     }
   }, [isExpanded, contentHeight]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    height: animationHeight.value,
-    opacity: animationHeight.value > 0 ? 1 : 0,
+    height: animHeight.value,
+    opacity: animHeight.value > 0 ? 1 : 0,
   }));
-
-  const onContentLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
-    const h = event.nativeEvent.layout.height;
-    if (h > 0 && h !== contentHeight) {
-      setContentHeight(h);
-    }
-  }, [contentHeight]);
 
   const handleToggle = useCallback(() => {
     onToggle(category.id);
   }, [category.id, onToggle]);
 
-  const renderExpenseCard = useCallback(({ item }: { item: Expense }) => (
-    <ExpenseCard expense={item} accentColor={category.colorHex} />
-  ), [category.colorHex]);
-
   const handleAddPress = useCallback(() => {
     onAddExpense?.(category.id);
   }, [category.id, onAddExpense]);
 
+  const onContentLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
+    const h = event.nativeEvent.layout.height;
+    if (h > 0 && h !== contentHeight) setContentHeight(h);
+  }, [contentHeight]);
+
+  const renderExpenseCard = useCallback(({ item }: { item: Expense }) => (
+    <View style={[styles.cardWrapper, { backgroundColor: cardTint }]}>
+      <ExpenseCard expense={item} accentColor={category.colorHex} />
+    </View>
+  ), [category.colorHex, cardTint]);
+
+  const textColor = '#FFFFFF';
+  const subtitleColor = 'rgba(255,255,255,0.8)';
+
   return (
-    <View style={[styles.container, isExpanded && styles.containerExpanded]}>
+    <View style={styles.container}>
       <Pressable
         onPress={handleToggle}
         onLongPress={onLongPress}
-        style={styles.header}
+        style={[styles.header, { backgroundColor: category.colorHex }]}
       >
-        <View style={[styles.colorDot, { backgroundColor: category.colorHex }]} />
-        <Text style={styles.name}>{category.name}</Text>
-        <Text style={styles.count}>{expenses.length} items</Text>
+        <Text style={[styles.name, { color: textColor }]}>{category.name}</Text>
+        <Text style={[styles.count, { color: subtitleColor }]}>{expenses.length} items</Text>
         <Ionicons
           name={isExpanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color="#0891B2"
+          color={textColor}
         />
       </Pressable>
 
-      <Animated.View style={[styles.contentOuter, animatedStyle]}>
-        <View style={styles.contentInner} onLayout={onContentLayout}>
+      <Animated.View style={[{ overflow: 'hidden' }, animatedStyle]}>
+        <View style={[styles.contentInner, { backgroundColor: lightTint }]} onLayout={onContentLayout}>
           {expenses.length > 0 ? (
             <FlatList
               horizontal
@@ -91,9 +96,9 @@ export function CategoryHeader({ category, expenses, isExpanded, onToggle, onLon
               })}
             />
           ) : (
-            <TouchableOpacity style={emptyCardStyles.card} onPress={handleAddPress}>
-              <Ionicons name="add" size={24} color="#0891B2" />
-              <Text style={emptyCardStyles.text}>Add an expense</Text>
+            <TouchableOpacity style={[emptyCardStyles.card, { borderColor: category.colorHex }]} onPress={handleAddPress}>
+              <Ionicons name="add" size={24} color={category.colorHex} />
+              <Text style={[emptyCardStyles.text, { color: category.colorHex }]}>Add an expense</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -104,45 +109,41 @@ export function CategoryHeader({ category, expenses, isExpanded, onToggle, onLon
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 12,
     overflow: 'hidden',
-  },
-  containerExpanded: {
-    backgroundColor: '#F0F4F8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     gap: 8,
   },
-  colorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   name: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontSize: 17,
+    fontWeight: '700',
     flex: 1,
   },
   count: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  contentOuter: {
-    overflow: 'hidden',
+    fontSize: 13,
+    fontWeight: '500',
   },
   contentInner: {
-    padding: 8,
+    padding: 10,
   },
   cardRow: {
-    paddingHorizontal: 8,
-    paddingBottom: 8,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+  },
+  cardWrapper: {
+    borderRadius: 10,
+    marginRight: 8,
   },
 });
 
@@ -150,19 +151,17 @@ const emptyCardStyles = StyleSheet.create({
   card: {
     width: 150,
     height: 110,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     borderStyle: 'dashed',
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: 4,
     gap: 8,
   },
   text: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#475569',
   },
 });
