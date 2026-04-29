@@ -9,6 +9,7 @@ import { useExpenseStore } from '@/stores/expenseStore';
 import { CategoryHeader } from '@/components/CategoryHeader';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { EmptyState } from '@/components/EmptyState';
+import { BalanceCard } from '@/components/BalanceCard';
 import type { Category, Expense } from '@/types';
 
 export default function ExpensesScreen() {
@@ -181,6 +182,7 @@ export default function ExpensesScreen() {
   if (categories.length === 0) {
     return (
       <View style={styles.container}>
+        <BalanceCard />
         <EmptyState
           icon="wallet-outline"
           title="Start Tracking"
@@ -220,6 +222,7 @@ export default function ExpensesScreen() {
       </TouchableOpacity>
 
       <DraggableFlatList
+        ListHeaderComponent={<BalanceCard />}
         data={categories}
         keyExtractor={(item) => item.id}
         onDragEnd={handleDragEnd}
