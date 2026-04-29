@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Alert, Animated,
+  View, Text, TextInput, StyleSheet, Alert,
   ActionSheetIOS, Platform, TouchableOpacity, Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,32 +29,6 @@ export default function ExpensesScreen() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoryNameInput, setCategoryNameInput] = useState('');
-
-  const keyboardHeight = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        Animated.timing(keyboardHeight, {
-          toValue: e.endCoordinates.height,
-          duration: e.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      (e) => {
-        Animated.timing(keyboardHeight, {
-          toValue: 0,
-          duration: e.duration || 200,
-          useNativeDriver: false,
-        }).start();
-      }
-    );
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, [keyboardHeight]);
 
   const handleCreateCategory = useCallback(() => {
     const name = categoryNameInput.trim();
@@ -223,7 +198,11 @@ export default function ExpensesScreen() {
           onCtaPress={() => setShowCategoryInput(true)}
         />
         {showCategoryInput && (
-          <Animated.View style={[styles.categoryInputFloat, { bottom: keyboardHeight }]}>
+          <KeyboardAvoidingView
+            behavior="position"
+            keyboardVerticalOffset={0}
+            style={styles.categoryInputFloat}
+          >
             <TextInput
               style={styles.categoryFloatInput}
               placeholder="Category name"
@@ -240,7 +219,7 @@ export default function ExpensesScreen() {
             <TouchableOpacity style={styles.categoryInputCancel} onPress={dismissCategoryInput}>
               <Ionicons name="close" size={20} color="#94A3B8" />
             </TouchableOpacity>
-          </Animated.View>
+          </KeyboardAvoidingView>
         )}
       </View>
     );
@@ -291,7 +270,11 @@ export default function ExpensesScreen() {
       />
 
       {showCategoryInput && (
-        <Animated.View style={[styles.categoryInputFloat, { bottom: keyboardHeight }]}>
+        <KeyboardAvoidingView
+          behavior="position"
+          keyboardVerticalOffset={0}
+          style={styles.categoryInputFloat}
+        >
           <TextInput
             style={styles.categoryFloatInput}
             placeholder="Category name"
@@ -308,7 +291,7 @@ export default function ExpensesScreen() {
           <TouchableOpacity style={styles.categoryInputCancel} onPress={dismissCategoryInput}>
             <Ionicons name="close" size={20} color="#94A3B8" />
           </TouchableOpacity>
-        </Animated.View>
+        </KeyboardAvoidingView>
       )}
 
       <ExpenseForm
