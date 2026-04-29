@@ -185,13 +185,15 @@ export default function ExpensesScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => openAddForm()}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+      {!showCategoryInput && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => openAddForm()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
 
       <View style={{ flex: 1 }}>
         <DraggableFlatList
