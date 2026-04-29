@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, Alert,
-  ActionSheetIOS, Platform, TouchableOpacity,
+  View, Text, TextInput, FlatList, StyleSheet, Alert,
+  ActionSheetIOS, Platform, TouchableOpacity, Keyboard,
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,17 @@ export default function ExpensesScreen() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [showCategoryInput, setShowCategoryInput] = useState(false);
+  const [categoryNameInput, setCategoryNameInput] = useState('');
+
+  const handleCreateCategory = useCallback(() => {
+    const name = categoryNameInput.trim();
+    if (!name) return;
+    addCategory({ name });
+    setCategoryNameInput('');
+    setShowCategoryInput(false);
+    Keyboard.dismiss();
+  }, [categoryNameInput, addCategory]);
 
   const toggleCategory = useCallback((categoryId: string) => {
     setExpandedIds((prev) => {
@@ -174,9 +185,26 @@ export default function ExpensesScreen() {
           icon="wallet-outline"
           title="Start Tracking"
           body="Create your first spending category to begin logging expenses."
-          ctaText="Create Category"
-          onCtaPress={() => addCategory({ name: 'Food & Dining' })}
+          ctaText={showCategoryInput ? undefined : "Create Category"}
+          onCtaPress={() => setShowCategoryInput(true)}
         />
+        {showCategoryInput && (
+          <View style={styles.categoryInputRow}>
+            <TextInput
+              style={styles.categoryInput}
+              placeholder="Category name"
+              placeholderTextColor="#94A3B8"
+              value={categoryNameInput}
+              onChangeText={setCategoryNameInput}
+              onSubmitEditing={handleCreateCategory}
+              autoFocus
+              returnKeyType="done"
+            />
+            <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
+              <Text style={styles.categoryInputButtonText}>Create</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -196,6 +224,42 @@ export default function ExpensesScreen() {
         keyExtractor={(item) => item.id}
         onDragEnd={handleDragEnd}
         contentContainerStyle={styles.list}
+        ListFooterComponent={
+          showCategoryInput ? (
+            <View style={styles.categoryInputRow}>
+              <TextInput
+                style={styles.categoryInput}
+                placeholder="Category name"
+                placeholderTextColor="#94A3B8"
+                value={categoryNameInput}
+                onChangeText={setCategoryNameInput}
+                onSubmitEditing={handleCreateCategory}
+                autoFocus
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
+                <Text style={styles.categoryInputButtonText}>Create</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.categoryInputCancel}
+                onPress={() => { setShowCategoryInput(false); setCategoryNameInput(''); Keyboard.dismiss(); }}
+              >
+                <Ionicons name="close" size={20} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addCategoryButton}
+              onPress={() => setShowCategoryInput(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={22} color="#0891B2" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addCategoryText}>Create Category</Text>
+              </View>
+            </TouchableOpacity>
+          )
+        }
         renderItem={({ item, drag, isActive }) => (
           <ScaleDecorator>
             <CategoryHeader
@@ -210,17 +274,6 @@ export default function ExpensesScreen() {
         )}
       />
 
-      <TouchableOpacity
-        style={styles.addCategoryButton}
-        onPress={() => addCategory({ name: 'New Category' })}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add-circle-outline" size={22} color="#0891B2" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.addCategoryText}>Create Category</Text>
-        </View>
-      </TouchableOpacity>
-
       <ExpenseForm
         visible={formVisible}
         onClose={() => { setFormVisible(false); setEditingExpense(null); }}
@@ -233,7 +286,7 @@ export default function ExpensesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F4F8' },
-  list: { padding: 16, paddingBottom: 80 },
+  list: { paddingBottom: 100 },
   fab: {
     position: 'absolute', bottom: 20, right: 20, zIndex: 10,
     width: 56, height: 56, borderRadius: 28,
@@ -244,10 +297,27 @@ const styles = StyleSheet.create({
   },
   addCategoryButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12,
+    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 24,
     paddingVertical: 14, paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1, borderColor: '#E2E8F0',
   },
   addCategoryText: { fontSize: 16, fontWeight: '600', color: '#0891B2' },
+  categoryInputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 24,
+    paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 12, borderWidth: 1, borderColor: '#0891B2',
+  },
+  categoryInput: {
+    flex: 1, fontSize: 16, color: '#0F172A', paddingVertical: 4,
+  },
+  categoryInputButton: {
+    backgroundColor: '#0891B2', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  categoryInputButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  categoryInputCancel: {
+    padding: 4,
+  },
 });
