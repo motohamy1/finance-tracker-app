@@ -1,8 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, FlatList, StyleSheet, Alert,
+  View, Text, TextInput, StyleSheet, Alert, Animated,
   ActionSheetIOS, Platform, TouchableOpacity, Keyboard,
-  KeyboardAvoidingView,
 } from 'react-native';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +28,32 @@ export default function ExpensesScreen() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoryNameInput, setCategoryNameInput] = useState('');
+
+  const keyboardHeight = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        Animated.timing(keyboardHeight, {
+          toValue: e.endCoordinates.height,
+          duration: e.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (e) => {
+        Animated.timing(keyboardHeight, {
+          toValue: 0,
+          duration: e.duration || 200,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, [keyboardHeight]);
 
   const handleCreateCategory = useCallback(() => {
     const name = categoryNameInput.trim();
@@ -172,24 +197,23 @@ export default function ExpensesScreen() {
     reorderCategories(data.map((c) => c.id));
   }, [reorderCategories]);
 
+  const dismissCategoryInput = useCallback(() => {
+    setShowCategoryInput(false);
+    setCategoryNameInput('');
+    Keyboard.dismiss();
+  }, []);
+
   if (isLoading) {
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={styles.container}>
         <EmptyState icon="hourglass-outline" title="Loading..." body="Preparing your expense tracker." />
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
   if (categories.length === 0) {
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <View style={styles.container}>
         <BalanceCard />
         <EmptyState
           icon="wallet-outline"
@@ -199,9 +223,9 @@ export default function ExpensesScreen() {
           onCtaPress={() => setShowCategoryInput(true)}
         />
         {showCategoryInput && (
-          <View style={styles.categoryInputRow}>
+          <Animated.View style={[styles.categoryInputFloat, { bottom: keyboardHeight }]}>
             <TextInput
-              style={styles.categoryInput}
+              style={styles.categoryFloatInput}
               placeholder="Category name"
               placeholderTextColor="#94A3B8"
               value={categoryNameInput}
@@ -213,18 +237,17 @@ export default function ExpensesScreen() {
             <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
               <Text style={styles.categoryInputButtonText}>Create</Text>
             </TouchableOpacity>
-          </View>
+            <TouchableOpacity style={styles.categoryInputCancel} onPress={dismissCategoryInput}>
+              <Ionicons name="close" size={20} color="#94A3B8" />
+            </TouchableOpacity>
+          </Animated.View>
         )}
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <View style={styles.container}>
       <TouchableOpacity
         style={styles.fab}
         onPress={() => openAddForm()}
@@ -240,29 +263,7 @@ export default function ExpensesScreen() {
         onDragEnd={handleDragEnd}
         contentContainerStyle={styles.list}
         ListFooterComponent={
-          showCategoryInput ? (
-            <View style={styles.categoryInputRow}>
-              <TextInput
-                style={styles.categoryInput}
-                placeholder="Category name"
-                placeholderTextColor="#94A3B8"
-                value={categoryNameInput}
-                onChangeText={setCategoryNameInput}
-                onSubmitEditing={handleCreateCategory}
-                autoFocus
-                returnKeyType="done"
-              />
-              <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
-                <Text style={styles.categoryInputButtonText}>Create</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.categoryInputCancel}
-                onPress={() => { setShowCategoryInput(false); setCategoryNameInput(''); Keyboard.dismiss(); }}
-              >
-                <Ionicons name="close" size={20} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-          ) : (
+          showCategoryInput ? <View style={{ height: 80 }} /> : (
             <TouchableOpacity
               style={styles.addCategoryButton}
               onPress={() => setShowCategoryInput(true)}
@@ -289,13 +290,34 @@ export default function ExpensesScreen() {
         )}
       />
 
+      {showCategoryInput && (
+        <Animated.View style={[styles.categoryInputFloat, { bottom: keyboardHeight }]}>
+          <TextInput
+            style={styles.categoryFloatInput}
+            placeholder="Category name"
+            placeholderTextColor="#94A3B8"
+            value={categoryNameInput}
+            onChangeText={setCategoryNameInput}
+            onSubmitEditing={handleCreateCategory}
+            autoFocus
+            returnKeyType="done"
+          />
+          <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
+            <Text style={styles.categoryInputButtonText}>Create</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.categoryInputCancel} onPress={dismissCategoryInput}>
+            <Ionicons name="close" size={20} color="#94A3B8" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <ExpenseForm
         visible={formVisible}
         onClose={() => { setFormVisible(false); setEditingExpense(null); }}
         editingExpense={editingExpense}
         preselectedCategoryId={selectedCategoryId}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -318,18 +340,39 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#E2E8F0',
   },
   addCategoryText: { fontSize: 16, fontWeight: '600', color: '#0891B2' },
-  categoryInputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 24,
-    paddingVertical: 10, paddingHorizontal: 14,
-    borderRadius: 12, borderWidth: 1, borderColor: '#0891B2',
+  categoryInputFloat: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
   },
-  categoryInput: {
-    flex: 1, fontSize: 16, color: '#0F172A', paddingVertical: 4,
+  categoryFloatInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#0891B2',
   },
   categoryInputButton: {
     backgroundColor: '#0891B2', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 8,
+    paddingHorizontal: 14, paddingVertical: 10,
   },
   categoryInputButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   categoryInputCancel: {
