@@ -39,14 +39,17 @@ export default function ExpensesScreen() {
     Keyboard.dismiss();
   }, [categoryNameInput, addCategory]);
 
+  const dismissCategoryInput = useCallback(() => {
+    setShowCategoryInput(false);
+    setCategoryNameInput('');
+    Keyboard.dismiss();
+  }, []);
+
   const toggleCategory = useCallback((categoryId: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(categoryId)) {
-        next.delete(categoryId);
-      } else {
-        next.add(categoryId);
-      }
+      if (next.has(categoryId)) { next.delete(categoryId); }
+      else { next.add(categoryId); }
       return next;
     });
   }, []);
@@ -65,104 +68,56 @@ export default function ExpensesScreen() {
 
   const handleCategoryLongPress = useCallback((category: Category) => {
     const expenseCount = getExpenseCount(category.id);
+    const renameAction = () => {
+      Alert.prompt
+        ? Alert.prompt('Rename Category', undefined, (newName) => {
+            if (newName?.trim()) renameCategory(category.id, newName.trim());
+          }, 'plain-text', category.name)
+        : null;
+    };
+    const deleteAction = () => {
+      if (expenseCount > 0) {
+        Alert.alert(
+          `Delete ${category.name}?`,
+          `This will also delete ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. This action cannot be undone.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', onPress: () => removeCategory(category.id), style: 'destructive' },
+          ]
+        );
+      } else { removeCategory(category.id); }
+    };
+
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Rename', 'Delete', 'Cancel'],
-          destructiveButtonIndex: 1,
-          cancelButtonIndex: 2,
-        },
-        (index) => {
-          if (index === 0) {
-            Alert.prompt
-              ? Alert.prompt('Rename Category', undefined, (newName) => {
-                  if (newName?.trim()) renameCategory(category.id, newName.trim());
-                }, 'plain-text', category.name)
-              : null;
-          }
-          if (index === 1) {
-            if (expenseCount > 0) {
-              Alert.alert(
-                `Delete ${category.name}?`,
-                `This will also delete ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. This action cannot be undone.`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', onPress: () => removeCategory(category.id), style: 'destructive' },
-                ]
-              );
-            } else {
-              removeCategory(category.id);
-            }
-          }
-        }
+        { options: ['Rename', 'Delete', 'Cancel'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
+        (index) => { if (index === 0) renameAction(); if (index === 1) deleteAction(); }
       );
     } else {
-      Alert.alert(
-        category.name,
-        undefined,
-        [
-          { text: 'Rename', onPress: () => {
-            Alert.prompt
-              ? Alert.prompt('Rename Category', undefined, (newName) => {
-                  if (newName?.trim()) renameCategory(category.id, newName.trim());
-                }, 'plain-text', category.name)
-              : null;
-          }},
-          { text: 'Delete', onPress: () => {
-            if (expenseCount > 0) {
-              Alert.alert(
-                `Delete ${category.name}?`,
-                `This will also delete ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. This action cannot be undone.`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', onPress: () => removeCategory(category.id), style: 'destructive' },
-                ]
-              );
-            } else {
-              removeCategory(category.id);
-            }
-          }, style: 'destructive' },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
+      Alert.alert(category.name, undefined, [
+        { text: 'Rename', onPress: renameAction },
+        { text: 'Delete', onPress: deleteAction, style: 'destructive' },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     }
   }, [getExpenseCount, renameCategory, removeCategory]);
 
   const handleExpenseLongPress = useCallback((expense: Expense) => {
+    const deleteAction = () => {
+      Alert.alert('Delete Expense?', 'This action cannot be undone.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: () => useExpenseStore.getState().removeExpense(expense.id), style: 'destructive' },
+      ]);
+    };
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Edit', 'Delete', 'Cancel'],
-          destructiveButtonIndex: 1,
-          cancelButtonIndex: 2,
-        },
-        (index) => {
-          if (index === 0) openEditForm(expense);
-          if (index === 1) {
-            Alert.alert(
-              'Delete Expense?',
-              'This action cannot be undone.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', onPress: () => useExpenseStore.getState().removeExpense(expense.id), style: 'destructive' },
-              ]
-            );
-          }
-        }
+        { options: ['Edit', 'Delete', 'Cancel'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
+        (index) => { if (index === 0) openEditForm(expense); if (index === 1) deleteAction(); }
       );
     } else {
       Alert.alert(expense.title, undefined, [
         { text: 'Edit', onPress: () => openEditForm(expense) },
-        { text: 'Delete', onPress: () => {
-          Alert.alert(
-            'Delete Expense?',
-            'This action cannot be undone.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', onPress: () => useExpenseStore.getState().removeExpense(expense.id), style: 'destructive' },
-            ]
-          );
-        }, style: 'destructive' },
+        { text: 'Delete', onPress: deleteAction, style: 'destructive' },
         { text: 'Cancel', style: 'cancel' },
       ]);
     }
@@ -172,12 +127,6 @@ export default function ExpensesScreen() {
     reorderCategories(data.map((c) => c.id));
   }, [reorderCategories]);
 
-  const dismissCategoryInput = useCallback(() => {
-    setShowCategoryInput(false);
-    setCategoryNameInput('');
-    Keyboard.dismiss();
-  }, []);
-
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -186,47 +135,56 @@ export default function ExpensesScreen() {
     );
   }
 
+  // Category input bar — full width, sits directly above keyboard (zero gap)
+  const CategoryInputBar = () => (
+    <View style={styles.categoryInputBar}>
+      <TextInput
+        style={styles.categoryInputField}
+        placeholder="Category name"
+        placeholderTextColor="#94A3B8"
+        value={categoryNameInput}
+        onChangeText={setCategoryNameInput}
+        onSubmitEditing={handleCreateCategory}
+        autoFocus
+        returnKeyType="done"
+      />
+      <TouchableOpacity style={styles.createBtn} onPress={handleCreateCategory}>
+        <Text style={styles.createBtnText}>Create</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.dismissBtn} onPress={dismissCategoryInput}>
+        <Ionicons name="close" size={20} color="#94A3B8" />
+      </TouchableOpacity>
+    </View>
+  );
+
   if (categories.length === 0) {
     return (
-      <View style={styles.container}>
-        <BalanceCard />
-        <EmptyState
-          icon="wallet-outline"
-          title="Start Tracking"
-          body="Create your first spending category to begin logging expenses."
-          ctaText={showCategoryInput ? undefined : "Create Category"}
-          onCtaPress={() => setShowCategoryInput(true)}
-        />
-        {showCategoryInput && (
-          <KeyboardAvoidingView
-            behavior="position"
-            keyboardVerticalOffset={0}
-            style={styles.categoryInputFloat}
-          >
-            <TextInput
-              style={styles.categoryFloatInput}
-              placeholder="Category name"
-              placeholderTextColor="#94A3B8"
-              value={categoryNameInput}
-              onChangeText={setCategoryNameInput}
-              onSubmitEditing={handleCreateCategory}
-              autoFocus
-              returnKeyType="done"
-            />
-            <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
-              <Text style={styles.categoryInputButtonText}>Create</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.categoryInputCancel} onPress={dismissCategoryInput}>
-              <Ionicons name="close" size={20} color="#94A3B8" />
-            </TouchableOpacity>
-          </KeyboardAvoidingView>
-        )}
-      </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={{ flex: 1 }}>
+          <BalanceCard />
+          <EmptyState
+            icon="wallet-outline"
+            title="Start Tracking"
+            body="Create your first spending category to begin logging expenses."
+            ctaText={showCategoryInput ? undefined : "Create Category"}
+            onCtaPress={() => setShowCategoryInput(true)}
+          />
+        </View>
+        {showCategoryInput && <CategoryInputBar />}
+      </KeyboardAvoidingView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <TouchableOpacity
         style={styles.fab}
         onPress={() => openAddForm()}
@@ -235,64 +193,43 @@ export default function ExpensesScreen() {
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      <DraggableFlatList
-        ListHeaderComponent={<BalanceCard />}
-        data={categories}
-        keyExtractor={(item) => item.id}
-        onDragEnd={handleDragEnd}
-        contentContainerStyle={styles.list}
-        ListFooterComponent={
-          showCategoryInput ? <View style={{ height: 80 }} /> : (
-            <TouchableOpacity
-              style={styles.addCategoryButton}
-              onPress={() => setShowCategoryInput(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add-circle-outline" size={22} color="#0891B2" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.addCategoryText}>Create Category</Text>
-              </View>
-            </TouchableOpacity>
-          )
-        }
-        renderItem={({ item, drag, isActive }) => (
-          <ScaleDecorator>
-            <CategoryHeader
-              category={item}
-              expenses={expensesByCategory[item.id] || []}
-              isExpanded={expandedIds.has(item.id)}
-              onToggle={toggleCategory}
-              onLongPress={() => handleCategoryLongPress(item)}
-              onAddExpense={(catId) => openAddForm(catId)}
-            />
-          </ScaleDecorator>
-        )}
-      />
+      <View style={{ flex: 1 }}>
+        <DraggableFlatList
+          ListHeaderComponent={<BalanceCard />}
+          data={categories}
+          keyExtractor={(item) => item.id}
+          onDragEnd={handleDragEnd}
+          contentContainerStyle={styles.list}
+          ListFooterComponent={
+            showCategoryInput ? null : (
+              <TouchableOpacity
+                style={styles.addCategoryButton}
+                onPress={() => setShowCategoryInput(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={22} color="#0891B2" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.addCategoryText}>Create Category</Text>
+                </View>
+              </TouchableOpacity>
+            )
+          }
+          renderItem={({ item, drag, isActive }) => (
+            <ScaleDecorator>
+              <CategoryHeader
+                category={item}
+                expenses={expensesByCategory[item.id] || []}
+                isExpanded={expandedIds.has(item.id)}
+                onToggle={toggleCategory}
+                onLongPress={() => handleCategoryLongPress(item)}
+                onAddExpense={(catId) => openAddForm(catId)}
+              />
+            </ScaleDecorator>
+          )}
+        />
+      </View>
 
-      {showCategoryInput && (
-        <KeyboardAvoidingView
-          behavior="position"
-          keyboardVerticalOffset={0}
-          style={styles.categoryInputFloat}
-        >
-          <TextInput
-            style={styles.categoryFloatInput}
-            placeholder="Category name"
-            placeholderTextColor="#94A3B8"
-            value={categoryNameInput}
-            onChangeText={setCategoryNameInput}
-            onSubmitEditing={handleCreateCategory}
-            autoFocus
-            returnKeyType="done"
-          />
-          <TouchableOpacity style={styles.categoryInputButton} onPress={handleCreateCategory}>
-            <Text style={styles.categoryInputButtonText}>Create</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.categoryInputCancel} onPress={dismissCategoryInput}>
-            <Ionicons name="close" size={20} color="#94A3B8" />
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      )}
+      {showCategoryInput && <CategoryInputBar />}
 
       <ExpenseForm
         visible={formVisible}
@@ -300,7 +237,7 @@ export default function ExpensesScreen() {
         editingExpense={editingExpense}
         preselectedCategoryId={selectedCategoryId}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -319,25 +256,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 24,
     paddingVertical: 14, paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0',
   },
   addCategoryText: { fontSize: 16, fontWeight: '600', color: '#0891B2' },
-  categoryInputFloat: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+  // Category input bar — full width section, sits flush against keyboard
+  categoryInputBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
-  categoryFloatInput: {
+  categoryInputField: {
     flex: 1,
     fontSize: 16,
     color: '#0F172A',
@@ -348,12 +281,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#0891B2',
   },
-  categoryInputButton: {
-    backgroundColor: '#0891B2', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 10,
+  createBtn: {
+    backgroundColor: '#0891B2',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  categoryInputButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  categoryInputCancel: {
-    padding: 4,
-  },
+  createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  dismissBtn: { padding: 4 },
 });
