@@ -8,16 +8,16 @@
 | Metric | Value |
 |--------|-------|
 | Milestone | 1 (initial) |
-| Current Phase | None (planning) |
+| Current Phase | 1 — Context gathered |
 | Completed Phases | 0 / 4 |
 | Requirements Done | 0 / 13 |
-| Last Action | Project initialization |
+| Last Action | Phase 1 context gathered (discuss-phase) |
 
 ## Phase Status
 
 | Phase | Name | Status | Requirements | Started | Completed |
 |-------|------|--------|--------------|---------|-----------|
-| 1 | Shell + Expense Tracker | ○ Pending | 7 | — | — |
+| 1 | Shell + Expense Tracker | ◇ Context | 7 | 2026-04-29 | — |
 | 2 | OCR Pipeline | ○ Pending | 3 | — | — |
 | 3 | Investment Analytics | ○ Pending | 2 | — | — |
 | 4 | Cloud Sync | ○ Pending | 1 | — | — |
@@ -31,8 +31,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ## Next Actions
 
-1. Run `/gsd-plan-phase 1` to plan Phase 1 execution
-2. Or run `/gsd-discuss-phase 1` to gather context before planning
+1. Run `/gsd-plan-phase 1` to create execution plan for Phase 1
 
 ---
-*Last updated: 2026-04-29 after initialization*
+*Last updated: 2026-04-29 after Phase 1 context gathered*
