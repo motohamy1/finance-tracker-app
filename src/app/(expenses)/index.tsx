@@ -1,16 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, Alert,
+  View, Text, TextInput, FlatList, StyleSheet, Alert,
   ActionSheetIOS, Platform, TouchableOpacity, Keyboard,
   KeyboardAvoidingView,
 } from 'react-native';
-import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
-import { CategoryHeader } from '@/components/CategoryHeader';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { EmptyState } from '@/components/EmptyState';
 import { BalanceCard } from '@/components/BalanceCard';
+import { getCategoryLightTint } from '@/types';
 import type { Category, Expense } from '@/types';
 
 export default function ExpensesScreen() {
@@ -20,13 +19,11 @@ export default function ExpensesScreen() {
   const addCategory = useExpenseStore((s) => s.addCategory);
   const renameCategory = useExpenseStore((s) => s.renameCategory);
   const removeCategory = useExpenseStore((s) => s.removeCategory);
-  const reorderCategories = useExpenseStore((s) => s.reorderCategories);
   const getExpenseCount = useExpenseStore((s) => s.getExpenseCount);
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoryNameInput, setCategoryNameInput] = useState('');
 
@@ -43,15 +40,6 @@ export default function ExpensesScreen() {
     setShowCategoryInput(false);
     setCategoryNameInput('');
     Keyboard.dismiss();
-  }, []);
-
-  const toggleCategory = useCallback((categoryId: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(categoryId)) { next.delete(categoryId); }
-      else { next.add(categoryId); }
-      return next;
-    });
   }, []);
 
   const openAddForm = useCallback((categoryId?: string) => {
@@ -123,10 +111,6 @@ export default function ExpensesScreen() {
     }
   }, [openEditForm]);
 
-  const handleDragEnd = useCallback(({ data }: { data: Category[] }) => {
-    reorderCategories(data.map((c) => c.id));
-  }, [reorderCategories]);
-
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -196,11 +180,12 @@ export default function ExpensesScreen() {
       )}
 
       <View style={{ flex: 1 }}>
-        <DraggableFlatList
+        <FlatList
           ListHeaderComponent={<BalanceCard />}
           data={categories}
           keyExtractor={(item) => item.id}
-          onDragEnd={handleDragEnd}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.list}
           ListFooterComponent={
             showCategoryInput ? null : (
@@ -216,18 +201,28 @@ export default function ExpensesScreen() {
               </TouchableOpacity>
             )
           }
-          renderItem={({ item, drag, isActive }) => (
-            <ScaleDecorator>
-              <CategoryHeader
-                category={item}
-                expenses={expensesByCategory[item.id] || []}
-                isExpanded={expandedIds.has(item.id)}
-                onToggle={toggleCategory}
+          renderItem={({ item }) => {
+            const expenses = expensesByCategory[item.id] || [];
+            const tint = getCategoryLightTint(item.colorHex);
+            return (
+              <TouchableOpacity
+                style={[styles.gridCard, { backgroundColor: tint, borderColor: item.colorHex }]}
+                onPress={() => openAddForm(item.id)}
                 onLongPress={() => handleCategoryLongPress(item)}
-                onAddExpense={(catId) => openAddForm(catId)}
-              />
-            </ScaleDecorator>
-          )}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.gridHeader, { backgroundColor: item.colorHex }]}>
+                  <Text style={styles.gridName} numberOfLines={1}>{item.name}</Text>
+                </View>
+                <View style={styles.gridBody}>
+                  <Text style={styles.gridCount}>{expenses.length} expense{expenses.length !== 1 ? 's' : ''}</Text>
+                  {expenses.length > 0 && (
+                    <Text style={styles.gridHint}>Tap to add</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
 
@@ -245,7 +240,45 @@ export default function ExpensesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F4F8' },
-  list: { paddingBottom: 100 },
+  list: { padding: 12, paddingBottom: 100 },
+  gridRow: { gap: 12, marginBottom: 12 },
+  gridCard: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 130,
+  },
+  gridHeader: {
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  gridName: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  gridBody: {
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  gridCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  gridHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+  },
   fab: {
     position: 'absolute', bottom: 20, right: 20, zIndex: 10,
     width: 56, height: 56, borderRadius: 28,
