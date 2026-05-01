@@ -44,6 +44,37 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
     `,
   },
+  {
+    version: 2,
+    name: 'create_trades_and_failed_ocr_log',
+    sql: `
+      CREATE TABLE IF NOT EXISTS trades (
+        id TEXT PRIMARY KEY NOT NULL,
+        ticker TEXT NOT NULL,
+        shares INTEGER NOT NULL CHECK(shares > 0),
+        price_per_share_cents INTEGER NOT NULL CHECK(price_per_share_cents > 0),
+        trade_date TEXT NOT NULL,
+        direction TEXT NOT NULL CHECK(direction IN ('buy', 'sell')),
+        fees_cents INTEGER,
+        thumbnail_uri TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_trades_ticker ON trades(ticker);
+      CREATE INDEX IF NOT EXISTS idx_trades_trade_date ON trades(trade_date);
+      CREATE INDEX IF NOT EXISTS idx_trades_direction ON trades(direction);
+
+      CREATE TABLE IF NOT EXISTS failed_ocr_log (
+        id TEXT PRIMARY KEY NOT NULL,
+        image_uri TEXT NOT NULL,
+        raw_text TEXT NOT NULL DEFAULT '',
+        error_message TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];
 
 export function runMigrations(): void {
