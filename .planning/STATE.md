@@ -9,16 +9,16 @@
 |--------|-------|
 | Milestone | 1 (initial) |
 | Current Phase | 1 — Plan created (3 plans) |
-| Completed Phases | 0 / 4 |
-| Requirements Done | 0 / 13 |
-| Last Action | Phase 2 planned — 4 plans in 2 waves |
+| Completed Phases | 1 / 4 |
+| Requirements Done | 7 / 13 |
+| Last Action | Phase 2 verified — OCR Pipeline complete (4 plans, 82 tests) |
 
 ## Phase Status
 
 | Phase | Name | Status | Requirements | Started | Completed |
 |-------|------|--------|--------------|---------|-----------|
 | 1 | Shell + Expense Tracker | ◆ Planned | 7 | 2026-04-29 | — |
-| 2 | OCR Pipeline | ▶ In Progress | 3 | 2026-05-01 | — |
+| 2 | OCR Pipeline | ✓ Complete | 3 | 2026-05-01 | 2026-05-01 |
 | 3 | Investment Analytics | ○ Pending | 2 | — | — |
 | 4 | Cloud Sync | ○ Pending | 1 | — | — |
 
