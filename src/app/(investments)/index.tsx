@@ -1,7 +1,8 @@
-import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { useTradeStore } from '@/stores/tradeStore';
 import { TradeCard } from '@/components/TradeCard';
 import { EmptyState } from '@/components/EmptyState';
@@ -18,8 +19,35 @@ export default function InvestmentsScreen() {
     initialize();
   }, []);
 
-  const handleImportPress = () => {
-    router.push('/(investments)/import');
+  const handleGalleryImport = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Please allow access to your photo library to import screenshots.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 1,
+    });
+    if (!result.canceled && result.assets[0]) {
+      router.push({
+        pathname: '/(investments)/import',
+        params: { sharedImageUri: result.assets[0].uri },
+      });
+    }
+  };
+
+  const handleManualEntry = () => {
+    router.push('/(investments)/manual');
+  };
+
+  const handleFabPress = () => {
+    Alert.alert('New Trade', undefined, [
+      { text: 'Import from Gallery', onPress: handleGalleryImport },
+      { text: 'Enter Manually', onPress: handleManualEntry },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleTradePress = (trade: Trade) => {
@@ -35,10 +63,17 @@ export default function InvestmentsScreen() {
           icon="trending-up-outline"
           title="No Trades Yet"
           body="Import your first trading screenshot and we'll extract the trade data automatically."
-          ctaText="Import Screenshot"
-          onCtaPress={handleImportPress}
         />
-        {/* Muted preview card per D-10 */}
+        <View style={styles.emptyActions}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleGalleryImport} activeOpacity={0.8}>
+            <Ionicons name="images-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>Import Screenshot</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleManualEntry} activeOpacity={0.8}>
+            <Ionicons name="create-outline" size={20} color="#0891B2" />
+            <Text style={styles.secondaryButtonText}>Enter Manually</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.previewCard}>
           <Ionicons name="image-outline" size={40} color="#CBD5E1" />
           <View style={styles.previewDetails}>
@@ -62,10 +97,9 @@ export default function InvestmentsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
-      {/* FAB per D-06 */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={handleImportPress}
+        onPress={handleFabPress}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
@@ -77,6 +111,23 @@ export default function InvestmentsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F4F8' },
   listContent: { padding: 16, paddingBottom: 80 },
+  emptyActions: {
+    alignItems: 'center', gap: 12, paddingHorizontal: 32,
+    marginTop: 24,
+  },
+  primaryButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#0891B2', paddingHorizontal: 24, paddingVertical: 14,
+    borderRadius: 12, width: '100%', justifyContent: 'center',
+  },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  secondaryButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12,
+    width: '100%', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: '#0891B2',
+  },
+  secondaryButtonText: { color: '#0891B2', fontSize: 16, fontWeight: '600' },
   fab: {
     position: 'absolute', bottom: 24, right: 24,
     width: 56, height: 56, borderRadius: 28,

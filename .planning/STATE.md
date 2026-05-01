@@ -40,6 +40,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 |------|------|-------------|---------------|
 | 2026-05-01 | fix-card-spacing | Aligned BalanceCard padding with category grid | `src/components/BalanceCard.tsx`, `src/app/(expenses)/index.tsx` |
 | 2026-05-01 | fix-filesystem-legacy-import | Fixed deprecated expo-file-system import (getInfoAsync) | `src/app/(investments)/import.tsx`, `src/services/ocr.ts`, `src/__tests__/ocr.test.ts` |
+| 2026-05-01 | direct-gallery-manual-entry | Direct gallery open + manual entry button on Investments tab | `src/app/(investments)/index.tsx` |
 
 ---
 *Last updated: 2026-05-01 — Phase 2 context gathered*
