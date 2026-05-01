@@ -33,5 +33,11 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 1. Run `/gsd-execute-phase 1` to execute the 3 plans for Phase 1
 
+## Quick Tasks Completed
+
+| Date | Slug | Description | Files Changed |
+|------|------|-------------|---------------|
+| 2026-05-01 | fix-card-spacing | Added 16px bottom padding to BalanceCard | `src/components/BalanceCard.tsx` |
+
 ---
-*Last updated: 2026-04-29 after Phase 1 planning*
+*Last updated: 2026-05-01 — Quick task: fix-card-spacing*
