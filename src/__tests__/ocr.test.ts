@@ -19,7 +19,10 @@ const { mockTextRecognition } = vi.hoisted(() => ({
 
 vi.mock('expo-file-system', () => ({
   getInfoAsync: mockFileSystemGetInfo,
-  deleteAsync: mockFileSystemDelete,
+  deleteAsync: (...args: unknown[]) => {
+    mockFileSystemDelete(...args);
+    return Promise.resolve();
+  },
 }));
 
 vi.mock('expo-image-manipulator', () => ({
@@ -194,9 +197,7 @@ describe('processScreenshot', () => {
 
     assertOCRResult(result);
     expect(result.rawText).toContain('BUY');
-    expect(mockFileSystemGetInfo).toHaveBeenCalledWith(testImageUri, {
-      size: true,
-    });
+    expect(mockFileSystemGetInfo).toHaveBeenCalledWith(testImageUri);
     expect(mockImageManipulator).toHaveBeenCalled();
     expect(mockTextRecognition).toHaveBeenCalledWith(downscaledUri);
   });
@@ -239,10 +240,14 @@ describe('processScreenshot', () => {
     });
     mockImageManipulator.mockResolvedValueOnce({ uri: downscaledUri });
 
-    // Cancel before ML Kit runs
+    // Start processing (don't await) — cancel while it's mid-flight
+    const promise = processScreenshot(testImageUri);
+    // Cancel after processScreenshot has started but before ML Kit runs.
+    // The mocks resolve synchronously through microtasks; calling cancelOCR()
+    // after processScreenshot yields at its first await sets the flag.
     cancelOCR();
 
-    await expect(processScreenshot(testImageUri)).rejects.toThrow(
+    await expect(promise).rejects.toThrow(
       'OCR cancelled by user'
     );
 
