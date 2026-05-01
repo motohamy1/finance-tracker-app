@@ -83,3 +83,49 @@ export function getCategoryLightTint(hex: string): string {
 export function getCategoryCardTint(hex: string): string {
   return hexToTint(hex, 0.18);
 }
+
+// ─── Trade Types ───
+export type TradeDirection = 'buy' | 'sell';
+
+export interface Trade {
+  id: string;                 // UUID v4
+  ticker: string;             // Stock ticker, uppercase (e.g., "AAPL")
+  shares: number;             // Number of shares (integer)
+  pricePerShareCents: number; // Price per share in INTEGER cents
+  tradeDate: string;          // ISO 8601 date (YYYY-MM-DD)
+  direction: TradeDirection;  // 'buy' or 'sell'
+  feesCents: number | null;   // Optional fees in INTEGER cents
+  thumbnailUri: string | null; // Compressed 200x200px thumbnail URI (null for manual entries)
+  notes: string | null;       // Optional notes
+  createdAt: string;          // ISO 8601 timestamp
+  updatedAt: string;          // ISO 8601 timestamp
+}
+
+export interface TradeFormData {
+  ticker: string;
+  shares: string;             // String for form input (parsed to integer on save)
+  pricePerShareCents: string; // String for form input (parsed to integer on save)
+  tradeDate: string;
+  direction: TradeDirection;
+  feesCents: string;          // String for form input (parsed to integer or null on save)
+  notes: string;
+}
+
+// ─── OCR Types ───
+export interface OCRResult {
+  ticker: string | null;
+  shares: number | null;
+  pricePerShare: number | null; // In dollars (not cents) — OCR reads display values
+  tradeDate: string | null;     // ISO 8601 date or null
+  direction: TradeDirection | null;
+  rawText: string;              // Full raw OCR output for debugging
+  confidence: number;           // 0.0–1.0 overall extraction confidence
+}
+
+export interface FailedOCRLog {
+  id: string;           // UUID v4
+  imageUri: string;     // URI of the screenshot that failed
+  rawText: string;      // Raw OCR output (even if partial)
+  errorMessage: string; // What went wrong
+  createdAt: string;    // ISO 8601 timestamp
+}
