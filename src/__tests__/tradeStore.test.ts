@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Trade, TradeDirection } from '@/types';
 
-// Mock the database service
-const mockDbCreateTrade = vi.fn();
-const mockDbGetAllTrades = vi.fn();
-const mockDbUpdateTrade = vi.fn();
-const mockDbDeleteTrade = vi.fn();
+// Use vi.hoisted to make mocks available to hoisted vi.mock factories
+const {
+  mockDbCreateTrade,
+  mockDbGetAllTrades,
+  mockDbUpdateTrade,
+  mockDbDeleteTrade,
+} = vi.hoisted(() => ({
+  mockDbCreateTrade: vi.fn(),
+  mockDbGetAllTrades: vi.fn(),
+  mockDbUpdateTrade: vi.fn(),
+  mockDbDeleteTrade: vi.fn(),
+}));
 
 vi.mock('@/services/database', () => ({
   getAllTrades: mockDbGetAllTrades,
@@ -14,7 +21,6 @@ vi.mock('@/services/database', () => ({
   deleteTrade: mockDbDeleteTrade,
 }));
 
-// Mock format utils
 const mockUUID = 'test-uuid-001';
 vi.mock('@/utils/format', () => ({
   generateUUID: () => mockUUID,
