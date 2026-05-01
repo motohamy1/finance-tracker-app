@@ -5,6 +5,7 @@ completed: 2026-05-01
 # Summary: Fix Card Spacing
 
 **Files changed:**
-- `src/components/BalanceCard.tsx` — Changed `paddingBottom: 0` → `paddingBottom: 16` in container style
+- `src/components/BalanceCard.tsx` — `paddingBottom: 0→16`, `paddingHorizontal: 12→0`
+- `src/app/(expenses)/index.tsx` — Wrapped BalanceCard with `paddingHorizontal: 12` in empty state
 
-**Result:** 16px spacing between BalanceCard and category grid boxes. TypeScript check passes.
+**Result:** BalanceCard and category grid share identical 12px horizontal padding. 16px bottom spacing between them. TypeScript passes.

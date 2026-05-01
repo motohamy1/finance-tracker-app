@@ -37,7 +37,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 | Date | Slug | Description | Files Changed |
 |------|------|-------------|---------------|
-| 2026-05-01 | fix-card-spacing | Added 16px bottom padding to BalanceCard | `src/components/BalanceCard.tsx` |
+| 2026-05-01 | fix-card-spacing | Aligned BalanceCard padding with category grid (horizontal + bottom) | `src/components/BalanceCard.tsx`, `src/app/(expenses)/index.tsx` |
 
 ---
 *Last updated: 2026-05-01 — Quick task: fix-card-spacing*

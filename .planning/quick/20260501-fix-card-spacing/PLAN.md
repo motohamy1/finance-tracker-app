@@ -4,8 +4,10 @@ created: 2026-05-01
 ---
 # Fix Card Spacing
 
-Add padding between the BalanceCard (bank-like card) and the category grid boxes below it.
+Align the BalanceCard (bank-like card) padding with the category grid boxes.
 
-**Problem:** The BalanceCard used as `ListHeaderComponent` in the expenses FlatList had `paddingBottom: 0`, so it visually stuck against the category grid cards with no breathing room.
+**Problem 1:** BalanceCard had `paddingBottom: 0`, sticking against category grid cards below.
+**Fix:** Changed `paddingBottom` from `0` to `16` in `BalanceCard.tsx`.
 
-**Fix:** Changed `paddingBottom` from `0` to `16` in `BalanceCard.tsx` container style to create visual separation.
+**Problem 2:** BalanceCard had `paddingHorizontal: 12` plus FlatList's `contentContainerStyle.padding: 12` = 24px effective, while grid cards had only 12px. Cards looked misaligned.
+**Fix:** Set `paddingHorizontal: 0` on BalanceCard (letting FlatList's 12px cover both). Wrapped BalanceCard in padding in the empty-state case where no FlatList exists.
