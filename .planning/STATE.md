@@ -18,7 +18,7 @@
 | Phase | Name | Status | Requirements | Started | Completed |
 |-------|------|--------|--------------|---------|-----------|
 | 1 | Shell + Expense Tracker | ◆ Planned | 7 | 2026-04-29 | — |
-| 2 | OCR Pipeline | ◆ Planned | 3 | 2026-05-01 | — |
+| 2 | OCR Pipeline | ▶ In Progress | 3 | 2026-05-01 | — |
 | 3 | Investment Analytics | ○ Pending | 2 | — | — |
 | 4 | Cloud Sync | ○ Pending | 1 | — | — |
 
