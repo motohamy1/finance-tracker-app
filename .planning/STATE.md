@@ -11,14 +11,14 @@
 | Current Phase | 1 — Plan created (3 plans) |
 | Completed Phases | 0 / 4 |
 | Requirements Done | 0 / 13 |
-| Last Action | Phase 2 context gathered — 32 decisions across 4 areas |
+| Last Action | Phase 2 planned — 4 plans in 2 waves |
 
 ## Phase Status
 
 | Phase | Name | Status | Requirements | Started | Completed |
 |-------|------|--------|--------------|---------|-----------|
 | 1 | Shell + Expense Tracker | ◆ Planned | 7 | 2026-04-29 | — |
-| 2 | OCR Pipeline | ◇ Context | 3 | — | — |
+| 2 | OCR Pipeline | ◆ Planned | 3 | 2026-05-01 | — |
 | 3 | Investment Analytics | ○ Pending | 2 | — | — |
 | 4 | Cloud Sync | ○ Pending | 1 | — | — |
 

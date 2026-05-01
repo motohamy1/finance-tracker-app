@@ -8,7 +8,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 1 | Shell + Expense Tracker | Navigable app with full expense tracking | SHELL-01, EXP-01→05, DATA-01 | 5 |
+| 1 | Shell + Expense Tracker | Navigable app with full expense tracking | SHELL-01, EXP-01→05, DATA-01 | 5 (3 plans) |
 | 2 | OCR Pipeline | Screenshot import → OCR extraction → review flow | INV-01, INV-02, INV-03 | 3 |
 | 3 | Investment Analytics | P&L calculations, portfolio view, trade pairing | INV-04, INV-05 | 3 |
 | 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 2 |
@@ -30,6 +30,11 @@
 
 **Depends on:** (none — foundation phase)
 
+**Plans:** 3 plans
+- [x] 01-01-PLAN.md — Project setup, TypeScript types, SQLite schema, database service
+- [x] 01-02-PLAN.md — Zustand expense store, Expo Router tab layout, splash screen, Investments placeholder
+- [x] 01-03-PLAN.md — ExpenseCard, CategoryHeader (animated), expense form bottom sheet, category CRUD, expense CRUD, long-press menus, drag-to-reorder, empty states
+
 **UI hint:** yes — tab navigation, category headers, expense cards, forms
 
 ---
@@ -46,6 +51,12 @@
 3. User sees extracted data in a review screen and can edit any field before confirming and saving the trade to the database
 
 **Depends on:** Phase 1 (shell navigation, data layer)
+
+**Plans:** 4 plans
+- [ ] 02-01-PLAN.md — Trade types, SQLite v2 migration (trades + failed_ocr_log), trade CRUD operations
+- [ ] 02-02-PLAN.md — Zustand tradeStore, Investments Stack navigator, trade list with empty state + FAB, TradeCard component
+- [ ] 02-03-PLAN.md — OCR service (ML Kit wrapper + text parser), import screen (gallery picker + share sheet + progress UX), install dependencies
+- [ ] 02-04-PLAN.md — Review/edit screen (card preview + inline editing + validation + discard), manual trade entry screen
 
 **UI hint:** yes — image picker, OCR processing screen, review/edit form
 
