@@ -17,7 +17,7 @@ const { mockTextRecognition } = vi.hoisted(() => ({
   mockTextRecognition: vi.fn(),
 }));
 
-vi.mock('expo-file-system', () => ({
+vi.mock('expo-file-system/legacy', () => ({
   getInfoAsync: mockFileSystemGetInfo,
   deleteAsync: (...args: unknown[]) => {
     mockFileSystemDelete(...args);
