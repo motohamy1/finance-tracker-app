@@ -149,7 +149,9 @@ export default function ExpensesScreen() {
         keyboardVerticalOffset={0}
       >
         <View style={{ flex: 1 }}>
-          <BalanceCard />
+          <View style={{ paddingHorizontal: 12 }}>
+            <BalanceCard />
+          </View>
           <EmptyState
             icon="wallet-outline"
             title="Start Tracking"

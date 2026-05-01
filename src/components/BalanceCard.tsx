@@ -32,7 +32,7 @@ export function BalanceCard() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
     paddingTop: 60,
     paddingBottom: 16,
   },
