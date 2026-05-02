@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { useTradeStore } from '@/stores/tradeStore';
 import { TradeCard } from '@/components/TradeCard';
+import { PortfolioHeader } from '@/components/PortfolioHeader';
 import { EmptyState } from '@/components/EmptyState';
 import type { Trade } from '@/types';
 
@@ -29,11 +30,29 @@ export default function InvestmentsScreen() {
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
+      base64: true,
     });
+    
     if (!result.canceled && result.assets[0]) {
+      let finalUri = result.assets[0].uri;
+      
+      // If we got base64, save it to a clean path to avoid Expo Android double-encoding path bugs
+      if (result.assets[0].base64) {
+        try {
+          const ext = finalUri.split('.').pop()?.toLowerCase() || 'jpg';
+          const cleanUri = `${FileSystem.cacheDirectory}ocr-safe-${Date.now()}.${ext}`;
+          await FileSystem.writeAsStringAsync(cleanUri, result.assets[0].base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          finalUri = cleanUri;
+        } catch (err) {
+          console.warn('Failed to save clean copy, using original URI', err);
+        }
+      }
+      
       router.push({
         pathname: '/(investments)/import',
-        params: { sharedImageUri: result.assets[0].uri },
+        params: { sharedImageUri: finalUri },
       });
     }
   };
@@ -63,7 +82,17 @@ export default function InvestmentsScreen() {
           icon="trending-up-outline"
           title="No Trades Yet"
           body="Import your first trading screenshot and we'll extract the trade data automatically."
-        />
+        >
+          <View style={styles.previewCard}>
+            <Ionicons name="image-outline" size={40} color="#CBD5E1" />
+            <View style={styles.previewDetails}>
+              <Text style={styles.previewTicker}>AAPL</Text>
+              <Text style={styles.previewMeta}>10 shares · $185.50</Text>
+              <Text style={styles.previewMeta}>Buy · Apr 28, 2026</Text>
+            </View>
+          </View>
+        </EmptyState>
+
         <View style={styles.emptyActions}>
           <TouchableOpacity style={styles.primaryButton} onPress={handleGalleryImport} activeOpacity={0.8}>
             <Ionicons name="images-outline" size={20} color="#FFFFFF" />
@@ -74,14 +103,6 @@ export default function InvestmentsScreen() {
             <Text style={styles.secondaryButtonText}>Enter Manually</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.previewCard}>
-          <Ionicons name="image-outline" size={40} color="#CBD5E1" />
-          <View style={styles.previewDetails}>
-            <Text style={styles.previewTicker}>AAPL</Text>
-            <Text style={styles.previewMeta}>10 shares · $185.50</Text>
-            <Text style={styles.previewMeta}>Buy · Apr 28, 2026</Text>
-          </View>
-        </View>
       </View>
     );
   }
@@ -91,6 +112,7 @@ export default function InvestmentsScreen() {
       <FlatList
         data={trades}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={<PortfolioHeader />}
         renderItem={({ item }) => (
           <TradeCard trade={item} onPress={() => handleTradePress(item)} />
         )}
@@ -113,7 +135,7 @@ const styles = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 80 },
   emptyActions: {
     alignItems: 'center', gap: 12, paddingHorizontal: 32,
-    marginTop: 24,
+    paddingBottom: 24,
   },
   primaryButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -137,7 +159,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 6,
   },
   previewCard: {
-    position: 'absolute', bottom: 100, left: 32, right: 32,
+    marginTop: 24,
+    width: '100%',
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
     opacity: 0.6, borderWidth: 2, borderColor: '#E2E8F0', borderStyle: 'dashed',
