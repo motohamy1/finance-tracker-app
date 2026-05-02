@@ -8,11 +8,11 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 1 | Shell + Expense Tracker | Navigable app with full expense tracking | SHELL-01, EXP-01→05, DATA-01 | 5 (3 plans) |
+| 1 | Shell + Expense Tracker | Navigable app with full expense tracking | SHELL-01, EXP-01→05, DATA-01 | ✓ (3 plans) |
 | 2 | OCR Pipeline | Screenshot import → OCR extraction → review flow | INV-01, INV-02, INV-03 | 3 |
-| 3 | Investment Analytics | P&L calculations, portfolio view, trade pairing | INV-04, INV-05 | 3 |
+| 3 | Investment Analytics | P&L calculations, portfolio view, trade pairing | INV-04, INV-05 | 3 (3 plans) |
 | 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 2 |
-| 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 (2 plans) |
+| 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 plans |
 
 ---
 
@@ -76,6 +76,11 @@
 
 **Depends on:** Phase 2 (trade data must exist from OCR)
 
+**Plans:** 3 plans
+- [x] 03-01-PLAN.md — Data & Logic: FIFO P&L engine, current_prices table, tradeStore extensions
+- [x] 03-02-PLAN.md — Portfolio UI: Collapsible header, holding cards, current price forms
+- [x] 03-03-PLAN.md — History & Filtering: Ticker chips, search, filter bottom sheet, P&L badges
+
 **UI hint:** yes — P&L summary cards, portfolio list, trade history list
 
 ---
@@ -110,8 +115,8 @@
 **Depends on:** Phase 2 (OCR Pipeline — replaces/enhances its OCR engine)
 
 **Plans:** 2 plans
-- [ ] 05-01-PLAN.md — Platform detection + template-aware extraction (Robinhood, Webull, eToro), extended OCRResult with AI metadata, enhanced parseTradeFromText
-- [ ] 05-02-PLAN.md — Accuracy evaluation framework, 15-case regression test suite, review screen AI metadata display, per-field confidence in trade validation
+- [x] 05-01-PLAN.md — Platform detection + template-aware extraction (Robinhood, Webull, eToro), extended OCRResult with AI metadata, enhanced parseTradeFromText
+- [x] 05-02-PLAN.md — Accuracy evaluation framework, 15-case regression test suite, review screen AI metadata display, per-field confidence in trade validation
 
 **UI hint:** yes — same import/review flow, upgraded extraction engine
 

@@ -9,9 +9,9 @@
 |--------|-------|
 | Milestone | 1 (initial) |
 | Current Phase | 5 — Planned (2 plans) |
-| Completed Phases | 1 / 5 |
-| Requirements Done | 7 / 14 |
-| Last Action | Phase 3 context gathered — Investment Analytics |
+| Completed Phases | 3 / 5 |
+| Requirements Done | 9 / 14 |
+| Last Action | Phase 3 executed — Investment Analytics (3 plans) |
 
 ## Phase Status
 
@@ -19,9 +19,9 @@
 |-------|------|--------|--------------|---------|-----------|
 | 1 | Shell + Expense Tracker | ◆ Planned | 7 | 2026-04-29 | — |
 | 2 | OCR Pipeline | ✓ Complete | 3 | 2026-05-01 | 2026-05-01 |
-| 3 | Investment Analytics | ○ Pending | 2 | — | — |
+| 3 | Investment Analytics | ✓ Complete | 2 | 2026-05-02 | 2026-05-02 |
 | 4 | Cloud Sync | ○ Pending | 1 | — | — |
-| 5 | AI OCR Model | ◆ Planned | 1 | 2026-05-02 | — |
+| 5 | AI OCR Model | ✓ Complete | 1 | 2026-05-02 | — |
 
 ## Project Reference
 
