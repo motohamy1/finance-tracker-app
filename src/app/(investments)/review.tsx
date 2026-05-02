@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform,
+  Alert, Image, KeyboardAvoidingView, Platform, Modal, Pressable,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,9 @@ import {
   isMissingFromOCR,
   formatTradeFieldDisplay,
   canSaveTrade,
+  getFieldConfidence,
+  getConfidenceTier,
+  CONFIDENCE_COLORS,
 } from '@/utils/tradeValidation';
 import type { TradeDirection, TradeFormData, OCRResult } from '@/types';
 
@@ -80,6 +83,41 @@ export default function ReviewScreen() {
     feesCents: fields.feesCents.value,
     notes: fields.notes.value,
   }), [fields]);
+
+  // Tooltip state for per-field confidence details (D-02)
+  const [tooltipField, setTooltipField] = useState<{ key: FieldKey; label: string } | null>(null);
+
+  // Get confidence for a field
+  const fieldConfidence = useCallback((key: FieldKey): number | null => {
+    return getFieldConfidence(ocrResult, key);
+  }, [ocrResult]);
+
+  // Get confidence color for a field
+  const fieldConfidenceColor = useCallback((key: FieldKey): string | null => {
+    const tier = getConfidenceTier(fieldConfidence(key));
+    if (!tier) return null;
+    return CONFIDENCE_COLORS[tier] || null;
+  }, [fieldConfidence]);
+
+  // Show confidence dot for OCR-extractable fields when AI metadata is available
+  const showConfidenceDot = useCallback((key: FieldKey): boolean => {
+    // Only show dots for fields that OCR attempts to extract and when aiMeta exists
+    const extractableKeys: FieldKey[] = ['ticker', 'shares', 'pricePerShareCents', 'tradeDate', 'direction'];
+    if (!extractableKeys.includes(key)) return false;
+    return ocrResult?.aiMeta?.perFieldConfidence !== undefined;
+  }, [ocrResult]);
+
+  // Build confidence dot props for a field row
+  const getConfidenceDotProps = useCallback((key: FieldKey, label: string) => {
+    if (!showConfidenceDot(key)) return undefined;
+    const conf = fieldConfidence(key);
+    const color = fieldConfidenceColor(key);
+    return {
+      color: color || '#94A3B8',
+      confidence: conf ?? 0,
+      onPress: () => setTooltipField({ key, label }),
+    };
+  }, [showConfidenceDot, fieldConfidence, fieldConfidenceColor]);
 
   // Update a single field value
   const updateField = useCallback((key: FieldKey, value: string) => {
@@ -212,6 +250,7 @@ export default function ReviewScreen() {
             error={fieldError('ticker')}
             isWarning={!fieldError('ticker') && checkMissingFromOCR('ticker')}
             onPress={() => toggleEdit('ticker')}
+            confidenceDot={getConfidenceDotProps('ticker', 'Ticker')}
           >
             {fields.ticker.isEditing && (
               <TextInput
@@ -236,6 +275,7 @@ export default function ReviewScreen() {
             error={fieldError('shares')}
             isWarning={!fieldError('shares') && checkMissingFromOCR('shares')}
             onPress={() => toggleEdit('shares')}
+            confidenceDot={getConfidenceDotProps('shares', 'Shares')}
           >
             {fields.shares.isEditing && (
               <TextInput
@@ -259,6 +299,7 @@ export default function ReviewScreen() {
             error={fieldError('pricePerShareCents')}
             isWarning={!fieldError('pricePerShareCents') && checkMissingFromOCR('pricePerShareCents')}
             onPress={() => toggleEdit('pricePerShareCents')}
+            confidenceDot={getConfidenceDotProps('pricePerShareCents', 'Price/Share')}
           >
             {fields.pricePerShareCents.isEditing && (
               <TextInput
@@ -282,6 +323,7 @@ export default function ReviewScreen() {
             error={fieldError('tradeDate')}
             isWarning={!fieldError('tradeDate') && checkMissingFromOCR('tradeDate')}
             onPress={() => toggleEdit('tradeDate')}
+            confidenceDot={getConfidenceDotProps('tradeDate', 'Date')}
           >
             {fields.tradeDate.isEditing && (
               <TextInput
@@ -298,8 +340,27 @@ export default function ReviewScreen() {
           </FieldRow>
 
           {/* Direction toggle per D-16: user can override */}
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Direction</Text>
+          <View style={[
+            styles.fieldRow,
+            checkMissingFromOCR('direction') && !fieldError('direction') && styles.fieldRowWarning,
+            fieldError('direction') && styles.fieldRowError,
+          ]}>
+            <View style={styles.fieldLabelRow}>
+              <Text style={styles.label}>Direction</Text>
+              {getConfidenceDotProps('direction', 'Direction') && (
+                <TouchableOpacity
+                  style={[styles.confidenceDot, {
+                    backgroundColor: fieldConfidenceColor('direction') || '#94A3B8',
+                  }]}
+                  onPress={() => setTooltipField({ key: 'direction', label: 'Direction' })}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.confidenceDotText}>
+                    {Math.round((fieldConfidence('direction') ?? 0) * 100)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.toggleRow}>
               <TouchableOpacity
                 style={[
@@ -344,6 +405,12 @@ export default function ReviewScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+            {fieldError('direction') && (
+              <Text style={styles.errorText}>{fieldError('direction')}</Text>
+            )}
+            {checkMissingFromOCR('direction') && !fieldError('direction') && (
+              <Text style={styles.warningText}>Not detected — please verify</Text>
+            )}
           </View>
 
           {/* Fees (optional per D-22) */}
@@ -392,17 +459,46 @@ export default function ReviewScreen() {
             )}
           </FieldRow>
 
-          {/* OCR confidence indicator */}
+          {/* AI Extraction metadata — replaces simple OCR confidence */}
           {ocrResult && (
-            <View style={styles.confidenceRow}>
-              <Ionicons
-                name={ocrResult.confidence >= 0.75 ? 'checkmark-circle' : 'warning'}
-                size={16}
-                color={ocrResult.confidence >= 0.75 ? '#059669' : '#D97706'}
-              />
-              <Text style={styles.confidenceText}>
-                OCR Confidence: {Math.round(ocrResult.confidence * 100)}%
-              </Text>
+            <View style={styles.confidenceSection}>
+              {/* Main confidence row */}
+              <View style={styles.confidenceRow}>
+                <Ionicons
+                  name={ocrResult.confidence >= 0.75 ? 'checkmark-circle' : 'warning'}
+                  size={16}
+                  color={ocrResult.confidence >= 0.75 ? '#059669' : '#D97706'}
+                />
+                <Text style={styles.confidenceText}>
+                  Extraction Confidence: {Math.round(ocrResult.confidence * 100)}%
+                </Text>
+              </View>
+
+              {/* AI-enhanced platform badge */}
+              {ocrResult.aiMeta && ocrResult.aiMeta.platform !== 'generic' && (
+                <View style={styles.aiMetaRow}>
+                  <Ionicons name="hardware-chip-outline" size={14} color="#6366F1" />
+                  <Text style={styles.aiMetaText}>
+                    AI-enhanced · {ocrResult.aiMeta.platform.charAt(0).toUpperCase() + ocrResult.aiMeta.platform.slice(1)} template
+                  </Text>
+                  <View style={[
+                    styles.aiPill,
+                    ocrResult.aiMeta.platformConfidence >= 0.7 ? styles.aiPillHigh : styles.aiPillLow,
+                  ]}>
+                    <Text style={styles.aiPillText}>
+                      {Math.round(ocrResult.aiMeta.platformConfidence * 100)}% match
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Generic regex fallback indicator */}
+              {(!ocrResult.aiMeta || ocrResult.aiMeta.platform === 'generic') && (
+                <View style={styles.aiMetaRow}>
+                  <Ionicons name="text-outline" size={14} color="#94A3B8" />
+                  <Text style={styles.aiMetaTextMuted}>Generic text extraction</Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -419,6 +515,38 @@ export default function ReviewScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Confidence tooltip popup (D-02, D-04) */}
+      <Modal
+        visible={tooltipField !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTooltipField(null)}
+      >
+        <Pressable style={styles.tooltipOverlay} onPress={() => setTooltipField(null)}>
+          <View style={styles.tooltipContent}>
+            <Text style={styles.tooltipTitle}>
+              {tooltipField?.label} Extraction Confidence
+            </Text>
+            <Text style={styles.tooltipPercentage}>
+              {tooltipField ? `${Math.round((fieldConfidence(tooltipField.key) ?? 0) * 100)}%` : ''}
+            </Text>
+            {ocrResult?.aiMeta && (
+              <Text style={styles.tooltipMethod}>
+                Method: {ocrResult.aiMeta.extractionMethod === 'template'
+                  ? `${ocrResult.aiMeta.platform.charAt(0).toUpperCase() + ocrResult.aiMeta.platform.slice(1)} template`
+                  : 'Generic regex'}
+              </Text>
+            )}
+            <TouchableOpacity
+              style={styles.tooltipClose}
+              onPress={() => setTooltipField(null)}
+            >
+              <Text style={styles.tooltipCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -426,6 +554,7 @@ export default function ReviewScreen() {
 // ─── FieldRow sub-component for inline editing ───
 function FieldRow({
   label, value, isEditing, error, isWarning, onPress, children,
+  confidenceDot,
 }: {
   label: string;
   value: string;
@@ -434,6 +563,7 @@ function FieldRow({
   isWarning: boolean;
   onPress: () => void;
   children?: React.ReactNode;
+  confidenceDot?: { color: string; confidence: number; onPress: () => void };
 }) {
   return (
     <TouchableOpacity
@@ -446,7 +576,23 @@ function FieldRow({
       activeOpacity={0.7}
       disabled={isEditing}
     >
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.fieldLabelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {confidenceDot && (
+          <TouchableOpacity
+            style={[styles.confidenceDot, { backgroundColor: confidenceDot.color }]}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              confidenceDot.onPress();
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.confidenceDotText}>
+              {Math.round(confidenceDot.confidence * 100)}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
       {isEditing ? (
         children
       ) : (
@@ -511,9 +657,116 @@ const styles = StyleSheet.create({
 
   confidenceRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9',
   },
   confidenceText: { fontSize: 13, color: '#64748B' },
+
+  confidenceSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 8,
+  },
+  aiMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 2,
+  },
+  aiMetaText: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '500',
+    flex: 1,
+  },
+  aiMetaTextMuted: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '400',
+    flex: 1,
+  },
+  aiPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  aiPillHigh: {
+    backgroundColor: '#EEF2FF',
+  },
+  aiPillLow: {
+    backgroundColor: '#FEF3C7',
+  },
+  aiPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4338CA',
+  },
+
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  confidenceDot: {
+    width: 28,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confidenceDotText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  tooltipOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  tooltipContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+    gap: 12,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  tooltipTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  tooltipPercentage: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  tooltipMethod: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  tooltipClose: {
+    backgroundColor: '#6366F1',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    marginTop: 4,
+  },
+  tooltipCloseText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   saveButton: {
     backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 16,

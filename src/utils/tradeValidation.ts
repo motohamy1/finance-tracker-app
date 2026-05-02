@@ -1,5 +1,5 @@
 import { getTodayISO, formatCurrency } from '@/utils/format';
-import type { OCRResult, TradeDirection, TradeFormData } from '@/types';
+import type { OCRResult, AIExtractionMeta, TradeDirection, TradeFormData } from '@/types';
 
 /**
  * Parse OCR result into initial form values for the review screen.
@@ -85,13 +85,65 @@ export function validateTradeFields(fields: {
 }
 
 /**
+ * Map review screen field keys to OCR perFieldConfidence keys.
+ * pricePerShareCents in the form maps to pricePerShare in OCR result.
+ */
+function mapFieldKeyToOCR(fieldKey: string): string {
+  if (fieldKey === 'pricePerShareCents') return 'pricePerShare';
+  return fieldKey;
+}
+
+/**
+ * Get the per-field confidence for a specific field from AI extraction metadata.
+ * Returns null if no AI metadata is available or the field is not tracked.
+ */
+export function getFieldConfidence(ocrResult: OCRResult | null, fieldKey: string): number | null {
+  if (!ocrResult?.aiMeta?.perFieldConfidence) return null;
+  const ocrKey = mapFieldKeyToOCR(fieldKey);
+  const confidence = ocrResult.aiMeta.perFieldConfidence[ocrKey];
+  if (confidence === undefined) return null;
+  return confidence;
+}
+
+/**
+ * Get the color tier for a confidence value.
+ * Returns 'high' (>=0.7, green), 'medium' (0.3-0.69, yellow), 'low' (<0.3, red), or null.
+ */
+export function getConfidenceTier(confidence: number | null): 'high' | 'medium' | 'low' | null {
+  if (confidence === null) return null;
+  if (confidence >= 0.7) return 'high';
+  if (confidence >= 0.3) return 'medium';
+  return 'low';
+}
+
+/**
+ * Hex colors for confidence tiers.
+ */
+export const CONFIDENCE_COLORS: Record<string, string> = {
+  high: '#059669',    // Green
+  medium: '#D97706',  // Yellow/Amber
+  low: '#DC2626',     // Red
+};
+
+/**
  * Check whether a field was missing from the OCR result.
- * Only checks fields that OCR attempts to extract (ticker, shares, price, date, direction).
- * Fees and notes are never extracted by OCR, so they always return false.
+ * When AI extraction metadata is available, uses per-field confidence
+ * to determine if the field was confidently extracted (confidence > 0 = present).
+ * Falls back to null-check for Phase 2 regex-only results.
+ *
+ * D-10: Confidence = 0 means field is missing and user must fill manually.
+ * D-11: Low confidence (0.01-0.69) shows warning but allows save.
  */
 export function isMissingFromOCR(ocrResult: OCRResult | null, fieldKey: string): boolean {
   if (!ocrResult) return false;
 
+  // If AI metadata exists, use per-field confidence (D-10)
+  const confidence = getFieldConfidence(ocrResult, fieldKey);
+  if (confidence !== null) {
+    return confidence === 0; // Missing if confidence is exactly 0
+  }
+
+  // Legacy: null-check for regex-only extraction (Phase 2)
   switch (fieldKey) {
     case 'ticker':
       return !ocrResult.ticker;
