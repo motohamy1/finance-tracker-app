@@ -2,7 +2,7 @@
 
 **Created:** 2026-04-29
 **Granularity:** Coarse (4 phases)
-**Total v1 Requirements:** 13
+**Total v1 Requirements:** 14
 
 ## Phase Overview
 
@@ -12,6 +12,7 @@
 | 2 | OCR Pipeline | Screenshot import → OCR extraction → review flow | INV-01, INV-02, INV-03 | 3 |
 | 3 | Investment Analytics | P&L calculations, portfolio view, trade pairing | INV-04, INV-05 | 3 |
 | 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 2 |
+| 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 (2 plans) |
 
 ---
 
@@ -95,18 +96,41 @@
 
 ---
 
+## Phase 5: AI OCR Model
+
+**Goal:** Replace the current plain-text OCR pipeline with an AI-powered model that understands trading app screenshots, distinguishes between different trading platforms/formats, and extracts structured trade data with higher accuracy and fewer errors.
+
+**Requirements:** INV-06
+
+**Success Criteria:**
+1. AI model correctly identifies and extracts ticker, shares, price, date, and buy/sell direction from trading app screenshots with >90% accuracy across multiple trading platforms
+2. Model can distinguish between different screenshot layouts/formats and adapt extraction accordingly
+3. Error rate is measurably reduced compared to the current plain OCR pipeline (Phase 2)
+
+**Depends on:** Phase 2 (OCR Pipeline — replaces/enhances its OCR engine)
+
+**Plans:** 2 plans
+- [ ] 05-01-PLAN.md — Platform detection + template-aware extraction (Robinhood, Webull, eToro), extended OCRResult with AI metadata, enhanced parseTradeFromText
+- [ ] 05-02-PLAN.md — Accuracy evaluation framework, 15-case regression test suite, review screen AI metadata display, per-field confidence in trade validation
+
+**UI hint:** yes — same import/review flow, upgraded extraction engine
+
+---
+
 ## Dependency Graph
 
 ```
 Phase 1 (Shell + Expenses)
     ├──→ Phase 2 (OCR Pipeline)
-    │       └──→ Phase 3 (Investment Analytics)
+    │       ├──→ Phase 3 (Investment Analytics)
+    │       └──→ Phase 5 (AI OCR Model)
     └──→ Phase 4 (Cloud Sync)
 ```
 
 - Phase 1 is the foundation — all other phases depend on it
 - Phase 2 → Phase 3: OCR data feeds analytics
-- Phase 4 is independent of 2-3 (can run in parallel with them)
+- Phase 2 → Phase 5: AI model replaces/enhances Phase 2 OCR engine
+- Phase 4 is independent of 2-3-5 (can run in parallel with them)
 
 ## Requirement Coverage
 
@@ -125,8 +149,9 @@ Phase 1 (Shell + Expenses)
 | INV-04 | 3 | ✓ |
 | INV-05 | 3 | ✓ |
 | DATA-02 | 4 | ✓ |
+| INV-06 | 5 | ✓ |
 
-**13/13 requirements mapped — 100% coverage**
+**14/14 requirements mapped — 100% coverage**
 
 ---
 *Roadmap created: 2026-04-29*
