@@ -5,13 +5,15 @@ import { formatCurrency, formatDate } from '@/utils/format';
 
 interface TradeCardProps {
   trade: Trade;
+  pnlCents?: number | null;
   onPress: () => void;
 }
 
-export function TradeCard({ trade, onPress }: TradeCardProps) {
+export function TradeCard({ trade, pnlCents, onPress }: TradeCardProps) {
   const isBuy = trade.direction === 'buy';
   const directionColor = isBuy ? '#059669' : '#DC2626';
   const directionLabel = isBuy ? 'Buy' : 'Sell';
+  const hasPnl = pnlCents !== null && pnlCents !== undefined;
 
   return (
     <TouchableOpacity
@@ -19,7 +21,6 @@ export function TradeCard({ trade, onPress }: TradeCardProps) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      {/* Left: Thumbnail or placeholder */}
       <View style={styles.thumbnailContainer}>
         {trade.thumbnailUri ? (
           <Image
@@ -34,7 +35,6 @@ export function TradeCard({ trade, onPress }: TradeCardProps) {
         )}
       </View>
 
-      {/* Center: Trade details */}
       <View style={styles.details}>
         <Text style={styles.ticker}>{trade.ticker}</Text>
         <Text style={styles.meta}>
@@ -43,7 +43,6 @@ export function TradeCard({ trade, onPress }: TradeCardProps) {
         <Text style={styles.date}>{formatDate(trade.tradeDate)}</Text>
       </View>
 
-      {/* Right: Direction badge + total value */}
       <View style={styles.rightCol}>
         <View style={[styles.directionBadge, { backgroundColor: directionColor }]}>
           <Text style={styles.directionText}>{directionLabel}</Text>
@@ -51,6 +50,18 @@ export function TradeCard({ trade, onPress }: TradeCardProps) {
         <Text style={styles.totalValue}>
           {formatCurrency(trade.shares * trade.pricePerShareCents)}
         </Text>
+        {hasPnl && (
+          <View style={[styles.pnlBadge, pnlCents >= 0 ? styles.pnlGain : styles.pnlLoss]}>
+            <Ionicons
+              name={pnlCents >= 0 ? 'trending-up' : 'trending-down'}
+              size={11}
+              color={pnlCents >= 0 ? '#059669' : '#DC2626'}
+            />
+            <Text style={[styles.pnlText, { color: pnlCents >= 0 ? '#059669' : '#DC2626' }]}>
+              {pnlCents >= 0 ? '+' : ''}{formatCurrency(Math.abs(pnlCents))}
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -90,4 +101,15 @@ const styles = StyleSheet.create({
   },
   directionText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
   totalValue: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  pnlBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  pnlGain: { backgroundColor: 'rgba(5, 150, 105, 0.1)' },
+  pnlLoss: { backgroundColor: 'rgba(220, 38, 38, 0.1)' },
+  pnlText: { fontSize: 11, fontWeight: '700' },
 });
