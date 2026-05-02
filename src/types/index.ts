@@ -120,6 +120,7 @@ export interface OCRResult {
   direction: TradeDirection | null;
   rawText: string;              // Full raw OCR output for debugging
   confidence: number;           // 0.0–1.0 overall extraction confidence
+  aiMeta?: AIExtractionMeta;    // AI extraction metadata (undefined for Phase 2 regex-only)
 }
 
 export interface FailedOCRLog {
@@ -128,4 +129,89 @@ export interface FailedOCRLog {
   rawText: string;      // Raw OCR output (even if partial)
   errorMessage: string; // What went wrong
   createdAt: string;    // ISO 8601 timestamp
+}
+
+// ─── AI OCR Enhancement Types ───
+export type Platform = 'robinhood' | 'webull' | 'etoro' | 'generic';
+
+export interface PlatformSignature {
+  platform: Platform;
+  textPatterns: string[];        // Ordered regex strings; first match = platform detected
+  confidenceKeywords: string[];  // Words that strongly indicate this platform
+}
+
+export const PLATFORM_SIGNATURES: PlatformSignature[] = [
+  {
+    platform: 'robinhood',
+    textPatterns: [
+      'Robinhood', 'Robinhood Financial', 'RH\\b',
+      'Market (Buy|Sell)', 'Order (Buy|Sell)', 'Limit Price',
+      'Not Held', 'Day Order', 'GTC', 'Stop Price',
+    ],
+    confidenceKeywords: ['Robinhood', 'RH', 'Market Buy', 'Market Sell', 'Limit Price'],
+  },
+  {
+    platform: 'webull',
+    textPatterns: [
+      'Webull', 'WEBULL FINANCIAL', 'Webull Financial LLC',
+      'Order Filled', 'Order Status', 'Filled Price',
+      'Avg Price', 'Total Cost', 'Webull Securities',
+    ],
+    confidenceKeywords: ['Webull', 'Order Filled', 'Filled Price', 'Total Cost'],
+  },
+  {
+    platform: 'etoro',
+    textPatterns: [
+      'eToro', 'eToro Europe', 'eToro \\(Europe\\)',
+      'Investment amount', 'Close Trade', 'Open Trade',
+      'Stop Loss', 'Take Profit', 'Leverage',
+    ],
+    confidenceKeywords: ['eToro', 'Investment amount', 'Close Trade', 'Open Trade'],
+  },
+];
+
+export interface AIExtractionMeta {
+  platform: Platform;
+  extractionMethod: 'template' | 'regex';
+  platformConfidence: number;              // 0.0–1.0 — how confident platform detection was
+  perFieldConfidence: Record<string, number>;  // { ticker: 0.95, shares: 0.80, ... }
+}
+
+// ─── Portfolio & P&L Types ───
+export interface PnLPair {
+  buyTradeId: string;
+  sellTradeId: string;
+  ticker: string;
+  matchedShares: number;
+  buyPriceCents: number;
+  sellPriceCents: number;
+  buyFeesCents: number;
+  sellFeesCents: number;
+  realizedPnlCents: number;
+  buyDate: string;
+  sellDate: string;
+}
+
+export interface Holding {
+  ticker: string;
+  totalShares: number;
+  averageCostBasisCents: number;
+  currentPriceCents: number | null;
+  unrealizedPnlCents: number | null;
+  unrealizedPnlPercent: number | null;
+  totalFeesCents: number;
+  priceUpdatedAt: string | null;
+}
+
+export interface PortfolioSummary {
+  totalRealizedPnlCents: number;
+  totalUnrealizedPnlCents: number | null;
+  holdings: Holding[];
+  pnlPairs: PnLPair[];
+}
+
+export interface CurrentPrice {
+  ticker: string;
+  priceCents: number;
+  updatedAt: string;
 }

@@ -75,6 +75,17 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 3,
+    name: 'create_current_prices',
+    sql: `
+      CREATE TABLE IF NOT EXISTS current_prices (
+        ticker TEXT PRIMARY KEY NOT NULL,
+        price_cents INTEGER NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];
 
 export function runMigrations(): void {

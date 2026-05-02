@@ -267,3 +267,29 @@ export function clearFailedOCRLogs(): void {
   const db = getDatabase();
   db.runSync('DELETE FROM failed_ocr_log;');
 }
+
+// ─── Current Prices ───
+
+export function upsertCurrentPrice(ticker: string, priceCents: number): void {
+  const db = getDatabase();
+  db.runSync(
+    `INSERT INTO current_prices (ticker, price_cents, updated_at)
+     VALUES (?, ?, datetime('now'))
+     ON CONFLICT(ticker) DO UPDATE SET
+       price_cents = excluded.price_cents,
+       updated_at = excluded.updated_at;`,
+    [ticker, priceCents]
+  );
+}
+
+export function getAllCurrentPrices(): Record<string, { priceCents: number; updatedAt: string }> {
+  const db = getDatabase();
+  const rows = db.getAllSync<{ ticker: string; price_cents: number; updated_at: string }>(
+    'SELECT ticker, price_cents, updated_at FROM current_prices;'
+  );
+  const map: Record<string, { priceCents: number; updatedAt: string }> = {};
+  for (const row of rows) {
+    map[row.ticker] = { priceCents: row.price_cents, updatedAt: row.updated_at };
+  }
+  return map;
+}

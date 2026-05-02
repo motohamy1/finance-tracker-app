@@ -1,47 +1,53 @@
 import { create } from 'zustand';
-import type { Trade, TradeFormData } from '@/types';
+import type { Trade, TradeFormData, PnLPair, Holding, PortfolioSummary } from '@/types';
 import {
   getAllTrades, createTrade as dbCreateTrade,
   updateTrade as dbUpdateTrade, deleteTrade as dbDeleteTrade,
+  upsertCurrentPrice, getAllCurrentPrices,
 } from '@/services/database';
+import { calculatePnLPairs, calculateHoldings } from '@/services/pnl';
 import { generateUUID, getTodayISO } from '@/utils/format';
 
 interface TradeStoreState {
-  // ─── State ───
   trades: Trade[];
+  currentPrices: Record<string, { priceCents: number; updatedAt: string }>;
   isLoading: boolean;
   isInitialized: boolean;
 
-  // ─── Initialization ───
   initialize: () => void;
 
-  // ─── Trade Actions ───
   addTrade: (data: TradeFormData) => Trade;
   editTrade: (tradeId: string, data: Partial<TradeFormData>) => void;
   removeTrade: (tradeId: string) => void;
 
-  // ─── Helpers ───
+  updateCurrentPrice: (ticker: string, priceCents: number) => void;
+  bulkUpdatePrices: (prices: Record<string, number>) => void;
+  refreshPrices: () => void;
+
+  getPnlPairs: () => PnLPair[];
+  getHoldings: () => Holding[];
+  getPortfolioSummary: () => PortfolioSummary;
   getTradeById: (tradeId: string) => Trade | undefined;
 }
 
 export const useTradeStore = create<TradeStoreState>((set, get) => ({
   trades: [],
+  currentPrices: {},
   isLoading: true,
   isInitialized: false,
 
-  // ─── Initialize: load all trades from SQLite ───
   initialize: () => {
     if (get().isInitialized) return;
     try {
       const trades = getAllTrades();
-      set({ trades, isLoading: false, isInitialized: true });
+      const prices = getAllCurrentPrices();
+      set({ trades, currentPrices: prices, isLoading: false, isInitialized: true });
     } catch (error) {
       console.error('Failed to initialize trade store:', error);
       set({ isLoading: false, isInitialized: true });
     }
   },
 
-  // ─── Trade CRUD ───
   addTrade: (data) => {
     const id = generateUUID();
     const shares = parseInt(data.shares, 10) || 0;
@@ -56,7 +62,7 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
       data.tradeDate || getTodayISO(),
       data.direction,
       feesCents,
-      null, // thumbnailUri — set by import flow, not manual entry
+      null,
       data.notes?.trim() || null
     );
 
@@ -79,9 +85,7 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
     const updated = dbUpdateTrade(tradeId, updates as Parameters<typeof dbUpdateTrade>[1]);
     if (!updated) return;
 
-    set({
-      trades: get().trades.map((t) => (t.id === tradeId ? updated : t)),
-    });
+    set({ trades: get().trades.map((t) => (t.id === tradeId ? updated : t)) });
   },
 
   removeTrade: (tradeId) => {
@@ -89,7 +93,51 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
     set({ trades: get().trades.filter((t) => t.id !== tradeId) });
   },
 
-  // ─── Helpers ───
+  updateCurrentPrice: (ticker, priceCents) => {
+    upsertCurrentPrice(ticker, priceCents);
+    set({
+      currentPrices: {
+        ...get().currentPrices,
+        [ticker]: { priceCents, updatedAt: new Date().toISOString() },
+      },
+    });
+  },
+
+  bulkUpdatePrices: (prices) => {
+    for (const [ticker, priceCents] of Object.entries(prices)) {
+      upsertCurrentPrice(ticker, Math.round(priceCents));
+    }
+    set({ currentPrices: getAllCurrentPrices() });
+  },
+
+  refreshPrices: () => {
+    set({ currentPrices: getAllCurrentPrices() });
+  },
+
+  getPnlPairs: () => {
+    return calculatePnLPairs(get().trades);
+  },
+
+  getHoldings: () => {
+    return calculateHoldings(get().trades, get().currentPrices);
+  },
+
+  getPortfolioSummary: () => {
+    const pairs = get().getPnlPairs();
+    const holdings = get().getHoldings();
+    const totalRealizedPnlCents = pairs.reduce((sum, p) => sum + p.realizedPnlCents, 0);
+    const totalUnrealizedPnlCents = holdings.reduce(
+      (sum, h) => (h.unrealizedPnlCents !== null ? (sum ?? 0) + h.unrealizedPnlCents : sum),
+      null as number | null
+    );
+    return {
+      totalRealizedPnlCents,
+      totalUnrealizedPnlCents,
+      holdings,
+      pnlPairs: pairs,
+    };
+  },
+
   getTradeById: (tradeId) => {
     return get().trades.find((t) => t.id === tradeId);
   },
