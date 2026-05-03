@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
+import { AppState, AppStateStatus, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { runMigrations } from '@/db/schema';
 import { useExpenseStore } from '@/stores/expenseStore';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
@@ -19,6 +20,9 @@ export default function RootLayout() {
       try {
         runMigrations();
         initialize();
+        // Initialize sync store (check auth state, restore availability) — non-blocking
+        const settingsStore = useSettingsStore.getState();
+        settingsStore.initialize();
         setDbReady(true);
       } catch (error) {
         console.error('Init failed:', error);
@@ -33,6 +37,41 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [dbReady]);
+
+  // Cloud sync lifecycle triggers (D-04: app start, backgrounding)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const { isSyncEnabled, isAuthenticated, isSyncing } = useSettingsStore.getState();
+
+      // Triple gate: sync must be enabled, user must be authenticated, no sync in progress
+      if (!isSyncEnabled || !isAuthenticated || isSyncing) return;
+
+      if (nextAppState === 'background') {
+        // Trigger sync when app goes to background (D-04)
+        useSettingsStore.getState().syncNow();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Trigger sync on app start if sync is enabled and user is authenticated
+    const { isSyncEnabled, isAuthenticated } = useSettingsStore.getState();
+    if (isSyncEnabled && isAuthenticated) {
+      // Delay 2 seconds to avoid competing with splash screen and initial data load
+      const timer = setTimeout(() => {
+        useSettingsStore.getState().syncNow();
+      }, 2000);
+
+      return () => {
+        subscription.remove();
+        clearTimeout(timer);
+      };
+    }
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   if (!dbReady) {
     return (
