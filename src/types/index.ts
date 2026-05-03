@@ -215,3 +215,39 @@ export interface CurrentPrice {
   priceCents: number;
   updatedAt: string;
 }
+
+// ─── Sync Types (Phase 4) ───
+
+/** Tables that participate in cloud sync (D-06: record-level granularity) */
+export type SyncTable = 'categories' | 'expenses' | 'trades' | 'current_prices';
+
+/** All syncable record types union */
+export type SyncRecord = Category | Expense | Trade | CurrentPrice;
+
+/** Sync manifest stored in Drive root — tracks per-table versions and counts */
+export interface SyncManifest {
+  version: number;
+  tables: Record<SyncTable, { recordCount: number; lastModified: string }>;
+  deviceId: string;
+  updatedAt: string;
+}
+
+/** Per-table sync log entry stored in AsyncStorage (D-13) */
+export interface SyncLog {
+  table: SyncTable;
+  lastSyncAt: string;          // ISO 8601 — last successful sync timestamp
+  lastSyncRecordCount: number; // record count at time of last sync
+}
+
+/** Current sync state for Zustand store and UI */
+export interface SyncState {
+  isAuthenticated: boolean;
+  isSyncEnabled: boolean;
+  isSyncing: boolean;
+  lastSyncAt: string | null;
+  lastSyncError: string | null;
+  googleEmail: string | null;
+  restoreAvailable: boolean;   // true when fresh install + data found in Drive
+  restorePromptDismissed: boolean;
+  syncLogs: Record<SyncTable, SyncLog>;
+}

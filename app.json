@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "financetracker",
+    "scheme": ["finance-tracker"],
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -43,7 +43,8 @@
           "photosPermission": "Finance Tracker needs access to your photos to import trading screenshots.",
           "cameraPermission": "Finance Tracker needs camera access to capture trading screenshots."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
