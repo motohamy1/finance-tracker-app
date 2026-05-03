@@ -6,10 +6,11 @@ import { formatCurrency, formatDate } from '@/utils/format';
 interface TradeCardProps {
   trade: Trade;
   pnlCents?: number | null;
+  pnlMultiplier?: number | null;
   onPress: () => void;
 }
 
-export function TradeCard({ trade, pnlCents, onPress }: TradeCardProps) {
+export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCardProps) {
   const isBuy = trade.direction === 'buy';
   const directionColor = isBuy ? '#059669' : '#DC2626';
   const directionLabel = isBuy ? 'Buy' : 'Sell';
@@ -59,6 +60,13 @@ export function TradeCard({ trade, pnlCents, onPress }: TradeCardProps) {
             />
             <Text style={[styles.pnlText, { color: pnlCents >= 0 ? '#059669' : '#DC2626' }]}>
               {pnlCents >= 0 ? '+' : ''}{formatCurrency(Math.abs(pnlCents))}
+            </Text>
+          </View>
+        )}
+        {pnlMultiplier !== null && pnlMultiplier !== undefined && (
+          <View style={[styles.multiplierBadge, pnlMultiplier >= 1 ? styles.multiplierGain : styles.multiplierLoss]}>
+            <Text style={[styles.multiplierText, pnlMultiplier >= 1 ? styles.multiplierGainText : styles.multiplierLossText]}>
+              {pnlMultiplier >= 1 ? '+' : ''}{((pnlMultiplier - 1) * 100).toFixed(1)}%
             </Text>
           </View>
         )}
@@ -112,4 +120,10 @@ const styles = StyleSheet.create({
   pnlGain: { backgroundColor: 'rgba(5, 150, 105, 0.1)' },
   pnlLoss: { backgroundColor: 'rgba(220, 38, 38, 0.1)' },
   pnlText: { fontSize: 11, fontWeight: '700' },
+  multiplierBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  multiplierGain: { backgroundColor: '#DCFCE7' },
+  multiplierLoss: { backgroundColor: '#FEE2E2' },
+  multiplierText: { fontSize: 12, fontWeight: '700' },
+  multiplierGainText: { color: '#059669' },
+  multiplierLossText: { color: '#DC2626' },
 });
