@@ -6,7 +6,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { runMigrations } from '@/db/schema';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import SyncIndicator from '@/components/SyncIndicator';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// FUTURE: Import RestoreBanner in src/app/(expenses)/index.tsx
+// and render <RestoreBanner /> at the top of the expenses list.
+// This banner shows "Existing data found in Drive — Restore?" on fresh install.
 
 SplashScreen.preventAutoHideAsync();
 
@@ -120,6 +125,8 @@ export default function RootLayout() {
           name="settings"
           options={{
             title: 'Settings',
+            headerShown: true,
+            headerRight: () => <SyncIndicator />,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings-outline" size={size} color={color} />
             ),
