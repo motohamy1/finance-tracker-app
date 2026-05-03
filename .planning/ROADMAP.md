@@ -11,8 +11,9 @@
 | 1 | Shell + Expense Tracker | Navigable app with full expense tracking | SHELL-01, EXP-01→05, DATA-01 | ✓ (3 plans) |
 | 2 | OCR Pipeline | Screenshot import → OCR extraction → review flow | INV-01, INV-02, INV-03 | 3 |
 | 3 | Investment Analytics | P&L calculations, portfolio view, trade pairing | INV-04, INV-05 | 3 (3 plans) |
-| 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 2 |
+| 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 3 (3 plans) |
 | 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 plans |
+| 6 | Investment Page Concept | Show gain/loss by comparing buying and selling | INV-07 | TBD |
 
 ---
 
@@ -97,6 +98,11 @@
 
 **Depends on:** Phase 1 (data layer), optionally Phase 2-3 (full data)
 
+**Plans:** 3 plans
+- [ ] 04-01-PLAN.md — Auth infrastructure: Google Sign-In, Drive API service, sync TypeScript types
+- [ ] 04-02-PLAN.md — Sync engine: JSON export/import, LWW merge, Zustand settingsStore, lifecycle hooks
+- [ ] 04-03-PLAN.md — Settings UI: auth button, sync toggle, Sync Now, RestoreBanner, SyncIndicator
+
 **UI hint:** yes — settings screen, sync toggle, backup/restore buttons
 
 ---
@@ -122,12 +128,31 @@
 
 ---
 
+## Phase 6: Investment Page Concept
+
+**Goal:** Ensure the core concept of the investment page/section is solid. Show gain or loss of investments by comparing buying and selling. Data can be entered manually or via screenshots; the purpose is the priority.
+
+**Requirements:** INV-07
+
+**Success Criteria:**
+1. Investment overview page clearly contrasts buy and sell data to highlight P&L.
+2. The UI effectively handles and normalizes data regardless of whether it was manually entered or imported via OCR.
+
+**Depends on:** Phase 3 (Investment Analytics)
+
+**Plans:** TBD
+
+**UI hint:** yes — unified view for manual/OCR trades highlighting gains and losses
+
+---
+
 ## Dependency Graph
 
 ```
 Phase 1 (Shell + Expenses)
     ├──→ Phase 2 (OCR Pipeline)
     │       ├──→ Phase 3 (Investment Analytics)
+    │       │       └──→ Phase 6 (Investment Page Concept)
     │       └──→ Phase 5 (AI OCR Model)
     └──→ Phase 4 (Cloud Sync)
 ```
@@ -155,8 +180,9 @@ Phase 1 (Shell + Expenses)
 | INV-05 | 3 | ✓ |
 | DATA-02 | 4 | ✓ |
 | INV-06 | 5 | ✓ |
+| INV-07 | 6 | ✓ |
 
-**14/14 requirements mapped — 100% coverage**
+**15/15 requirements mapped — 100% coverage**
 
 ---
 *Roadmap created: 2026-04-29*
