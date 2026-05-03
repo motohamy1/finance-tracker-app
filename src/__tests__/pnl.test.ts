@@ -6,17 +6,17 @@ const mockTrades: Trade[] = [
   {
     id: 'b1', ticker: 'AAPL', shares: 10, pricePerShareCents: 15000,
     tradeDate: '2026-01-15', direction: 'buy', feesCents: 100,
-    thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+    thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
   },
   {
     id: 'b2', ticker: 'AAPL', shares: 5, pricePerShareCents: 15500,
     tradeDate: '2026-02-01', direction: 'buy', feesCents: 50,
-    thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+    thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
   },
   {
     id: 's1', ticker: 'AAPL', shares: 12, pricePerShareCents: 18500,
     tradeDate: '2026-03-10', direction: 'sell', feesCents: 120,
-    thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+    thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
   },
 ];
 
@@ -24,17 +24,17 @@ const mockTradesMulti: Trade[] = [
   {
     id: 'ba', ticker: 'AAPL', shares: 10, pricePerShareCents: 15000,
     tradeDate: '2026-01-15', direction: 'buy', feesCents: 100,
-    thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+    thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
   },
   {
     id: 'bb', ticker: 'TSLA', shares: 5, pricePerShareCents: 25000,
     tradeDate: '2026-02-01', direction: 'buy', feesCents: 50,
-    thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+    thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
   },
   {
     id: 'sa', ticker: 'AAPL', shares: 10, pricePerShareCents: 20000,
     tradeDate: '2026-03-01', direction: 'sell', feesCents: 100,
-    thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+    thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
   },
 ];
 
@@ -78,7 +78,7 @@ describe('calculatePnLPairs', () => {
       {
         id: 's-nomatch', ticker: 'MSFT', shares: 5, pricePerShareCents: 40000,
         tradeDate: '2026-01-01', direction: 'sell', feesCents: null,
-        thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+        thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
       },
     ];
     expect(calculatePnLPairs(onlySells)).toEqual([]);
@@ -89,17 +89,17 @@ describe('calculatePnLPairs', () => {
       {
         id: 'bbig', ticker: 'GOOGL', shares: 20, pricePerShareCents: 17000,
         tradeDate: '2026-01-01', direction: 'buy', feesCents: 100,
-        thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+        thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
       },
       {
         id: 'ssmall1', ticker: 'GOOGL', shares: 10, pricePerShareCents: 18000,
         tradeDate: '2026-02-01', direction: 'sell', feesCents: 50,
-        thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+        thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
       },
       {
         id: 'ssmall2', ticker: 'GOOGL', shares: 10, pricePerShareCents: 18500,
         tradeDate: '2026-03-01', direction: 'sell', feesCents: 50,
-        thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+        thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
       },
     ];
     const pairs = calculatePnLPairs(trades);
@@ -147,7 +147,7 @@ describe('calculateHoldings', () => {
     const trades: Trade[] = [{
       id: 'bloss', ticker: 'META', shares: 10, pricePerShareCents: 50000,
       tradeDate: '2026-01-01', direction: 'buy', feesCents: null,
-      thumbnailUri: null, notes: null, createdAt: '', updatedAt: '',
+      thumbnailUri: null, notes: null, assetType: null, createdAt: '', updatedAt: '',
     }];
     const prices = { META: { priceCents: 40000, updatedAt: '2026-01-15' } };
     const holdings = calculateHoldings(trades, prices);

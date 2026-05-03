@@ -65,6 +65,7 @@ describe('Trade CRUD Operations', () => {
       fees_cents: 0,
       thumbnail_uri: null,
       notes: null,
+      asset_type: null,
       created_at: '2026-05-01T00:00:00.000Z',
       updated_at: '2026-05-01T00:00:00.000Z',
     };
@@ -73,7 +74,7 @@ describe('Trade CRUD Operations', () => {
 
     const result = createTrade(
       'uuid-1', 'AAPL', 100, 15000, '2026-05-01',
-      'buy' as TradeDirection, 0, null, null
+      'buy' as TradeDirection, 0, null, null, null
     );
 
     // Should have inserted via runSync with parameterized query
@@ -82,7 +83,7 @@ describe('Trade CRUD Operations', () => {
     const paramsArg = mockDb.runSync.mock.calls[0][1];
     expect(sqlArg).toContain('INSERT INTO trades');
     expect(sqlArg).toContain('?'); // Parameterized
-    expect(paramsArg).toHaveLength(11);
+    expect(paramsArg).toHaveLength(12);
 
     // Should return the mapped Trade object
     expect(result).toBeDefined();

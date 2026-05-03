@@ -14,11 +14,12 @@ describe('Trade Types', () => {
       feesCents: null,
       thumbnailUri: null,
       notes: null,
+      assetType: null,
       createdAt: '2026-05-01T00:00:00.000Z',
       updatedAt: '2026-05-01T00:00:00.000Z',
     };
 
-    // Verify all 10 fields exist on the object
+    // Verify all 12 fields exist on the object
     const fields = Object.keys(trade);
     expect(fields).toContain('id');
     expect(fields).toContain('ticker');
@@ -29,6 +30,7 @@ describe('Trade Types', () => {
     expect(fields).toContain('feesCents');
     expect(fields).toContain('thumbnailUri');
     expect(fields).toContain('notes');
+    expect(fields).toContain('assetType');
     expect(fields).toContain('createdAt');
     expect(fields).toContain('updatedAt');
 

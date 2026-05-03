@@ -39,6 +39,7 @@ const makeTradeRow = (overrides: Partial<Trade> = {}): Trade => ({
   feesCents: null,
   thumbnailUri: null,
   notes: null,
+  assetType: null,
   createdAt: '2026-05-01T00:00:00.000Z',
   updatedAt: '2026-05-01T00:00:00.000Z',
   ...overrides,
@@ -135,6 +136,7 @@ describe('tradeStore', () => {
     expect(callArgs[6]).toBeNull();     // feesCents (empty string → null)
     expect(callArgs[7]).toBeNull();     // thumbnailUri (not set in manual)
     expect(callArgs[8]).toBeNull();     // notes (empty trimmed → null)
+    expect(callArgs[9]).toBeNull();     // assetType (not set in manual)
 
     // Should return the created Trade
     expect(result).toBe(mockTrade);

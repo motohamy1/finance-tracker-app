@@ -147,6 +147,7 @@ type TradeRow = {
   id: string; ticker: string; shares: number;
   price_per_share_cents: number; trade_date: string; direction: string;
   fees_cents: number | null; thumbnail_uri: string | null; notes: string | null;
+  asset_type: string | null;
   created_at: string; updated_at: string;
 };
 
@@ -159,6 +160,7 @@ function rowToTrade(row: TradeRow): Trade {
     feesCents: row.fees_cents,
     thumbnailUri: row.thumbnail_uri,
     notes: row.notes,
+    assetType: row.asset_type,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -167,15 +169,16 @@ function rowToTrade(row: TradeRow): Trade {
 export function createTrade(
   id: string, ticker: string, shares: number,
   pricePerShareCents: number, tradeDate: string, direction: TradeDirection,
-  feesCents: number | null, thumbnailUri: string | null, notes: string | null
+  feesCents: number | null, thumbnailUri: string | null, notes: string | null,
+  assetType: string | null
 ): Trade {
   const db = getDatabase();
   const now = new Date().toISOString();
   db.runSync(
     `INSERT INTO trades (id, ticker, shares, price_per_share_cents, trade_date, direction,
-      fees_cents, thumbnail_uri, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-    [id, ticker, shares, pricePerShareCents, tradeDate, direction, feesCents, thumbnailUri, notes, now, now]
+      fees_cents, thumbnail_uri, notes, asset_type, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+    [id, ticker, shares, pricePerShareCents, tradeDate, direction, feesCents, thumbnailUri, notes, assetType, now, now]
   );
   return getTradeById(id)!;
 }
@@ -202,6 +205,7 @@ export function updateTrade(
     ticker?: string; shares?: number; pricePerShareCents?: number;
     tradeDate?: string; direction?: TradeDirection; feesCents?: number | null;
     thumbnailUri?: string | null; notes?: string | null;
+    assetType?: string | null;
   }
 ): Trade | null {
   const db = getDatabase();
@@ -217,6 +221,7 @@ export function updateTrade(
   if (updates.feesCents !== undefined) { setClauses.push('fees_cents = ?'); params.push(updates.feesCents); }
   if (updates.thumbnailUri !== undefined) { setClauses.push('thumbnail_uri = ?'); params.push(updates.thumbnailUri); }
   if (updates.notes !== undefined) { setClauses.push('notes = ?'); params.push(updates.notes); }
+  if (updates.assetType !== undefined) { setClauses.push('asset_type = ?'); params.push(updates.assetType); }
 
   if (setClauses.length === 0) return getTradeById(id);
   setClauses.push('updated_at = ?');
@@ -228,6 +233,14 @@ export function updateTrade(
 export function deleteTrade(id: string): void {
   const db = getDatabase();
   db.runSync('DELETE FROM trades WHERE id = ?;', [id]);
+}
+
+export function getAllAssetTypes(): string[] {
+  const db = getDatabase();
+  const rows = db.getAllSync<{ asset_type: string }>(
+    'SELECT DISTINCT asset_type FROM trades WHERE asset_type IS NOT NULL ORDER BY asset_type;'
+  );
+  return rows.map(r => r.asset_type);
 }
 
 // ─── Failed OCR Log Operations ───
