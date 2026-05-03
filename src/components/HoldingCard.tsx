@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/format';
 interface HoldingCardProps {
   holding: Holding;
   onPress: () => void;
+  onAddSell?: (ticker: string, shares: number, avgCostCents: number) => void;
 }
 
 function isStale(updatedAt: string | null): boolean {
@@ -16,7 +17,7 @@ function isStale(updatedAt: string | null): boolean {
   return diffDays > 7;
 }
 
-export function HoldingCard({ holding, onPress }: HoldingCardProps) {
+export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
   const hasPrice = holding.currentPriceCents !== null;
   const isProfitable = holding.unrealizedPnlCents !== null && holding.unrealizedPnlCents >= 0;
   const stale = isStale(holding.priceUpdatedAt);
@@ -47,6 +48,9 @@ export function HoldingCard({ holding, onPress }: HoldingCardProps) {
             )}
           </View>
           <Text style={styles.shares}>{holding.totalShares} shares</Text>
+          <Text style={styles.costBasis}>
+            Avg cost: {formatCurrency(holding.averageCostBasisCents)}
+          </Text>
         </View>
         <View style={styles.rightCol}>
           <Text style={styles.priceLabel}>Current</Text>
@@ -71,6 +75,28 @@ export function HoldingCard({ holding, onPress }: HoldingCardProps) {
           </Text>
         </View>
       )}
+
+      {/* Open Position badge + Add Sell CTA */}
+      <View style={styles.sellSection}>
+        <View style={styles.awaitingBadge}>
+          <Ionicons name="wallet-outline" size={12} color="#D97706" />
+          <Text style={styles.awaitingText}>{holding.totalShares} share{holding.totalShares !== 1 ? 's' : ''} open</Text>
+        </View>
+        {onAddSell && (
+          <TouchableOpacity
+            style={styles.addSellButton}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onAddSell(holding.ticker, holding.totalShares, holding.averageCostBasisCents);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="swap-vertical" size={14} color="#FFFFFF" />
+            <Text style={styles.addSellText}>Add Sell</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       {hasPrice && holding.priceUpdatedAt && (
         <Text style={[styles.updatedAt, stale && styles.stale]}>
           Updated {new Date(holding.priceUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -103,6 +129,7 @@ const styles = StyleSheet.create({
   ticker: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
   staleIcon: { marginLeft: 2 },
   shares: { fontSize: 13, color: '#64748B' },
+  costBasis: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
   priceLabel: { fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
   priceValue: { fontSize: 14, fontWeight: '600', color: '#0F172A', marginTop: 2 },
   pnlRow: {
@@ -117,6 +144,43 @@ const styles = StyleSheet.create({
   pnlPositive: {},
   pnlNegative: {},
   pnlText: { fontSize: 13, fontWeight: '600' },
+  sellSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  awaitingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  awaitingText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#D97706',
+  },
+  addSellButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addSellText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   updatedAt: { fontSize: 11, color: '#94A3B8', marginTop: 4 },
   stale: { color: '#D97706' },
 });
