@@ -9,9 +9,9 @@
 |--------|-------|
 | Milestone | 1 (initial) |
 | Current Phase | 5 — Planned (2 plans) |
-| Completed Phases | 3 / 5 |
-| Requirements Done | 9 / 14 |
-| Last Action | Phase 3 executed — Investment Analytics (3 plans) |
+| Completed Phases | 4 / 6 |
+| Requirements Done | 10 / 15 |
+| Last Action | Phase 4 executed — Cloud Sync (3 plans) |
 
 ## Phase Status
 
@@ -20,8 +20,9 @@
 | 1 | Shell + Expense Tracker | ◆ Planned | 7 | 2026-04-29 | — |
 | 2 | OCR Pipeline | ✓ Complete | 3 | 2026-05-01 | 2026-05-01 |
 | 3 | Investment Analytics | ✓ Complete | 2 | 2026-05-02 | 2026-05-02 |
-| 4 | Cloud Sync | ○ Pending | 1 | — | — |
+| 4 | Cloud Sync | ✓ Complete | 1 | 2026-05-02 | 2026-05-02 |
 | 5 | AI OCR Model | ✓ Complete | 1 | 2026-05-02 | — |
+| 6 | Investment Page Concept | ◆ Planned | 1 | 2026-05-03 | — |
 
 ## Project Reference
 
@@ -39,6 +40,7 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ### Roadmap Evolution
 - Phase 5 added: AI OCR Model — AI-powered screenshot analysis replacing plain OCR with intelligent extraction
+- Phase 6 added: Investment Page Concept — Show gain or loss of investments by comparing buying and selling
 
 ## Quick Tasks Completed
 

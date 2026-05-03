@@ -99,9 +99,9 @@
 **Depends on:** Phase 1 (data layer), optionally Phase 2-3 (full data)
 
 **Plans:** 3 plans
-- [ ] 04-01-PLAN.md — Auth infrastructure: Google Sign-In, Drive API service, sync TypeScript types
-- [ ] 04-02-PLAN.md — Sync engine: JSON export/import, LWW merge, Zustand settingsStore, lifecycle hooks
-- [ ] 04-03-PLAN.md — Settings UI: auth button, sync toggle, Sync Now, RestoreBanner, SyncIndicator
+- [x] 04-01-PLAN.md — Auth infrastructure: Google Sign-In, Drive API service, sync TypeScript types
+- [x] 04-02-PLAN.md — Sync engine: JSON export/import, LWW merge, Zustand settingsStore, lifecycle hooks
+- [x] 04-03-PLAN.md — Settings UI: auth button, sync toggle, Sync Now, RestoreBanner, SyncIndicator
 
 **UI hint:** yes — settings screen, sync toggle, backup/restore buttons
 
