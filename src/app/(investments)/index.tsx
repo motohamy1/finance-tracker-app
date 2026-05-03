@@ -1,4 +1,5 @@
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert, SectionList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -12,9 +13,12 @@ import { TickerSummaryCard } from '@/components/TickerSummaryCard';
 import { BottomSheet } from '@/components/BottomSheet';
 import { TradeFilterSheet, type FilterState } from '@/components/TradeFilterSheet';
 import { PnLPairCard } from '@/components/PnLPairCard';
+import { HoldingCard } from '@/components/HoldingCard';
 import { EmptyState } from '@/components/EmptyState';
 import { formatCurrency } from '@/utils/format';
-import type { Trade, PnLPair } from '@/types';
+import type { Trade, PnLPair, Holding } from '@/types';
+
+type ViewTab = 'positions' | 'trades';
 
 export default function InvestmentsScreen() {
   const router = useRouter();
@@ -23,11 +27,13 @@ export default function InvestmentsScreen() {
   const isInitialized = useTradeStore((s) => s.isInitialized);
   const initialize = useTradeStore((s) => s.initialize);
   const getPnlPairs = useTradeStore((s) => s.getPnlPairs);
+  const getHoldings = useTradeStore((s) => s.getHoldings);
   const getSummaryByTicker = useTradeStore((s) => s.getSummaryByTicker);
   const getCategorySummary = useTradeStore((s) => s.getCategorySummary);
   const getAvailableCategories = useTradeStore((s) => s.getAvailableCategories);
   const getTradesByCategory = useTradeStore((s) => s.getTradesByCategory);
 
+  const [activeTab, setActiveTab] = useState<ViewTab>('positions');
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFabSheet, setShowFabSheet] = useState(false);
@@ -44,6 +50,7 @@ export default function InvestmentsScreen() {
   }, []);
 
   const pnlPairs = useMemo(() => getPnlPairs(), [trades]);
+  const holdings = useMemo(() => getHoldings(), [trades]);
 
   const tickers = useMemo(() => {
     const set = new Set(trades.map(t => t.ticker));
@@ -54,6 +61,36 @@ export default function InvestmentsScreen() {
 
   const availableCategories = useMemo(() => getAvailableCategories(), [trades]);
 
+  // ── Filtered data for Positions tab ──
+  const filteredHoldings = useMemo(() => {
+    let result = holdings;
+    if (selectedTicker) {
+      result = result.filter(h => h.ticker === selectedTicker);
+    }
+    return result;
+  }, [holdings, selectedTicker]);
+
+  const filteredPairs = useMemo(() => {
+    let result = pnlPairs;
+    if (selectedCategory) {
+      result = result.filter(p => {
+        const buyTrade = trades.find(t => t.id === p.buyTradeId);
+        return buyTrade?.assetType === selectedCategory;
+      });
+    }
+    if (selectedTicker) {
+      result = result.filter(p => p.ticker === selectedTicker);
+    }
+    if (filters.dateFrom) {
+      result = result.filter(p => p.sellDate >= filters.dateFrom!);
+    }
+    if (filters.dateTo) {
+      result = result.filter(p => p.sellDate <= filters.dateTo!);
+    }
+    return result;
+  }, [pnlPairs, selectedTicker, selectedCategory, filters, trades]);
+
+  // ── Filtered data for Trades tab ──
   const filteredTrades = useMemo(() => {
     let result = [...trades].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
     if (selectedCategory) {
@@ -80,26 +117,6 @@ export default function InvestmentsScreen() {
     return result;
   }, [trades, selectedTicker, selectedCategory, filters]);
 
-  const filteredPairs = useMemo(() => {
-    let result = pnlPairs;
-    if (selectedCategory) {
-      result = result.filter(p => {
-        const buyTrade = trades.find(t => t.id === p.buyTradeId);
-        return buyTrade?.assetType === selectedCategory;
-      });
-    }
-    if (selectedTicker) {
-      result = result.filter(p => p.ticker === selectedTicker);
-    }
-    if (filters.dateFrom) {
-      result = result.filter(p => p.sellDate >= filters.dateFrom!);
-    }
-    if (filters.dateTo) {
-      result = result.filter(p => p.sellDate <= filters.dateTo!);
-    }
-    return result;
-  }, [pnlPairs, selectedTicker, selectedCategory, filters, trades]);
-
   const pairedTradeIds = useMemo(() => {
     const ids = new Set<string>();
     for (const p of pnlPairs) {
@@ -109,8 +126,27 @@ export default function InvestmentsScreen() {
     return ids;
   }, [pnlPairs]);
 
-  const showGroupedView = selectedTicker !== null;
+  // ── Section data for Positions tab ──
+  const positionSections = useMemo(() => {
+    const sections: { title: string; data: (Holding | PnLPair)[]; type: 'holdings' | 'pairs' }[] = [];
+    if (filteredHoldings.length > 0) {
+      sections.push({
+        title: `Open Positions (${filteredHoldings.length})`,
+        data: filteredHoldings,
+        type: 'holdings',
+      });
+    }
+    if (filteredPairs.length > 0) {
+      sections.push({
+        title: `Completed Trades (${filteredPairs.length})`,
+        data: filteredPairs,
+        type: 'pairs',
+      });
+    }
+    return sections;
+  }, [filteredHoldings, filteredPairs]);
 
+  // ── Handlers ──
   const handleGalleryImport = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -134,6 +170,19 @@ export default function InvestmentsScreen() {
     router.push('/(investments)/manual');
   };
 
+  const handleAddSell = useCallback((ticker: string, shares: number, avgCostCents: number) => {
+    setShowFabSheet(false);
+    router.push({
+      pathname: '/(investments)/manual',
+      params: {
+        prefillTicker: ticker,
+        prefillDirection: 'sell',
+        prefillShares: String(shares),
+        avgCostCents: String(avgCostCents),
+      },
+    });
+  }, [router]);
+
   const handleFabPress = () => {
     setShowFabSheet(true);
   };
@@ -149,11 +198,13 @@ export default function InvestmentsScreen() {
     return pair.realizedPnlCents;
   }, [pnlPairs]);
 
-  if (!isInitialized || isLoading) return null;
+  if (!isInitialized || isLoading) {
+    return <SafeAreaView style={styles.container} edges={['top']} />;
+  }
 
   if (trades.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <EmptyState
           icon="trending-up-outline"
           title="No Trades Yet"
@@ -178,120 +229,213 @@ export default function InvestmentsScreen() {
             <Text style={styles.secondaryButtonText}>Enter Manually</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <FlatList
-        key={showGroupedView ? 'pairs' : 'trades'}
-        data={showGroupedView ? filteredPairs : filteredTrades}
-        keyExtractor={(item: PnLPair | Trade) =>
-          'sellTradeId' in item
-            ? `${item.buyTradeId}-${item.sellTradeId}`
-            : (item as Trade).id
-        }
-        ListHeaderComponent={
-          <View>
-            <PortfolioHeader />
-            <View style={styles.filterBar}>
-              <TickerChips
-                tickers={tickers}
-                selected={selectedTicker}
-                onSelect={setSelectedTicker}
-              />
-              <CategoryChips
-                categories={availableCategories}
-                selected={selectedCategory}
-                onSelect={setSelectedCategory}
-              />
-              <TouchableOpacity
-                style={[styles.filterButton, isFiltered && styles.filterButtonActive]}
-                onPress={() => setShowFilterSheet(true)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="filter"
-                  size={16}
-                  color={isFiltered ? '#FFFFFF' : '#64748B'}
-                />
-                <Text style={[styles.filterButtonText, isFiltered && styles.filterButtonTextActive]}>
-                  Filter{isFiltered ? ' · on' : ''}
-                </Text>
-              </TouchableOpacity>
+  // ── Tab header component ──
+  const ListHeader = () => (
+    <View>
+      <PortfolioHeader />
+      <View style={styles.filterBar}>
+        <TickerChips
+          tickers={tickers}
+          selected={selectedTicker}
+          onSelect={setSelectedTicker}
+        />
+        <CategoryChips
+          categories={availableCategories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+      </View>
+
+      {/* Tab selector */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'positions' && styles.tabActive]}
+          onPress={() => setActiveTab('positions')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="swap-vertical-outline"
+            size={16}
+            color={activeTab === 'positions' ? '#0891B2' : '#94A3B8'}
+          />
+          <Text style={[styles.tabText, activeTab === 'positions' && styles.tabTextActive]}>
+            Positions
+          </Text>
+          {(filteredHoldings.length + filteredPairs.length) > 0 && (
+            <View style={[styles.tabBadge, activeTab === 'positions' && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, activeTab === 'positions' && styles.tabBadgeTextActive]}>
+                {filteredHoldings.length + filteredPairs.length}
+              </Text>
             </View>
-            {selectedTicker ? (
-              <TickerSummaryCard ticker={selectedTicker} />
-            ) : null}
-            {selectedCategory && !selectedTicker ? (() => {
-              const summary = getCategorySummary(selectedCategory);
-              const catName = availableCategories.find(c => c.id === selectedCategory)?.label ?? selectedCategory;
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'trades' && styles.tabActive]}
+          onPress={() => setActiveTab('trades')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="list-outline"
+            size={16}
+            color={activeTab === 'trades' ? '#0891B2' : '#94A3B8'}
+          />
+          <Text style={[styles.tabText, activeTab === 'trades' && styles.tabTextActive]}>
+            Trade Log
+          </Text>
+          {filteredTrades.length > 0 && (
+            <View style={[styles.tabBadge, activeTab === 'trades' && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, activeTab === 'trades' && styles.tabBadgeTextActive]}>
+                {filteredTrades.length}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterIconButton, isFiltered && styles.filterIconButtonActive]}
+          onPress={() => setShowFilterSheet(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="filter"
+            size={16}
+            color={isFiltered ? '#FFFFFF' : '#64748B'}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Summary card for selected ticker/category */}
+      {selectedTicker ? (
+        <TickerSummaryCard ticker={selectedTicker} />
+      ) : null}
+      {selectedCategory && !selectedTicker ? (() => {
+        const summary = getCategorySummary(selectedCategory);
+        const catName = availableCategories.find(c => c.id === selectedCategory)?.label ?? selectedCategory;
+        return (
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.summaryTicker}>{catName}</Text>
+              {summary.pnlMultiplier !== null && (
+                <View style={[styles.summaryMultiplierBadge, summary.pnlMultiplier >= 1 ? styles.summaryMultiplierGreen : styles.summaryMultiplierRed]}>
+                  <Text style={[styles.summaryMultiplierBadgeText, summary.pnlMultiplier >= 1 ? styles.summaryMultiplierGreenText : styles.summaryMultiplierRedText]}>
+                    {summary.pnlMultiplier >= 1 ? '+' : ''}{((summary.pnlMultiplier - 1) * 100).toFixed(1)}%
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Invested</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(summary.totalInvestedCents)}</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Realized P&L</Text>
+                <Text style={[styles.summaryValue, summary.totalRealizedCents >= 0 ? styles.gain : styles.loss]}>
+                  {summary.totalRealizedCents >= 0 ? '+' : ''}{formatCurrency(Math.abs(summary.totalRealizedCents))}
+                </Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Trades</Text>
+                <Text style={styles.summaryValue}>{summary.tradeCount}</Text>
+              </View>
+            </View>
+          </View>
+        );
+      })() : null}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {activeTab === 'positions' ? (
+        <SectionList
+          sections={positionSections}
+          keyExtractor={(item: Holding | PnLPair, index: number) =>
+            'sellTradeId' in item
+              ? `${(item as PnLPair).buyTradeId}-${(item as PnLPair).sellTradeId}`
+              : `holding-${(item as Holding).ticker}`
+          }
+          ListHeaderComponent={<ListHeader />}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Ionicons
+                name={section.type === 'holdings' ? 'time-outline' : 'checkmark-circle-outline'}
+                size={16}
+                color={section.type === 'holdings' ? '#D97706' : '#059669'}
+              />
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+            </View>
+          )}
+          renderItem={({ item, section }) => {
+            if (section.type === 'holdings') {
+              const holding = item as Holding;
               return (
-                <View style={styles.summaryCard}>
-                  <View style={styles.summaryHeader}>
-                    <Text style={styles.summaryTicker}>{catName}</Text>
-                    {summary.pnlMultiplier !== null && (
-                      <View style={[styles.summaryMultiplierBadge, summary.pnlMultiplier >= 1 ? styles.summaryMultiplierGreen : styles.summaryMultiplierRed]}>
-                        <Text style={[styles.summaryMultiplierBadgeText, summary.pnlMultiplier >= 1 ? styles.summaryMultiplierGreenText : styles.summaryMultiplierRedText]}>
-                          {summary.pnlMultiplier >= 1 ? '+' : ''}{((summary.pnlMultiplier - 1) * 100).toFixed(1)}%
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>Invested</Text>
-                      <Text style={styles.summaryValue}>{formatCurrency(summary.totalInvestedCents)}</Text>
-                    </View>
-                    <View style={styles.summaryDivider} />
-                    <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>Realized P&L</Text>
-                      <Text style={[styles.summaryValue, summary.totalRealizedCents >= 0 ? styles.gain : styles.loss]}>
-                        {summary.totalRealizedCents >= 0 ? '+' : ''}{formatCurrency(Math.abs(summary.totalRealizedCents))}
-                      </Text>
-                    </View>
-                    <View style={styles.summaryDivider} />
-                    <View style={styles.summaryItem}>
-                      <Text style={styles.summaryLabel}>Trades</Text>
-                      <Text style={styles.summaryValue}>{summary.tradeCount}</Text>
-                    </View>
-                  </View>
+                <View style={styles.sectionItemContainer}>
+                  <HoldingCard
+                    holding={holding}
+                    onPress={() => setSelectedTicker(holding.ticker)}
+                    onAddSell={handleAddSell}
+                  />
                 </View>
               );
-            })() : null}
-          </View>
-        }
-        renderItem={({ item }: { item: PnLPair | Trade }) => {
-          if ('sellTradeId' in item) {
-            return <PnLPairCard pair={item as PnLPair} />;
+            }
+            return (
+              <View style={styles.sectionItemContainer}>
+                <PnLPairCard pair={item as PnLPair} />
+              </View>
+            );
+          }}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyTab}>
+              <Ionicons name="analytics-outline" size={40} color="#CBD5E1" />
+              <Text style={styles.emptyTabTitle}>No positions yet</Text>
+              <Text style={styles.emptyTabBody}>
+                Add a buy trade to start tracking positions. When you sell, the P&L comparison will appear here.
+              </Text>
+            </View>
           }
-          const trade = item as Trade;
-          const paired = pairedTradeIds.has(trade.id);
-          const pnlCents = trade.direction === 'sell' ? getPnlForTrade(trade.id) : null;
-          let multiplier: number | null = null;
-          if (pnlCents !== null && trade.direction === 'sell') {
-            const pair = pnlPairs.find(p => p.sellTradeId === trade.id);
-            if (pair) {
-              const buyTrade = trades.find(t => t.id === pair.buyTradeId);
-              if (buyTrade) {
-                const invested = buyTrade.shares * buyTrade.pricePerShareCents;
-                multiplier = invested > 0 ? (invested + pnlCents) / invested : null;
+          stickySectionHeadersEnabled={false}
+        />
+      ) : (
+        <FlatList
+          data={filteredTrades}
+          keyExtractor={(item: Trade) => item.id}
+          ListHeaderComponent={<ListHeader />}
+          renderItem={({ item }: { item: Trade }) => {
+            const trade = item;
+            const paired = pairedTradeIds.has(trade.id);
+            const pnlCents = trade.direction === 'sell' ? getPnlForTrade(trade.id) : null;
+            let multiplier: number | null = null;
+            if (pnlCents !== null && trade.direction === 'sell') {
+              const pair = pnlPairs.find(p => p.sellTradeId === trade.id);
+              if (pair) {
+                const buyTrade = trades.find(t => t.id === pair.buyTradeId);
+                if (buyTrade) {
+                  const invested = buyTrade.shares * buyTrade.pricePerShareCents;
+                  multiplier = invested > 0 ? (invested + pnlCents) / invested : null;
+                }
               }
             }
-          }
-          return (
-            <TradeCard
-              trade={trade}
-              pnlCents={trade.direction === 'sell' && paired ? pnlCents : null}
-              pnlMultiplier={multiplier}
-              onPress={() => handleTradePress(trade)}
-            />
-          );
-        }}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+            return (
+              <TradeCard
+                trade={trade}
+                pnlCents={trade.direction === 'sell' && paired ? pnlCents : null}
+                pnlMultiplier={multiplier}
+                onPress={() => handleTradePress(trade)}
+              />
+            );
+          }}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <TradeFilterSheet
         visible={showFilterSheet}
@@ -330,7 +474,7 @@ export default function InvestmentsScreen() {
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -341,28 +485,114 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 4,
   },
-  filterButton: {
+
+  // Tab bar
+  tabBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    alignSelf: 'flex-start',
-    marginLeft: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    gap: 6,
   },
-  filterButtonActive: {
-    backgroundColor: '#0891B2',
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  filterButtonText: {
+  tabActive: {
+    backgroundColor: '#ECFEFF',
+    borderColor: '#0891B2',
+  },
+  tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#94A3B8',
   },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
+  tabTextActive: {
+    color: '#0891B2',
   },
+  tabBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+    minWidth: 22,
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(8, 145, 178, 0.15)',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  tabBadgeTextActive: {
+    color: '#0891B2',
+  },
+  filterIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterIconButtonActive: {
+    backgroundColor: '#0891B2',
+    borderColor: '#0891B2',
+  },
+
+  // Section headers
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionItemContainer: {
+    paddingHorizontal: 16,
+  },
+
+  // Empty tab
+  emptyTab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    gap: 8,
+  },
+  emptyTabTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  emptyTabBody: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // Existing styles
   emptyActions: {
     alignItems: 'center', gap: 12, paddingHorizontal: 32,
     paddingBottom: 24,
