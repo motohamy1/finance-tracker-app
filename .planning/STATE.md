@@ -8,10 +8,10 @@
 | Metric | Value |
 |--------|-------|
 | Milestone | 1 (initial) |
-| Current Phase | 6 — Planned (3 plans) |
-| Completed Phases | 5 / 6 |
-| Requirements Done | 14 / 15 |
-| Last Action | Phase 6 planned — Investment Page Concept (3 plans) |
+| Current Phase | 6 — Complete (3 plans executed) |
+| Completed Phases | 6 / 6 |
+| Requirements Done | 15 / 15 |
+| Last Action | Phase 6 executed — Investment Page Concept (3 waves, 3 plans) |
 
 ## Phase Status
 
@@ -22,18 +22,20 @@
 | 3 | Investment Analytics | ✓ Complete | 2 | 2026-05-02 | 2026-05-02 |
 | 4 | Cloud Sync | ✓ Complete | 1 | 2026-05-02 | 2026-05-02 |
 | 5 | AI OCR Model | ✓ Complete | 1 | 2026-05-02 | 2026-05-02 |
-| 6 | Investment Page Concept | ◆ Planned | 1 | 2026-05-03 | — |
+| 6 | Investment Page Concept | ✓ Complete | 1 | 2026-05-03 | 2026-05-04 |
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-04-29)
 
 **Core value:** Smart OCR-powered investment tracking from trading app screenshots — automatically extract buy/sell data and calculate profit/loss, combined with an intuitive categorized expense log.
-**Current focus:** Phase 1 — Shell + Expense Tracker
+**Current focus:** Milestone 1 complete — all 6 phases delivered
 
 ## Next Actions
 
-1. Run `/gsd-execute-phase 6` to execute the 3 plans for Phase 6 (Investment Page Concept)
+1. Run `/gsd-complete-milestone` to archive Milestone 1 and prepare Milestone 2
+2. Run `/gsd-add-tests` for any untested Phase 6 features
+3. Run `/gsd-inbox` to triage open issues and PRs
 
 ## Accumulated Context
 
