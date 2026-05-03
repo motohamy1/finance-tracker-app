@@ -41,25 +41,47 @@ export default function ImportScreen() {
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
+      let uri = result.assets[0].uri;
 
-      // Check file size and warn if > 20MB (D-30)
-      const fileInfo = await FileSystem.getInfoAsync(uri);
-      if (fileInfo.exists && fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
-        const proceed = await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            'Large Image',
-            'This image is over 20MB and may be slow to process. Continue?',
-            [
-              { text: 'Pick Different', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Proceed', onPress: () => resolve(true) },
-            ]
-          );
-        });
-        if (!proceed) return;
+      // Use the picker's base64 to write to a safe cache directory
+      // This bypasses Expo Go's Android path double-encoding bugs completely
+      if (result.assets[0].base64) {
+        try {
+          const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+          const cleanUri = `${FileSystem.cacheDirectory}ocr-import-${Date.now()}.${ext}`;
+          
+          await FileSystem.writeAsStringAsync(cleanUri, result.assets[0].base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          uri = cleanUri;
+        } catch (_err) {
+          console.warn('Failed to save clean copy, using original URI:', _err);
+        }
+      }
+
+      // Check file size and warn if > 20MB (D-30) — wrapped in try/catch
+      // since getInfoAsync can fail on encoded URIs
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        if (fileInfo.exists && fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
+          const proceed = await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              'Large Image',
+              'This image is over 20MB and may be slow to process. Continue?',
+              [
+                { text: 'Pick Different', style: 'cancel', onPress: () => resolve(false) },
+                { text: 'Proceed', onPress: () => resolve(true) },
+              ]
+            );
+          });
+          if (!proceed) return;
+        }
+      } catch (_sizeErr) {
+        // Size check failed — proceed anyway, OCR will handle errors
       }
 
       setImageUri(uri);

@@ -7,6 +7,7 @@ export default function ExpensesLayout() {
         headerStyle: { backgroundColor: '#F0F4F8' },
         headerTintColor: '#0F172A',
         headerTitleStyle: { fontWeight: '600', fontSize: 18 },
+          headerShown: false,
       }}
     >
       <Stack.Screen

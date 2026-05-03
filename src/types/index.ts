@@ -97,9 +97,19 @@ export interface Trade {
   feesCents: number | null;   // Optional fees in INTEGER cents
   thumbnailUri: string | null; // Compressed 200x200px thumbnail URI (null for manual entries)
   notes: string | null;       // Optional notes
+  assetType: string | null;   // Investment category id (e.g., "stocks") or null for uncategorized
   createdAt: string;          // ISO 8601 timestamp
   updatedAt: string;          // ISO 8601 timestamp
 }
+
+export const DEFAULT_INVESTMENT_KINDS = [
+  { id: 'stocks', label: 'Stocks' },
+  { id: 'crypto', label: 'Crypto' },
+  { id: 'forex', label: 'Forex' },
+  { id: 'commodities', label: 'Commodities' },
+] as const;
+
+export type InvestmentKindId = typeof DEFAULT_INVESTMENT_KINDS[number]['id'];
 
 export interface TradeFormData {
   ticker: string;

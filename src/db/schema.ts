@@ -86,6 +86,13 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 4,
+    name: 'add_asset_type_to_trades',
+    sql: `
+      ALTER TABLE trades ADD COLUMN asset_type TEXT;
+    `,
+  },
 ];
 
 export function runMigrations(): void {

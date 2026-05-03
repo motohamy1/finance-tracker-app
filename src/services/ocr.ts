@@ -12,6 +12,45 @@ export function cancelOCR(): void {
 }
 
 /**
+ * Helper to ensure the URI is a clean local file path without URL encoding issues.
+ * Expo Go on Android can have issues with % characters in the cache directory path.
+ */
+async function standardizeImageUri(uri: string): Promise<string> {
+  try {
+    // If it's already a clean URI without % encoding, it might just work,
+    // but copying it ensures we have a safe file to manipulate.
+    const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const cleanUri = `${FileSystem.cacheDirectory}ocr-safe-${Date.now()}.${ext}`;
+    
+    try {
+      await FileSystem.copyAsync({ from: uri, to: cleanUri });
+      return cleanUri;
+    } catch (err1) {
+      try {
+        await FileSystem.copyAsync({ from: decodeURIComponent(uri), to: cleanUri });
+        return cleanUri;
+      } catch (err2) {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        await FileSystem.writeAsStringAsync(cleanUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        return cleanUri;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to standardize image URI:', err);
+    return uri; // fallback to original
+  }
+}
+
+/**
  * Process a screenshot image through the OCR pipeline.
  * Steps: validate file → downscale → run ML Kit → parse text → return OCRResult.
  *
@@ -22,25 +61,38 @@ export function cancelOCR(): void {
 export async function processScreenshot(imageUri: string): Promise<OCRResult> {
   cancelled = false;
 
-  // ─── Step 1: Validate image ───
-  const fileInfo = await FileSystem.getInfoAsync(imageUri);
-  if (!fileInfo.exists) {
-    throw new Error('Image file not found');
-  }
-
-  // Check file size (D-30: warn if exceeds 20MB)
-  if (fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
-    // Warning is handled at UI level — we still proceed but note the size
-    console.warn('Large image may be slow to process');
+  // ─── Step 1: Standardize and Validate image ───
+  let safeUri = await standardizeImageUri(imageUri);
+  
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(safeUri);
+    if (!fileInfo.exists) {
+      // If safeUri claims to not exist, check original
+      const origInfo = await FileSystem.getInfoAsync(imageUri);
+      if (!origInfo.exists) {
+        throw new Error('Image file not found');
+      }
+      safeUri = imageUri;
+    } else if (fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
+      console.warn('Large image may be slow to process');
+    }
+  } catch (err) {
+    // If getInfoAsync throws due to encoding bugs, proceed to manipulation anyway
+    console.warn('getInfoAsync failed, proceeding anyway', err);
   }
 
   // ─── Step 2: Downscale image (D-09: max 1200px longest edge) ───
   const MAX_EDGE = 1200;
-  const downscaled = await ImageManipulator.manipulateAsync(
-    imageUri,
-    [{ resize: { width: MAX_EDGE } }], // aspect ratio preserved
-    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
-  );
+  let downscaled;
+  try {
+    downscaled = await ImageManipulator.manipulateAsync(
+      safeUri,
+      [{ resize: { width: MAX_EDGE } }], // aspect ratio preserved
+      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+    );
+  } catch (error) {
+    throw new Error(`Could not load the image: ${safeUri}\n\nTried URIs:\n1. ${imageUri}\n2. ${safeUri}\n\nLast error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   if (cancelled) {
     throw new Error('OCR cancelled by user');

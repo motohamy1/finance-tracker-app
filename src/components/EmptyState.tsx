@@ -7,14 +7,18 @@ interface EmptyStateProps {
   body: string;
   ctaText?: string;
   onCtaPress?: () => void;
+  children?: React.ReactNode;
 }
 
-export function EmptyState({ icon, title, body, ctaText, onCtaPress }: EmptyStateProps) {
+export function EmptyState({ icon, title, body, ctaText, onCtaPress, children }: EmptyStateProps) {
   return (
     <View style={styles.container}>
       <Ionicons name={icon} size={64} color="#94A3B8" />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
+      
+      {children}
+
       {ctaText && onCtaPress && (
         <TouchableOpacity style={styles.ctaButton} onPress={onCtaPress} activeOpacity={0.8}>
           <Ionicons name="add" size={20} color="#FFFFFF" />

@@ -4,9 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const {
   mockFileSystemGetInfo,
   mockFileSystemDelete,
+  mockFileSystemCopyAsync,
 } = vi.hoisted(() => ({
   mockFileSystemGetInfo: vi.fn(),
   mockFileSystemDelete: vi.fn(),
+  mockFileSystemCopyAsync: vi.fn(),
 }));
 
 const { mockImageManipulator } = vi.hoisted(() => ({
@@ -17,12 +19,18 @@ const { mockTextRecognition } = vi.hoisted(() => ({
   mockTextRecognition: vi.fn(),
 }));
 
+vi.mock('react-native', () => ({
+  Platform: { OS: 'ios' },
+}));
+
 vi.mock('expo-file-system/legacy', () => ({
   getInfoAsync: mockFileSystemGetInfo,
+  copyAsync: mockFileSystemCopyAsync,
   deleteAsync: (...args: unknown[]) => {
     mockFileSystemDelete(...args);
     return Promise.resolve();
   },
+  cacheDirectory: '/mock-cache/',
 }));
 
 vi.mock('expo-image-manipulator', () => ({
@@ -181,7 +189,10 @@ describe('processScreenshot', () => {
     const downscaledUri = 'file:///test/screenshot-downscaled.jpg';
     const mockRawText = 'BUY 100 AAPL @ $150.00 2026-05-01';
 
-    // Mock: file exists, reasonable size
+    // Mock: copy to cache succeeds (uri doesn't start with cacheDirectory)
+    mockFileSystemCopyAsync.mockResolvedValueOnce(undefined);
+
+    // Mock: file exists, reasonable size (checked on cached URI)
     mockFileSystemGetInfo.mockResolvedValueOnce({
       exists: true,
       size: 1024 * 1024, // 1 MB
@@ -197,12 +208,25 @@ describe('processScreenshot', () => {
 
     assertOCRResult(result);
     expect(result.rawText).toContain('BUY');
-    expect(mockFileSystemGetInfo).toHaveBeenCalledWith(testImageUri);
+    expect(mockFileSystemCopyAsync).toHaveBeenCalledWith({
+      from: testImageUri,
+      to: expect.stringMatching(/^\/mock-cache\/ocr-stable-\d+\.jpg$/),
+    });
+    expect(mockFileSystemGetInfo).toHaveBeenCalled();
     expect(mockImageManipulator).toHaveBeenCalled();
     expect(mockTextRecognition).toHaveBeenCalledWith(downscaledUri);
   });
 
   it('throws descriptive error for invalid/nonexistent image', async () => {
+    // Copy fails because source doesn't exist (falls back to original URI)
+    mockFileSystemCopyAsync.mockRejectedValueOnce(new Error('Copy failed'));
+
+    // First getInfoAsync on cached URI (workingUri) returns not exists
+    mockFileSystemGetInfo.mockResolvedValueOnce({
+      exists: false,
+      size: 0,
+    });
+    // Fallback getInfoAsync on original imageUri also returns not exists
     mockFileSystemGetInfo.mockResolvedValueOnce({
       exists: false,
       size: 0,
@@ -217,6 +241,7 @@ describe('processScreenshot', () => {
     const testImageUri = 'file:///test/large.png';
     const downscaledUri = 'file:///test/large-downscaled.jpg';
 
+    mockFileSystemCopyAsync.mockResolvedValueOnce(undefined);
     mockFileSystemGetInfo.mockResolvedValueOnce({
       exists: true,
       size: 30 * 1024 * 1024, // 30 MB
@@ -234,6 +259,7 @@ describe('processScreenshot', () => {
     const testImageUri = 'file:///test/screenshot.png';
     const downscaledUri = 'file:///test/screenshot-downscaled.jpg';
 
+    mockFileSystemCopyAsync.mockResolvedValueOnce(undefined);
     mockFileSystemGetInfo.mockResolvedValueOnce({
       exists: true,
       size: 1024,
