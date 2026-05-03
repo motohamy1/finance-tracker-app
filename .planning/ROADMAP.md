@@ -13,7 +13,7 @@
 | 3 | Investment Analytics | P&L calculations, portfolio view, trade pairing | INV-04, INV-05 | 3 (3 plans) |
 | 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 3 (3 plans) |
 | 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 plans |
-| 6 | Investment Page Concept | Show gain/loss by comparing buying and selling | INV-07 | TBD |
+| 6 | Investment Page Concept | Show gain/loss by comparing buying and selling | INV-07 | 3 plans |
 
 ---
 
@@ -140,9 +140,25 @@
 
 **Depends on:** Phase 3 (Investment Analytics)
 
-**Plans:** TBD
+**Plans:** 3 plans
 
-**UI hint:** yes — unified view for manual/OCR trades highlighting gains and losses
+**Cross-cutting constraints:**
+- User can see P&L summary when a ticker is selected (Total Invested, Total Realized, Net P&L with multiplier) — Plans 02, 03
+- User can press FAB to see a bottom sheet with "Manual Entry" and "Scan Screenshot" options — Plan 03
+- User can categorize trades by investment kind (Stocks, Crypto, Forex, Commodities) — Plans 01, 03
+- Manual entry is elevated from edge case to core feature — Plan 03
+
+**Wave dependency notes:**
+
+**Wave 1**
+- [ ] 06-01-PLAN.md — Data & Store: Investment categories migration, types, CRUD, and tradeStore extensions
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 06-02-PLAN.md — Ticker Summary Card with PnL Multiplier badge and Buy vs Sell comparison
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 06-03-PLAN.md — Bottom Sheet for FAB, CategoryChips filtering, and investment page overhaul
+
 
 ---
 
