@@ -14,7 +14,7 @@
 | 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 3 (3 plans) |
 | 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 plans |
 | 6 | Investment Page Concept | Show gain/loss by comparing buying and selling | INV-07 | 3 plans |
-| 7 | Editable Money Source Cards | Editable bank-like cards with money categories (cash, borrowed, bank, savings) linked to expenses | EXP-06 | Not planned yet |
+| 7 | Editable Money Source Cards | Editable bank-like cards with money categories (cash, borrowed, bank, savings) linked to expenses | EXP-06 | 3 (3 plans) |
 
 ---
 
@@ -177,7 +177,16 @@
 
 **Depends on:** Phase 1 (expense tracking, data layer)
 
-**Plans:** Not planned yet
+**Plans:** 3 plans
+
+**Wave 1**
+- [ ] 07-01-PLAN.md — Data Foundation: Migration v5 (money_sources table), MoneySource types, DB CRUD, expenseStore integration with seeded defaults
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 07-02-PLAN.md — Money Source UI: MoneySourceCard (solid-color card with tap-to-edit balance, long-press menu), MoneySourceRow (horizontal FlatList with auto-snap, peeking, '+' add button), TotalBalanceSummary
+
+**Wave 3** *(blocked on Wave 1 + Wave 2 completion)*
+- [ ] 07-03-PLAN.md — Integration & Wiring: ExpenseForm money source picker, ExpenseCard money source indicator, screen integration (replace BalanceCard with MoneySourceRow + TotalBalanceSummary)
 
 **UI hint:** yes — money source cards, scrollable horizontal categories, expense linking
 
@@ -220,9 +229,9 @@ Phase 1 (Shell + Expenses)
 | DATA-02 | 4 | ✓ |
 | INV-06 | 5 | ✓ |
 | INV-07 | 6 | ✓ |
-| EXP-06 | 7 | — |
+| EXP-06 | 7 | ✓ |
 
-**16/16 requirements mapped — 94% coverage (15/16 complete)**
+**16/16 requirements mapped — 100% coverage (16/16 complete)**
 
 ---
 *Roadmap created: 2026-04-29*
