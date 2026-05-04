@@ -3,9 +3,9 @@
  * e.g., 4250 → "$42.50", 100 → "$1.00", 0 → "$0.00"
  * Uses toLocaleString for proper locale formatting.
  */
-export function formatCurrency(cents: number): string {
+export function formatCurrency(cents: number, symbol: string = '$'): string {
   const dollars = cents / 100;
-  return `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**

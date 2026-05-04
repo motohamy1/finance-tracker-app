@@ -4,24 +4,27 @@
     "slug": "finance-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": ["finance-tracker"],
+    "icon": "./assets/images/appicon.png",
+    "scheme": [
+      "finance-tracker"
+    ],
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/appicon.png"
     },
     "android": {
+      "package": "com.motohamy.financetracker",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/appicon.png",
+        "backgroundImage": "./assets/images/appicon.png",
+        "monochromeImage": "./assets/images/appicon.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/appicon.png"
     },
     "plugins": [
       "expo-router",
@@ -30,7 +33,7 @@
         {
           "backgroundColor": "#208AEF",
           "android": {
-            "image": "./assets/images/splash-icon.png",
+            "image": "./assets/images/appicon.png",
             "imageWidth": 76
           }
         }
@@ -48,7 +51,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Holding } from '@/types';
+import { useTheme } from '@/services/theme';
 import { formatCurrency } from '@/utils/format';
 
 interface HoldingCardProps {
@@ -18,6 +19,7 @@ function isStale(updatedAt: string | null): boolean {
 }
 
 export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
+  const { colors } = useTheme();
   const hasPrice = holding.currentPriceCents !== null;
   const isProfitable = holding.unrealizedPnlCents !== null && holding.unrealizedPnlCents >= 0;
   const stale = isStale(holding.priceUpdatedAt);
@@ -26,12 +28,12 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
     ? isProfitable
       ? 'rgba(34, 197, 94, 0.08)'
       : 'rgba(239, 68, 68, 0.08)'
-    : '#F8FAFC';
+    : colors.bgCardElevated;
   const borderTint = hasPrice
     ? isProfitable
       ? 'rgba(34, 197, 94, 0.2)'
       : 'rgba(239, 68, 68, 0.2)'
-    : '#E2E8F0';
+    : colors.border;
 
   return (
     <TouchableOpacity
@@ -42,31 +44,31 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
       <View style={styles.row}>
         <View style={styles.leftCol}>
           <View style={styles.tickerRow}>
-            <Text style={styles.ticker}>{holding.ticker}</Text>
+            <Text style={[styles.ticker, { color: colors.text }]}>{holding.ticker}</Text>
             {stale && hasPrice && (
               <Ionicons name="warning-outline" size={12} color="#D97706" style={styles.staleIcon} />
             )}
           </View>
-          <Text style={styles.shares}>{holding.totalShares} shares</Text>
-          <Text style={styles.costBasis}>
+          <Text style={[styles.shares, { color: colors.textSecondary }]}>{holding.totalShares} shares</Text>
+          <Text style={[styles.costBasis, { color: colors.textMuted }]}>
             Avg cost: {formatCurrency(holding.averageCostBasisCents)}
           </Text>
         </View>
         <View style={styles.rightCol}>
-          <Text style={styles.priceLabel}>Current</Text>
-          <Text style={styles.priceValue}>
+          <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Current</Text>
+          <Text style={[styles.priceValue, { color: colors.text }]}>
             {hasPrice ? formatCurrency(holding.currentPriceCents!) : 'Set price'}
           </Text>
         </View>
       </View>
       {hasPrice && (
-        <View style={[styles.pnlRow, isProfitable ? styles.pnlPositive : styles.pnlNegative]}>
+        <View style={[styles.pnlRow, { borderTopColor: colors.divider }, isProfitable ? styles.pnlPositive : styles.pnlNegative]}>
           <Ionicons
             name={isProfitable ? 'trending-up' : 'trending-down'}
             size={14}
-            color={isProfitable ? '#059669' : '#DC2626'}
+            color={isProfitable ? colors.success : colors.danger}
           />
-          <Text style={[styles.pnlText, { color: isProfitable ? '#059669' : '#DC2626' }]}>
+          <Text style={[styles.pnlText, { color: isProfitable ? colors.success : colors.danger }]}>
             {isProfitable ? '+' : ''}
             {holding.unrealizedPnlCents !== null ? formatCurrency(Math.abs(holding.unrealizedPnlCents)) : '—'}
             {holding.unrealizedPnlPercent !== null && (
@@ -77,7 +79,7 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
       )}
 
       {/* Open Position badge + Add Sell CTA */}
-      <View style={styles.sellSection}>
+      <View style={[styles.sellSection, { borderTopColor: colors.divider }]}>
         <View style={styles.awaitingBadge}>
           <Ionicons name="wallet-outline" size={12} color="#D97706" />
           <Text style={styles.awaitingText}>{holding.totalShares} share{holding.totalShares !== 1 ? 's' : ''} open</Text>
@@ -98,7 +100,7 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
       </View>
 
       {hasPrice && holding.priceUpdatedAt && (
-        <Text style={[styles.updatedAt, stale && styles.stale]}>
+        <Text style={[styles.updatedAt, { color: colors.textMuted }, stale && styles.stale]}>
           Updated {new Date(holding.priceUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </Text>
       )}
@@ -126,12 +128,12 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 2,
   },
-  ticker: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  ticker: { fontSize: 16, fontWeight: '700' },
   staleIcon: { marginLeft: 2 },
-  shares: { fontSize: 13, color: '#64748B' },
-  costBasis: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
-  priceLabel: { fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  priceValue: { fontSize: 14, fontWeight: '600', color: '#0F172A', marginTop: 2 },
+  shares: { fontSize: 13 },
+  costBasis: { fontSize: 12, marginTop: 2 },
+  priceLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
+  priceValue: { fontSize: 14, fontWeight: '600', marginTop: 2 },
   pnlRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -139,7 +141,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
   },
   pnlPositive: {},
   pnlNegative: {},
@@ -151,7 +152,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
   },
   awaitingBadge: {
     flexDirection: 'row',
@@ -181,6 +181,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  updatedAt: { fontSize: 11, color: '#94A3B8', marginTop: 4 },
+  updatedAt: { fontSize: 11, marginTop: 4 },
   stale: { color: '#D97706' },
 });

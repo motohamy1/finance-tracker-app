@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '@/services/theme';
 
 interface BottomSheetProps {
   visible: boolean;
@@ -14,6 +15,7 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ visible, onClose, title, children }: BottomSheetProps) {
+  const { colors } = useTheme();
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(300);
 
@@ -36,16 +38,16 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.backdrop, backdropStyle]}>
+      <Animated.View style={[styles.backdrop, backdropStyle, { backgroundColor: colors.overlay }]}>
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={{ flex: 1 }} />
         </TouchableWithoutFeedback>
       </Animated.View>
-      <Animated.View style={[styles.sheet, sheetStyle]}>
+      <Animated.View style={[styles.sheet, sheetStyle, { backgroundColor: colors.bgCard }]}>
         <View style={styles.handleContainer}>
-          <View style={styles.handle} />
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
-        {title ? <Text style={styles.title}>{title}</Text> : null}
+        {title ? <Text style={[styles.title, { color: colors.text }]}>{title}</Text> : null}
         {children}
       </Animated.View>
     </Modal>
@@ -55,14 +57,12 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 34,
@@ -77,12 +77,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E2E8F0',
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
     textAlign: 'center',
     marginBottom: 16,
   },

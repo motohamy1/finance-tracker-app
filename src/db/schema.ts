@@ -113,6 +113,13 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_expenses_money_source_id ON expenses(money_source_id);
     `,
   },
+  {
+    version: 6,
+    name: 'add_currency_symbol_to_money_sources',
+    sql: `
+      ALTER TABLE money_sources ADD COLUMN currency_symbol TEXT DEFAULT '$';
+    `,
+  },
 ];
 
 export function runMigrations(): void {

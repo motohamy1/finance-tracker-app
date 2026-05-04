@@ -17,7 +17,7 @@ export function ExpenseCard({ expense, accentColor }: ExpenseCardProps) {
   return (
     <View style={[styles.card, { borderLeftColor: accentColor }]}>
       <Text style={styles.title} numberOfLines={1}>{expense.title}</Text>
-      <Text style={styles.amount}>{formatCurrency(expense.amountCents)}</Text>
+      <Text style={styles.amount}>{formatCurrency(expense.amountCents, moneySource?.currencySymbol)}</Text>
       <Text style={styles.date}>{formatDate(expense.date)}</Text>
       {moneySource && (
         <View style={styles.sourceRow}>
@@ -42,19 +42,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0F172A',
+    color: '#FFFFFF',
     marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   amount: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#FFFFFF',
     marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   date: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#475569',
+    color: 'rgba(255,255,255,0.7)',
   },
   sourceRow: {
     flexDirection: 'row',
@@ -70,7 +76,7 @@ const styles = StyleSheet.create({
   sourceName: {
     fontSize: 11,
     fontWeight: '400',
-    color: '#64748B',
+    color: 'rgba(255,255,255,0.65)',
     flexShrink: 1,
   },
 });

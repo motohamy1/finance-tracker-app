@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SyncState, SyncTable, SyncLog } from '@/types';
+import type { ThemeMode } from '@/services/theme';
 import {
   signIn,
   signOut,
@@ -48,12 +49,16 @@ interface SettingsActions {
   /** Dismiss the restore prompt — shown only once per fresh install (D-08) */
   dismissRestorePrompt: () => void;
 
+  /** Set the app theme (persisted to AsyncStorage) */
+  setTheme: (theme: ThemeMode) => void;
+
   /**
    * Initialize the sync store on app start:
    *   1. Check if already authenticated (token in SecureStore)
    *   2. Get Google email if authenticated
    *   3. Check if restore is available (fresh install detection)
    *   4. Load sync log timestamps from AsyncStorage
+   *   5. Load theme preference from AsyncStorage
    */
   initialize: () => Promise<void>;
 
@@ -74,7 +79,7 @@ interface SettingsActions {
  *   D-08: Fresh install restore prompt shown once (restorePromptDismissed)
  *   D-09: "Sync Now" button and "Last synced" display
  */
-export const useSettingsStore = create<SyncState & SettingsActions>((set, get) => ({
+export const useSettingsStore = create<SyncState & { theme: ThemeMode } & SettingsActions>((set, get) => ({
   // ─── State ───
 
   isAuthenticated: false,
@@ -86,6 +91,7 @@ export const useSettingsStore = create<SyncState & SettingsActions>((set, get) =
   restoreAvailable: false,
   restorePromptDismissed: false,
   syncLogs: { ...INITIAL_SYNC_LOGS },
+  theme: 'dark',                // dark theme as default
 
   // ─── Actions ───
 
@@ -118,12 +124,17 @@ export const useSettingsStore = create<SyncState & SettingsActions>((set, get) =
         ? logs.reduce((a, b) => (a.lastSyncAt > b.lastSyncAt ? a : b)).lastSyncAt
         : null;
 
+      // 6. Load theme preference from AsyncStorage (default: dark)
+      const storedTheme = await AsyncStorage.getItem('@finance_tracker/theme');
+      const theme = (storedTheme === 'light' || storedTheme === 'dark') ? storedTheme : 'dark';
+
       set({
         isAuthenticated: authed,
         googleEmail: email,
         restoreAvailable: restoreAvail,
         syncLogs,
         lastSyncAt,
+        theme,
       });
     } catch (error) {
       console.error('[settingsStore] Initialize failed:', error);
@@ -307,5 +318,13 @@ export const useSettingsStore = create<SyncState & SettingsActions>((set, get) =
     } catch (error) {
       console.error('[settingsStore] refreshSyncLogs failed:', error);
     }
+  },
+
+  /**
+   * Set the app theme and persist to AsyncStorage.
+   */
+  setTheme: (theme: ThemeMode) => {
+    set({ theme });
+    AsyncStorage.setItem('@finance_tracker/theme', theme).catch(console.error);
   },
 }));

@@ -16,6 +16,7 @@ import { PnLPairCard } from '@/components/PnLPairCard';
 import { HoldingCard } from '@/components/HoldingCard';
 import { EmptyState } from '@/components/EmptyState';
 import { formatCurrency } from '@/utils/format';
+import { useTheme } from '@/services/theme';
 import type { Trade, PnLPair, Holding } from '@/types';
 
 type ViewTab = 'positions' | 'trades';
@@ -23,6 +24,7 @@ type ViewTab = 'positions' | 'trades';
 export default function InvestmentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const trades = useTradeStore((s) => s.trades);
   const isLoading = useTradeStore((s) => s.isLoading);
   const isInitialized = useTradeStore((s) => s.isInitialized);
@@ -200,12 +202,12 @@ export default function InvestmentsScreen() {
   }, [pnlPairs]);
 
   if (!isInitialized || isLoading) {
-    return <SafeAreaView style={styles.container} edges={['top']} />;
+    return <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']} />;
   }
 
   if (trades.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         <EmptyState
           icon="trending-up-outline"
           title="No Trades Yet"
@@ -254,14 +256,14 @@ export default function InvestmentsScreen() {
       {/* Tab selector */}
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'positions' && styles.tabActive]}
+          style={[styles.tab, { backgroundColor: colors.bgCard, borderColor: colors.border }, activeTab === 'positions' && styles.tabActive]}
           onPress={() => setActiveTab('positions')}
           activeOpacity={0.7}
         >
           <Ionicons
             name="swap-vertical-outline"
             size={16}
-            color={activeTab === 'positions' ? '#0891B2' : '#94A3B8'}
+            color={activeTab === 'positions' ? colors.primary : colors.textMuted}
           />
           <Text style={[styles.tabText, activeTab === 'positions' && styles.tabTextActive]}>
             Positions
@@ -275,14 +277,14 @@ export default function InvestmentsScreen() {
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'trades' && styles.tabActive]}
+          style={[styles.tab, { backgroundColor: colors.bgCard, borderColor: colors.border }, activeTab === 'trades' && styles.tabActive]}
           onPress={() => setActiveTab('trades')}
           activeOpacity={0.7}
         >
           <Ionicons
             name="list-outline"
             size={16}
-            color={activeTab === 'trades' ? '#0891B2' : '#94A3B8'}
+            color={activeTab === 'trades' ? colors.primary : colors.textMuted}
           />
           <Text style={[styles.tabText, activeTab === 'trades' && styles.tabTextActive]}>
             Trade Log
@@ -296,7 +298,7 @@ export default function InvestmentsScreen() {
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterIconButton, isFiltered && styles.filterIconButtonActive]}
+          style={[styles.filterIconButton, { backgroundColor: colors.bgCard, borderColor: colors.border }, isFiltered && styles.filterIconButtonActive]}
           onPress={() => setShowFilterSheet(true)}
           activeOpacity={0.7}
         >
@@ -352,7 +354,7 @@ export default function InvestmentsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       {activeTab === 'positions' ? (
         <SectionList
           sections={positionSections}
@@ -480,7 +482,7 @@ export default function InvestmentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1 },
   listContent: { paddingBottom: 80 },
   filterBar: {
     paddingTop: 4,
@@ -503,7 +505,46 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 12,
+    borderWidth: 1,
+  },
+  tabActive: {
+    backgroundColor: '#ECFEFF',
+    borderColor: '#0891B2',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  tabTextActive: {
+    color: '#0891B2',
+  },
+  tabBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+    minWidth: 22,
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(8, 145, 178, 0.15)',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  tabBadgeTextActive: {
+    color: '#0891B2',
+  },
+  filterIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },

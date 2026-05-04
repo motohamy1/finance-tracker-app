@@ -14,6 +14,7 @@ export interface MoneySourceFormData {
   name: string;
   colorHex?: string;
   iconName?: string;
+  currencySymbol?: string;
 }
 
 interface ExpenseStoreState {
@@ -44,6 +45,7 @@ interface ExpenseStoreState {
   addMoneySource: (data: MoneySourceFormData) => MoneySource;
   renameMoneySource: (id: string, newName: string) => void;
   updateMoneySourceBalance: (id: string, balanceCents: number) => void;
+  updateMoneySourceCurrency: (id: string, symbol: string) => void;
   updateMoneySourceColor: (id: string, colorHex: string) => void;
   removeMoneySource: (id: string) => void;
   reorderMoneySources: (orderedIds: string[]) => void;
@@ -80,7 +82,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
           generateUUID(), generateUUID(), generateUUID(), generateUUID(),
         ];
         moneySources = MONEY_SOURCE_DEFAULTS.map((def, i) =>
-          createMoneySource(uuids[i], def.name, def.colorHex, def.iconName, i)
+          createMoneySource(uuids[i], def.name, def.colorHex, def.iconName, i, '$')
         );
       }
 
@@ -95,7 +97,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
   addCategory: (data) => {
     const state = get();
     const id = generateUUID();
-    const colorHex = getNextAccentColor(state.categories.length);
+    const colorHex = CATEGORY_ACCENT_PALETTE[Math.floor(Math.random() * CATEGORY_ACCENT_PALETTE.length)];
     const sortOrder = state.categories.length;
     const category = createCategory(id, data.name.trim(), colorHex, sortOrder);
     set({
@@ -200,8 +202,9 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
     const id = generateUUID();
     const colorHex = data.colorHex ?? MONEY_SOURCE_PALETTE[state.moneySources.length % MONEY_SOURCE_PALETTE.length];
     const iconName = data.iconName ?? 'wallet-outline';
+    const currencySymbol = data.currencySymbol ?? '$';
     const sortOrder = state.moneySources.length;
-    const source = createMoneySource(id, data.name.trim(), colorHex, iconName, sortOrder);
+    const source = createMoneySource(id, data.name.trim(), colorHex, iconName, sortOrder, currencySymbol);
     set({ moneySources: [...state.moneySources, source] });
     return source;
   },
@@ -220,6 +223,15 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
     set({
       moneySources: get().moneySources.map((s) =>
         s.id === id ? { ...s, balanceCents, updatedAt: new Date().toISOString() } : s
+      ),
+    });
+  },
+  
+  updateMoneySourceCurrency: (id, currencySymbol) => {
+    updateMoneySource(id, { currencySymbol });
+    set({
+      moneySources: get().moneySources.map((s) =>
+        s.id === id ? { ...s, currencySymbol, updatedAt: new Date().toISOString() } : s
       ),
     });
   },

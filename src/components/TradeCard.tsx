@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Trade } from '@/types';
+import { useTheme } from '@/services/theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 interface TradeCardProps {
@@ -11,14 +12,15 @@ interface TradeCardProps {
 }
 
 export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCardProps) {
+  const { colors } = useTheme();
   const isBuy = trade.direction === 'buy';
-  const directionColor = isBuy ? '#059669' : '#DC2626';
+  const directionColor = isBuy ? colors.success : colors.danger;
   const directionLabel = isBuy ? 'Buy' : 'Sell';
   const hasPnl = pnlCents !== null && pnlCents !== undefined;
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, { backgroundColor: colors.bgCard }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -30,25 +32,25 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
             resizeMode="cover"
           />
         ) : (
-          <View style={styles.thumbnailPlaceholder}>
-            <Ionicons name="document-text-outline" size={28} color="#94A3B8" />
+          <View style={[styles.thumbnailPlaceholder, { backgroundColor: colors.bgInput }]}>
+            <Ionicons name="document-text-outline" size={28} color={colors.textMuted} />
           </View>
         )}
       </View>
 
       <View style={styles.details}>
-        <Text style={styles.ticker}>{trade.ticker}</Text>
-        <Text style={styles.meta}>
+        <Text style={[styles.ticker, { color: colors.text }]}>{trade.ticker}</Text>
+        <Text style={[styles.meta, { color: colors.textSecondary }]}>
           {trade.shares} shares · {formatCurrency(trade.pricePerShareCents)}
         </Text>
-        <Text style={styles.date}>{formatDate(trade.tradeDate)}</Text>
+        <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(trade.tradeDate)}</Text>
       </View>
 
       <View style={styles.rightCol}>
         <View style={[styles.directionBadge, { backgroundColor: directionColor }]}>
           <Text style={styles.directionText}>{directionLabel}</Text>
         </View>
-        <Text style={styles.totalValue}>
+        <Text style={[styles.totalValue, { color: colors.text }]}>
           {formatCurrency(trade.shares * trade.pricePerShareCents)}
         </Text>
         {hasPnl && (
@@ -56,9 +58,9 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
             <Ionicons
               name={pnlCents >= 0 ? 'trending-up' : 'trending-down'}
               size={11}
-              color={pnlCents >= 0 ? '#059669' : '#DC2626'}
+              color={pnlCents >= 0 ? colors.success : colors.danger}
             />
-            <Text style={[styles.pnlText, { color: pnlCents >= 0 ? '#059669' : '#DC2626' }]}>
+            <Text style={[styles.pnlText, { color: pnlCents >= 0 ? colors.success : colors.danger }]}>
               {pnlCents >= 0 ? '+' : ''}{formatCurrency(Math.abs(pnlCents))}
             </Text>
           </View>
@@ -77,7 +79,6 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
@@ -96,19 +97,18 @@ const styles = StyleSheet.create({
   thumbnail: { width: 56, height: 56 },
   thumbnailPlaceholder: {
     width: 56, height: 56, borderRadius: 10,
-    backgroundColor: '#F1F5F9',
     justifyContent: 'center', alignItems: 'center',
   },
   details: { flex: 1, gap: 3 },
-  ticker: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  meta: { fontSize: 13, color: '#475569' },
-  date: { fontSize: 12, color: '#94A3B8' },
+  ticker: { fontSize: 18, fontWeight: '700' },
+  meta: { fontSize: 13 },
+  date: { fontSize: 12 },
   rightCol: { alignItems: 'flex-end', gap: 6 },
   directionBadge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   directionText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
-  totalValue: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  totalValue: { fontSize: 16, fontWeight: '700' },
   pnlBadge: {
     flexDirection: 'row',
     alignItems: 'center',

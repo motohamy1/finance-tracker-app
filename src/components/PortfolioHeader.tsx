@@ -8,9 +8,11 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useTradeStore } from '@/stores/tradeStore';
 import { HoldingCard } from './HoldingCard';
+import { useTheme } from '@/services/theme';
 import { formatCurrency } from '@/utils/format';
 
 export function PortfolioHeader() {
+  const { colors } = useTheme();
   const trades = useTradeStore((s) => s.trades);
   const currentPrices = useTradeStore((s) => s.currentPrices);
   const getHoldings = useTradeStore((s) => s.getHoldings);
@@ -18,7 +20,7 @@ export function PortfolioHeader() {
   const updateCurrentPrice = useTradeStore((s) => s.updateCurrentPrice);
   const bulkUpdatePrices = useTradeStore((s) => s.bulkUpdatePrices);
 
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [showBulkForm, setShowBulkForm] = useState(false);
   const animHeight = useSharedValue(300);
@@ -66,15 +68,15 @@ export function PortfolioHeader() {
   const staleCount = getStaleCount();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bgCard }]}>
       <TouchableOpacity
-        style={styles.header}
+        style={[styles.header, { backgroundColor: colors.bgCardElevated }]}
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name="briefcase-outline" size={20} color="#0891B2" />
-          <Text style={styles.title}>Portfolio</Text>
+          <Ionicons name="briefcase-outline" size={20} color={colors.primary} />
+          <Text style={[styles.title, { color: colors.text }]}>Portfolio</Text>
           {staleCount > 0 && (
             <View style={styles.staleBadge}>
               <Text style={styles.staleBadgeText}>{staleCount} stale</Text>
@@ -94,23 +96,23 @@ export function PortfolioHeader() {
             <Text style={styles.updateButtonText}>Prices</Text>
           </TouchableOpacity>
           <Ionicons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            name={isExpanded ? 'chevron-up' : 'chevron-forward'}
             size={20}
-            color="#64748B"
+            color={colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Realized P&L</Text>
+          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Realized P&L</Text>
           <Text style={[styles.summaryValue, totalRealizedPnl >= 0 ? styles.gain : styles.loss]}>
             {totalRealizedPnl >= 0 ? '+' : ''}{formatCurrency(Math.abs(totalRealizedPnl))}
           </Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Unrealized P&L</Text>
+          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Unrealized P&L</Text>
           <Text style={[styles.summaryValue, totalUnrealizedPnl >= 0 ? styles.gain : styles.loss]}>
             {hasUnrealized
               ? `${totalUnrealizedPnl >= 0 ? '+' : ''}${formatCurrency(Math.abs(totalUnrealizedPnl))}`
@@ -129,9 +131,9 @@ export function PortfolioHeader() {
         >
           {holdings.length === 0 ? (
             <View style={styles.emptyHoldings}>
-              <Ionicons name="briefcase-outline" size={32} color="#CBD5E1" />
-              <Text style={styles.emptyText}>No open positions</Text>
-              <Text style={styles.emptySubtext}>All trades have been fully sold</Text>
+              <Ionicons name="briefcase-outline" size={32} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No open positions</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>All trades have been fully sold</Text>
             </View>
           ) : (
             holdings.map(h => (
@@ -171,6 +173,7 @@ function BulkPriceForm({
   onClose: () => void;
   onSave: (prices: Record<string, number>) => void;
 }) {
+  const { colors } = useTheme();
   const [prices, setPrices] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -194,20 +197,20 @@ function BulkPriceForm({
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Update Prices</Text>
+      <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.bgCard }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.divider }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Update Prices</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#64748B" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalBody}>
             {holdings.map(h => (
-              <View key={h.ticker} style={styles.priceRow}>
-                <Text style={styles.priceTicker}>{h.ticker}</Text>
-                <View style={styles.priceInputWrapper}>
-                  <Text style={styles.pricePrefix}>$</Text>
+              <View key={h.ticker} style={[styles.priceRow, { borderBottomColor: colors.divider }]}>
+                <Text style={[styles.priceTicker, { color: colors.text }]}>{h.ticker}</Text>
+                <View style={[styles.priceInputWrapper, { backgroundColor: colors.bgInput }]}>
+                  <Text style={[styles.pricePrefix, { color: colors.textSecondary }]}>$</Text>
                   <TextInput
                     style={styles.priceInput}
                     value={prices[h.ticker] ?? ''}
@@ -220,7 +223,7 @@ function BulkPriceForm({
               </View>
             ))}
           </ScrollView>
-          <TouchableOpacity style={styles.saveAllButton} onPress={handleSave} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.saveAllButton, { backgroundColor: colors.primary }]} onPress={handleSave} activeOpacity={0.8}>
             <Text style={styles.saveAllText}>Save All</Text>
           </TouchableOpacity>
         </View>
@@ -233,8 +236,8 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  title: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  title: { fontSize: 17, fontWeight: '700' },
   staleBadge: {
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 6,
@@ -283,7 +286,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryItem: { flex: 1 },
-  summaryLabel: { fontSize: 12, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   summaryValue: { fontSize: 18, fontWeight: '700', marginTop: 2 },
   summaryDivider: { width: 1, backgroundColor: '#F1F5F9' },
   gain: { color: '#059669' },
@@ -294,15 +297,13 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     gap: 6,
   },
-  emptyText: { fontSize: 15, fontWeight: '600', color: '#64748B' },
-  emptySubtext: { fontSize: 13, color: '#94A3B8' },
+  emptyText: { fontSize: 15, fontWeight: '600' },
+  emptySubtext: { fontSize: 13 },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 34,
@@ -314,9 +315,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  modalTitle: { fontSize: 18, fontWeight: '700' },
   modalBody: { padding: 16 },
   priceRow: {
     flexDirection: 'row',
@@ -324,18 +324,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
   },
-  priceTicker: { fontSize: 16, fontWeight: '600', color: '#0F172A', flex: 1 },
+  priceTicker: { fontSize: 16, fontWeight: '600', flex: 1 },
   priceInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
     borderRadius: 8,
     paddingHorizontal: 10,
     width: 140,
   },
-  pricePrefix: { fontSize: 16, color: '#64748B', marginRight: 2 },
+  pricePrefix: { fontSize: 16, marginRight: 2 },
   priceInput: {
     flex: 1,
     fontSize: 16,
@@ -344,7 +342,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   saveAllButton: {
-    backgroundColor: '#0891B2',
     borderRadius: 14,
     paddingVertical: 16,
     marginHorizontal: 16,

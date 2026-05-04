@@ -7,7 +7,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Category, Expense } from '@/types';
-import { getCategoryLightTint, getCategoryCardTint } from '@/types';
 import { ExpenseCard } from './ExpenseCard';
 
 interface CategoryHeaderProps {
@@ -24,8 +23,6 @@ const CARD_WIDTH = 150 + 8;
 export function CategoryHeader({ category, expenses, isExpanded, onToggle, onLongPress, onAddExpense }: CategoryHeaderProps) {
   const [contentHeight, setContentHeight] = useState(0);
   const animHeight = useSharedValue(0);
-  const lightTint = getCategoryLightTint(category.colorHex);
-  const cardTint = getCategoryCardTint(category.colorHex);
 
   useEffect(() => {
     if (isExpanded && contentHeight > 0) {
@@ -54,10 +51,10 @@ export function CategoryHeader({ category, expenses, isExpanded, onToggle, onLon
   }, [contentHeight]);
 
   const renderExpenseCard = useCallback(({ item }: { item: Expense }) => (
-    <View style={[styles.cardWrapper, { backgroundColor: cardTint }]}>
-      <ExpenseCard expense={item} accentColor={category.colorHex} />
+    <View style={[styles.cardWrapper, { backgroundColor: category.colorHex, borderColor: category.colorHex }]}>
+      <ExpenseCard expense={item} accentColor="#FFFFFF" />
     </View>
-  ), [category.colorHex, cardTint]);
+  ), [category.colorHex]);
 
   const textColor = '#FFFFFF';
   const subtitleColor = 'rgba(255,255,255,0.8)';
@@ -79,7 +76,7 @@ export function CategoryHeader({ category, expenses, isExpanded, onToggle, onLon
       </Pressable>
 
       <Animated.View style={[{ overflow: 'hidden' }, animatedStyle]}>
-        <View style={[styles.contentInner, { backgroundColor: lightTint }]} onLayout={onContentLayout}>
+        <View style={[styles.contentInner, { backgroundColor: category.colorHex }]} onLayout={onContentLayout}>
           {expenses.length > 0 ? (
             <FlatList
               horizontal
@@ -144,6 +141,8 @@ const styles = StyleSheet.create({
   cardWrapper: {
     borderRadius: 10,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
 });
 

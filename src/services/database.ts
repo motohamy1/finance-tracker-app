@@ -62,13 +62,15 @@ export function getExpenseCountForCategory(categoryId: string): number {
 
 type MoneySourceRow = {
   id: string; name: string; color_hex: string; icon_name: string;
-  balance_cents: number; sort_order: number; created_at: string; updated_at: string;
+  balance_cents: number; currency_symbol: string; sort_order: number;
+  created_at: string; updated_at: string;
 };
 
 function rowToMoneySource(row: MoneySourceRow): MoneySource {
   return {
     id: row.id, name: row.name, colorHex: row.color_hex,
     iconName: row.icon_name, balanceCents: row.balance_cents,
+    currencySymbol: row.currency_symbol,
     sortOrder: row.sort_order, createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
@@ -89,17 +91,17 @@ export function getMoneySourceById(id: string): MoneySource | null {
   return row ? rowToMoneySource(row) : null;
 }
 
-export function createMoneySource(id: string, name: string, colorHex: string, iconName: string, sortOrder: number): MoneySource {
+export function createMoneySource(id: string, name: string, colorHex: string, iconName: string, sortOrder: number, currencySymbol: string = '$'): MoneySource {
   const db = getDatabase();
   const now = new Date().toISOString();
   db.runSync(
-    'INSERT INTO money_sources (id, name, color_hex, icon_name, balance_cents, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?);',
-    [id, name, colorHex, iconName, sortOrder, now, now]
+    'INSERT INTO money_sources (id, name, color_hex, icon_name, balance_cents, currency_symbol, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?);',
+    [id, name, colorHex, iconName, currencySymbol, sortOrder, now, now]
   );
   return getMoneySourceById(id)!;
 }
 
-export function updateMoneySource(id: string, updates: { name?: string; colorHex?: string; iconName?: string; balanceCents?: number; sortOrder?: number }): MoneySource | null {
+export function updateMoneySource(id: string, updates: { name?: string; colorHex?: string; iconName?: string; balanceCents?: number; currencySymbol?: string; sortOrder?: number }): MoneySource | null {
   const db = getDatabase();
   const now = new Date().toISOString();
   const setClauses: string[] = [];
@@ -108,6 +110,7 @@ export function updateMoneySource(id: string, updates: { name?: string; colorHex
   if (updates.colorHex !== undefined) { setClauses.push('color_hex = ?'); params.push(updates.colorHex); }
   if (updates.iconName !== undefined) { setClauses.push('icon_name = ?'); params.push(updates.iconName); }
   if (updates.balanceCents !== undefined) { setClauses.push('balance_cents = ?'); params.push(updates.balanceCents); }
+  if (updates.currencySymbol !== undefined) { setClauses.push('currency_symbol = ?'); params.push(updates.currencySymbol); }
   if (updates.sortOrder !== undefined) { setClauses.push('sort_order = ?'); params.push(updates.sortOrder); }
   if (setClauses.length === 0) return getMoneySourceById(id);
   setClauses.push('updated_at = ?');

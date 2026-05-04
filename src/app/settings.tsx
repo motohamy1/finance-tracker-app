@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useTheme } from '@/services/theme';
 
 export default function SettingsScreen() {
+  const { colors, mode, toggleTheme } = useTheme();
   const isAuthenticated = useSettingsStore((s) => s.isAuthenticated);
   const isSyncEnabled = useSettingsStore((s) => s.isSyncEnabled);
   const isSyncing = useSettingsStore((s) => s.isSyncing);
@@ -51,15 +53,47 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
-      <Ionicons name="settings-outline" size={32} color="#94A3B8" />
-      <Text style={styles.heading}>Settings</Text>
+      <Ionicons name="settings-outline" size={32} color={colors.textMuted} />
+      <Text style={[styles.heading, { color: colors.text }]}>Settings</Text>
+
+      {/* ─── Theme Section ─── */}
+      <View style={[styles.section, { backgroundColor: colors.bgCard }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Appearance</Text>
+        <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+          Choose between light and dark mode.
+        </Text>
+        <View style={[styles.row, { borderBottomColor: colors.divider }]}>
+          <View style={styles.rowLabel}>
+            <View style={styles.themeRow}>
+              <Ionicons
+                name={mode === 'dark' ? 'moon' : 'sunny'}
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.rowTitle, { color: colors.text }]}>
+                Dark Mode
+              </Text>
+            </View>
+            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
+              {mode === 'dark' ? 'Dark theme active' : 'Light theme active'}
+            </Text>
+          </View>
+          <Switch
+            value={mode === 'dark'}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#CBD5E1', true: colors.primary }}
+            thumbColor="#FFFFFF"
+            ios_backgroundColor="#CBD5E1"
+          />
+        </View>
+      </View>
 
       {/* ─── Google Account Section ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Cloud Sync</Text>
-        <Text style={styles.sectionDescription}>
+      <View style={[styles.section, { backgroundColor: colors.bgCard }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Cloud Sync</Text>
+        <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
           Back up your data to Google Drive and restore on a new device.
         </Text>
 
@@ -76,10 +110,10 @@ export default function SettingsScreen() {
         ) : (
           <View style={styles.accountInfo}>
             <View style={styles.accountRow}>
-              <Ionicons name="person-circle-outline" size={24} color="#0891B2" />
+              <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
               <View style={styles.accountDetails}>
-                <Text style={styles.accountEmail}>{googleEmail}</Text>
-                <Text style={styles.accountStatus}>Signed in</Text>
+                <Text style={[styles.accountEmail, { color: colors.text }]}>{googleEmail}</Text>
+                <Text style={[styles.accountStatus, { color: colors.success }]}>Signed in</Text>
               </View>
               <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                 <Text style={styles.logoutText}>Sign Out</Text>
@@ -91,38 +125,38 @@ export default function SettingsScreen() {
 
       {/* ─── Sync Controls Section ─── */}
       {isAuthenticated && (
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.bgCard }]}>
           {/* Sync toggle */}
-          <View style={styles.row}>
+          <View style={[styles.row, { borderBottomColor: colors.divider }]}>
             <View style={styles.rowLabel}>
-              <Text style={styles.rowTitle}>Auto Sync</Text>
-              <Text style={styles.rowSubtitle}>
+              <Text style={[styles.rowTitle, { color: colors.text }]}>Auto Sync</Text>
+              <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
                 {isSyncEnabled ? 'Syncing automatically' : 'Sync is disabled'}
               </Text>
             </View>
             <Switch
               value={isSyncEnabled}
               onValueChange={setSyncEnabled}
-              trackColor={{ false: '#CBD5E1', true: '#0891B2' }}
+              trackColor={{ false: '#CBD5E1', true: colors.primary }}
               thumbColor="#FFFFFF"
               ios_backgroundColor="#CBD5E1"
             />
           </View>
 
           {/* Sync status */}
-          <View style={styles.row}>
+          <View style={[styles.row, { borderBottomColor: colors.divider }]}>
             <View style={styles.rowLabel}>
-              <Text style={styles.rowTitle}>Last Synced</Text>
-              <Text style={styles.rowSubtitle}>{formatLastSync(lastSyncAt)}</Text>
+              <Text style={[styles.rowTitle, { color: colors.text }]}>Last Synced</Text>
+              <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>{formatLastSync(lastSyncAt)}</Text>
             </View>
             {isSyncing && (
-              <Text style={styles.syncingText}>Syncing…</Text>
+              <Text style={[styles.syncingText, { color: colors.primary }]}>Syncing…</Text>
             )}
           </View>
 
           {/* Sync Now button */}
           <TouchableOpacity
-            style={[styles.syncNowButton, isSyncing && styles.syncNowButtonDisabled]}
+            style={[styles.syncNowButton, { backgroundColor: colors.primary }, isSyncing && styles.syncNowButtonDisabled]}
             onPress={handleSyncNow}
             disabled={isSyncing}
             activeOpacity={0.7}
@@ -130,9 +164,9 @@ export default function SettingsScreen() {
             <Ionicons
               name={isSyncing ? 'sync' : 'sync-outline'}
               size={18}
-              color="#FFFFFF"
+              color={colors.textInverse}
             />
-            <Text style={styles.syncNowText}>
+            <Text style={[styles.syncNowText, { color: colors.textInverse }]}>
               {isSyncing ? 'Syncing…' : 'Sync Now'}
             </Text>
           </TouchableOpacity>
@@ -148,7 +182,7 @@ export default function SettingsScreen() {
       )}
 
       {/* ─── Footer ─── */}
-      <Text style={styles.footer}>
+      <Text style={[styles.footer, { color: colors.textMuted }]}>
         Data is stored in your private Google Drive app folder.{'\n'}
         Only this app can access your backup.
       </Text>
@@ -159,7 +193,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
   },
   contentContainer: {
     padding: 24,
@@ -168,14 +201,12 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
     marginTop: 12,
     marginBottom: 32,
   },
 
   // Section
   section: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -188,12 +219,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0F172A',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 13,
-    color: '#64748B',
     lineHeight: 18,
     marginBottom: 16,
   },
@@ -229,11 +258,9 @@ const styles = StyleSheet.create({
   accountEmail: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#0F172A',
   },
   accountStatus: {
     fontSize: 12,
-    color: '#059669',
     marginTop: 2,
   },
   logoutButton: {
@@ -253,7 +280,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
   rowLabel: {
     flex: 1,
@@ -261,22 +287,23 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#0F172A',
   },
   rowSubtitle: {
     fontSize: 13,
-    color: '#64748B',
     marginTop: 3,
+  },
+  themeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   syncingText: {
     fontSize: 12,
-    color: '#0891B2',
     fontWeight: '500',
   },
 
   // Sync Now button
   syncNowButton: {
-    backgroundColor: '#0891B2',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -289,7 +316,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#94A3B8',
   },
   syncNowText: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -313,7 +339,6 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     fontSize: 12,
-    color: '#94A3B8',
     textAlign: 'center',
     marginTop: 24,
     lineHeight: 18,

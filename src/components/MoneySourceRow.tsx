@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { EmptyState } from '@/components/EmptyState';
@@ -41,20 +41,23 @@ function CreationSheet({
 }: {
   visible: boolean;
   onClose: () => void;
-  onCreate: (name: string, colorHex: string) => void;
+  onCreate: (name: string, colorHex: string, currencySymbol: string) => void;
 }) {
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(MONEY_SOURCE_PALETTE[0]);
+  const currencies = ['$', 'EGP', '€', '£', '¥'];
+  const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
 
   const handleCreate = useCallback(() => {
     const trimmed = name.trim();
     if (trimmed) {
-      onCreate(trimmed, selectedColor);
+      onCreate(trimmed, selectedColor, selectedCurrency);
       setName('');
       setSelectedColor(MONEY_SOURCE_PALETTE[0]);
+      setSelectedCurrency(currencies[0]);
       onClose();
     }
-  }, [name, selectedColor, onCreate, onClose]);
+  }, [name, selectedColor, selectedCurrency, onCreate, onClose, currencies]);
 
   return (
     <BottomSheet visible={visible} onClose={onClose} title="New Money Source">
@@ -63,14 +66,16 @@ function CreationSheet({
         <Text style={styles.fieldLabel}>Source Name</Text>
         <View style={styles.nameInputContainer}>
           <Ionicons name="wallet-outline" size={20} color="#475569" />
-          <Text
-            style={[styles.nameInput, !name && styles.placeholder]}
-            onPress={() => {
-              // Focus handled by TextInput in real app; simplified for testability
-            }}
-          >
-            {name || 'Source name'}
-          </Text>
+          <TextInput
+            style={styles.nameInput}
+            value={name}
+            onChangeText={setName}
+            placeholder="Source name"
+            placeholderTextColor="#94A3B8"
+            autoFocus
+            autoCapitalize="words"
+            returnKeyType="done"
+          />
         </View>
 
         {/* Color swatch grid */}
@@ -91,6 +96,30 @@ function CreationSheet({
               {selectedColor === color && (
                 <Ionicons name="checkmark" size={18} color="#FFFFFF" />
               )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Currency selection */}
+        <Text style={styles.fieldLabel}>Currency</Text>
+        <View style={styles.currencyRow}>
+          {currencies.map((symbol) => (
+            <TouchableOpacity
+              key={symbol}
+              style={[
+                styles.currencyChip,
+                selectedCurrency === symbol && styles.currencyChipSelected,
+              ]}
+              onPress={() => setSelectedCurrency(symbol)}
+            >
+              <Text
+                style={[
+                  styles.currencyChipText,
+                  selectedCurrency === symbol && styles.currencyChipTextSelected,
+                ]}
+              >
+                {symbol}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -117,11 +146,18 @@ export function MoneySourceRow({ onSelectSource }: MoneySourceRowProps) {
 
   const [showCreateSheet, setShowCreateSheet] = useState(false);
 
+  const screenWidth = Dimensions.get('window').width;
+  // Total width of all cards + gaps + trailing add button
+  const totalWidth = moneySources.length * (MONEY_SOURCE_CARD_WIDTH + CARD_GAP) + ADD_BUTTON_WIDTH - CARD_GAP;
+  // Center when content fits, otherwise use base padding for scroll
+  const sidePad = totalWidth < screenWidth ? (screenWidth - totalWidth) / 2 : 12;
+
   const handleCreateSource = useCallback(
-    (name: string, colorHex: string) => {
+    (name: string, colorHex: string, currencySymbol: string) => {
       addMoneySource({
         name,
         colorHex,
+        currencySymbol,
         iconName: 'wallet-outline',
       });
     },
@@ -158,7 +194,10 @@ export function MoneySourceRow({ onSelectSource }: MoneySourceRowProps) {
         snapToInterval={MONEY_SOURCE_CARD_WIDTH + CARD_GAP}
         decelerationRate="fast"
         snapToAlignment="start"
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingHorizontal: sidePad },
+        ]}
         keyboardShouldPersistTaps="handled"
         ListFooterComponent={() => (
           <AddSourceButton onPress={() => setShowCreateSheet(true)} />
@@ -181,8 +220,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   listContent: {
-    paddingHorizontal: 16,
     gap: CARD_GAP,
+    alignItems: 'center',
   },
   // Add button
   addButton: {
@@ -261,5 +300,31 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 8,
+  },
+  currencyChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  currencyChipSelected: {
+    backgroundColor: '#0891B2',
+    borderColor: '#0891B2',
+  },
+  currencyChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  currencyChipTextSelected: {
+    color: '#FFFFFF',
   },
 });

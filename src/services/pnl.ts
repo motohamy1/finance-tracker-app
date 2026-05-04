@@ -77,7 +77,7 @@ export function calculateHoldings(
     { totalShares: number; totalCostCents: number; totalFeesCents: number }
   >();
 
-  for (const t of trades) {
+  for (const t of trades.sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))) {
     if (!tickerMap.has(t.ticker)) {
       tickerMap.set(t.ticker, { totalShares: 0, totalCostCents: 0, totalFeesCents: 0 });
     }

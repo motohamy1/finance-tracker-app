@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
+import { ActionSheetModal, type ActionSheetOption } from '@/components/ActionSheetModal';
 import { formatCurrency } from '@/utils/format';
 import { MONEY_SOURCE_PALETTE } from '@/types';
 import type { MoneySource } from '@/types';
@@ -20,7 +21,7 @@ import type { MoneySource } from '@/types';
 // ─── Constants ───
 export const MONEY_SOURCE_CARD_WIDTH = Math.min(
   Dimensions.get('window').width - 48,
-  300,
+  320,
 );
 
 const CARD_HEIGHT = 180;
@@ -47,6 +48,7 @@ export function MoneySourceCard({
   const updateMoneySourceBalance = useExpenseStore((s) => s.updateMoneySourceBalance);
   const renameMoneySource = useExpenseStore((s) => s.renameMoneySource);
   const updateMoneySourceColor = useExpenseStore((s) => s.updateMoneySourceColor);
+  const updateMoneySourceCurrency = useExpenseStore((s) => s.updateMoneySourceCurrency);
   const removeMoneySource = useExpenseStore((s) => s.removeMoneySource);
 
   // ─── Balance editing state ───
@@ -60,6 +62,9 @@ export function MoneySourceCard({
   // ─── Name editing state ───
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
+
+  // ─── Action sheet state ───
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
 
   // ─── Balance edit handlers ───
   const validateAndSave = useCallback(
@@ -143,40 +148,8 @@ export function MoneySourceCard({
 
   // ─── Long-press menu ───
   const handleLongPress = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Edit Name', 'Change Color', 'Delete', 'Cancel'],
-          cancelButtonIndex: 3,
-          destructiveButtonIndex: 2,
-        },
-        (buttonIndex: number) => {
-          switch (buttonIndex) {
-            case 0:
-              handleEditName();
-              break;
-            case 1:
-              handleChangeColor();
-              break;
-            case 2:
-              handleDeleteConfirm();
-              break;
-          }
-        },
-      );
-    } else {
-      Alert.alert(source.name, undefined, [
-        { text: 'Edit Name', onPress: handleEditName },
-        { text: 'Change Color', onPress: handleChangeColor },
-        {
-          text: 'Delete',
-          onPress: handleDeleteConfirm,
-          style: 'destructive',
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-    }
-  }, [source]);
+    setActionSheetVisible(true);
+  }, []);
 
   // ─── Edit Name flow ───
   const handleEditName = useCallback(() => {
@@ -191,6 +164,38 @@ export function MoneySourceCard({
     }
     setIsEditingName(false);
   }, [editNameValue, source.name, source.id, renameMoneySource]);
+
+  // ─── Edit Currency flow ───
+  const handleEditCurrency = useCallback(() => {
+    const currencies = ['$', 'EGP', '€', '£', '¥'];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [...currencies, 'Cancel'],
+          cancelButtonIndex: currencies.length,
+          title: 'Select Currency',
+        },
+        (index) => {
+          if (index < currencies.length) {
+            updateMoneySourceCurrency(source.id, currencies[index]);
+          }
+        },
+      );
+    } else {
+      Alert.alert(
+        'Select Currency',
+        undefined,
+        [
+          ...currencies.map((symbol) => ({
+            text: symbol,
+            onPress: () => updateMoneySourceCurrency(source.id, symbol),
+          })),
+          { text: 'Cancel', style: 'cancel' },
+        ],
+        { cancelable: true },
+      );
+    }
+  }, [source.id, updateMoneySourceCurrency]);
 
   // ─── Change Color flow ───
   const handleChangeColor = useCallback(() => {
@@ -216,6 +221,13 @@ export function MoneySourceCard({
       ],
     );
   }, [source.name, source.id, removeMoneySource]);
+
+  const actionSheetOptions = useMemo<ActionSheetOption[]>(() => [
+    { label: 'Edit Name', icon: 'pencil-outline', onPress: handleEditName },
+    { label: 'Change Currency', icon: 'cash-outline', onPress: handleEditCurrency },
+    { label: 'Change Color', icon: 'color-palette-outline', onPress: handleChangeColor },
+    { label: 'Delete', icon: 'trash-outline', destructive: true, onPress: handleDeleteConfirm },
+  ], [handleEditName, handleEditCurrency, handleChangeColor, handleDeleteConfirm]);
 
   // ─── Expense count label ───
   const expenseCountLabel =
@@ -279,23 +291,21 @@ export function MoneySourceCard({
       {/* ─── Center: Balance ─── */}
       <View style={styles.balanceContainer}>
         {isEditingBalance ? (
-          <Animated.View style={{ opacity: inputOpacity }}>
-            <TextInput
-              style={styles.balanceInput}
-              defaultValue={editValue}
-              onChangeText={setEditValue}
-              onBlur={() => validateAndSave(editValue)}
-              onSubmitEditing={() => validateAndSave(editValue)}
-              keyboardType="decimal-pad"
-              autoFocus
-              selectTextOnFocus
-              placeholderTextColor="rgba(255,255,255,0.5)"
-            />
-          </Animated.View>
+          <TextInput
+            style={styles.balanceInput}
+            value={editValue}
+            onChangeText={setEditValue}
+            onBlur={() => validateAndSave(editValue)}
+            onSubmitEditing={() => validateAndSave(editValue)}
+            keyboardType="decimal-pad"
+            autoFocus
+            selectTextOnFocus
+            placeholderTextColor="rgba(255,255,255,0.5)"
+          />
         ) : (
           <Animated.View style={{ opacity: balanceOpacity }}>
             <Text style={styles.balanceText}>
-              {formatCurrency(source.balanceCents)}
+              {formatCurrency(source.balanceCents, source.currencySymbol)}
             </Text>
           </Animated.View>
         )}
@@ -316,6 +326,13 @@ export function MoneySourceCard({
       <View style={styles.footer}>
         <Text style={styles.expenseCount}>{expenseCountLabel}</Text>
       </View>
+
+      <ActionSheetModal
+        visible={actionSheetVisible}
+        onClose={() => setActionSheetVisible(false)}
+        title={source.name}
+        options={actionSheetOptions}
+      />
     </TouchableOpacity>
   );
 }
@@ -330,10 +347,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     // Shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
   },
   header: {
     flexDirection: 'row',

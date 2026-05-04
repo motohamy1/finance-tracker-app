@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import type { Expense, ExpenseFormData } from '@/types';
 import { useExpenseStore } from '@/stores/expenseStore';
+import { useTheme } from '@/services/theme';
 import { getTodayISO } from '@/utils/format';
 
 interface ExpenseFormProps {
@@ -17,6 +18,7 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ visible, onClose, editingExpense, preselectedCategoryId, preselectedMoneySourceId }: ExpenseFormProps) {
+  const { colors } = useTheme();
   const categories = useExpenseStore((s) => s.categories);
   const moneySources = useExpenseStore((s) => s.moneySources);
   const addExpense = useExpenseStore((s) => s.addExpense);
@@ -99,9 +101,9 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
+        <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose} />
+        <View style={[styles.sheet, { backgroundColor: colors.bgCard }]}>
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
           <ScrollView
             style={styles.scrollArea}
@@ -109,49 +111,49 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.heading}>
+            <Text style={[styles.heading, { color: colors.text }]}>
               {isEditing ? 'Edit Expense' : 'New Expense'}
             </Text>
 
-            <Text style={styles.label}>Category</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
             <TouchableOpacity
-              style={styles.selectButton}
+              style={[styles.selectButton, { backgroundColor: colors.bgInput, borderColor: colors.border }]}
               onPress={() => setShowCategoryPicker(!showCategoryPicker)}
             >
-              <View style={[styles.colorDot, { backgroundColor: selectedCategory?.colorHex ?? '#0891B2' }]} />
-              <Text style={styles.selectText}>{selectedCategory?.name ?? 'Select category'}</Text>
-              <Ionicons name={showCategoryPicker ? 'chevron-up' : 'chevron-down'} size={18} color="#475569" />
+              <View style={[styles.colorDot, { backgroundColor: selectedCategory?.colorHex ?? colors.primary }]} />
+              <Text style={[styles.selectText, { color: selectedCategory ? colors.text : colors.textMuted }]}>{selectedCategory?.name ?? 'Select category'}</Text>
+              <Ionicons name={showCategoryPicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
             </TouchableOpacity>
 
             {showCategoryPicker && (
-              <View style={styles.dropdown}>
+              <View style={[styles.dropdown, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                 {categories.map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
-                    style={[styles.dropdownItem, cat.id === categoryId && styles.dropdownItemActive]}
+                    style={[styles.dropdownItem, cat.id === categoryId && { backgroundColor: colors.divider, borderRadius: 8 }]}
                     onPress={() => { setCategoryId(cat.id); setShowCategoryPicker(false); }}
                   >
                     <View style={[styles.colorDot, { backgroundColor: cat.colorHex }]} />
-                    <Text style={styles.dropdownItemText}>{cat.name}</Text>
+                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>{cat.name}</Text>
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity style={styles.dropdownItem} onPress={() => setShowNewCategoryInput(true)}>
-                  <Ionicons name="add" size={18} color="#0891B2" />
-                  <Text style={[styles.dropdownItemText, { color: '#0891B2' }]}>New Category</Text>
+                  <Ionicons name="add" size={18} color={colors.primary} />
+                  <Text style={[styles.dropdownItemText, { color: colors.primary }]}>New Category</Text>
                 </TouchableOpacity>
                 {showNewCategoryInput && (
                   <View style={styles.newCategoryRow}>
                     <TextInput
-                      style={styles.newCategoryInput}
+                      style={[styles.newCategoryInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
                       placeholder="Category name"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.textMuted}
                       value={newCategoryName}
                       onChangeText={setNewCategoryName}
                       onSubmitEditing={handleCreateCategory}
                       autoFocus
                     />
                     <TouchableOpacity onPress={handleCreateCategory}>
-                      <Text style={{ color: '#0891B2', fontWeight: '600' }}>Create</Text>
+                      <Text style={{ color: colors.primary, fontWeight: '600' }}>Create</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -159,23 +161,23 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
             )}
 
             {/* Money Source Picker — inserted between Category and Title */}
-            <Text style={styles.label}>Money Source (optional)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Money Source (optional)</Text>
             <TouchableOpacity
-              style={styles.selectButton}
+              style={[styles.selectButton, { backgroundColor: colors.bgInput, borderColor: colors.border }]}
               onPress={() => setShowMoneySourcePicker(!showMoneySourcePicker)}
             >
               {moneySourceId && selectedMoneySource ? (
                 <>
                   <View style={[styles.colorDot, { backgroundColor: selectedMoneySource.colorHex }]} />
-                  <Text style={styles.selectText}>{selectedMoneySource.name}</Text>
+                  <Text style={[styles.selectText, { color: colors.text }]}>{selectedMoneySource.name}</Text>
                 </>
               ) : (
                 <>
-                  <View style={[styles.colorDot, { backgroundColor: '#94A3B8' }]} />
-                  <Text style={[styles.selectText, { color: '#94A3B8' }]}>None</Text>
+                  <View style={[styles.colorDot, { backgroundColor: colors.textMuted }]} />
+                  <Text style={[styles.selectText, { color: colors.textMuted }]}>None</Text>
                 </>
               )}
-              <Ionicons name={showMoneySourcePicker ? 'chevron-up' : 'chevron-down'} size={18} color="#475569" />
+              <Ionicons name={showMoneySourcePicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
             </TouchableOpacity>
 
             {showMoneySourcePicker && (

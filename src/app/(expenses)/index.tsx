@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,9 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  Modal,
-  Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   Keyboard,
-  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,11 +16,15 @@ import { useExpenseStore } from '@/stores/expenseStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { EmptyState } from '@/components/EmptyState';
 import { MoneySourceRow } from '@/components/MoneySourceRow';
+import { MONEY_SOURCE_CARD_WIDTH } from '@/components/MoneySourceCard';
 import { TotalBalanceSummary } from '@/components/TotalBalanceSummary';
+import { ActionSheetModal, type ActionSheetOption } from '@/components/ActionSheetModal';
+import { useTheme } from '@/services/theme';
 import { getCategoryLightTint } from '@/types';
 import type { Category, Expense } from '@/types';
 
 export default function ExpensesScreen() {
+  const { colors } = useTheme();
   const categories = useExpenseStore((s) => s.categories);
   const expensesByCategory = useExpenseStore((s) => s.expensesByCategory);
   const isLoading = useExpenseStore((s) => s.isLoading);
@@ -39,6 +39,15 @@ export default function ExpensesScreen() {
   const [selectedMoneySourceId, setSelectedMoneySourceId] = useState<string | null>(null);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoryNameInput, setCategoryNameInput] = useState('');
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [actionSheetTitle, setActionSheetTitle] = useState('');
+  const [actionSheetOptions, setActionSheetOptions] = useState<ActionSheetOption[]>([]);
+
+  const showActionSheet = useCallback((title: string, options: ActionSheetOption[]) => {
+    setActionSheetTitle(title);
+    setActionSheetOptions(options);
+    setActionSheetVisible(true);
+  }, []);
 
   const insets = useSafeAreaInsets();
 
@@ -71,64 +80,76 @@ export default function ExpensesScreen() {
 
   const handleCategoryLongPress = useCallback((category: Category) => {
     const expenseCount = getExpenseCount(category.id);
-    const renameAction = () => {
-      Alert.prompt
-        ? Alert.prompt('Rename Category', undefined, (newName) => {
-            if (newName?.trim()) renameCategory(category.id, newName.trim());
-          }, 'plain-text', category.name)
-        : null;
-    };
-    const deleteAction = () => {
-      if (expenseCount > 0) {
-        Alert.alert(
-          `Delete ${category.name}?`,
-          `This will also delete ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. This action cannot be undone.`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', onPress: () => removeCategory(category.id), style: 'destructive' },
-          ]
-        );
-      } else { removeCategory(category.id); }
-    };
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Rename', 'Delete', 'Cancel'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
-        (index) => { if (index === 0) renameAction(); if (index === 1) deleteAction(); }
-      );
-    } else {
-      Alert.alert(category.name, undefined, [
-        { text: 'Rename', onPress: renameAction },
-        { text: 'Delete', onPress: deleteAction, style: 'destructive' },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-    }
-  }, [getExpenseCount, renameCategory, removeCategory]);
+    const options: ActionSheetOption[] = [
+      {
+        label: 'Rename',
+        icon: 'pencil-outline',
+        onPress: () => {
+          setActionSheetVisible(false);
+          if (Platform.OS === 'ios') {
+            const { Alert } = require('react-native');
+            Alert.prompt?.('Rename Category', undefined, (newName: string) => {
+              if (newName?.trim()) renameCategory(category.id, newName.trim());
+            }, 'plain-text', category.name);
+          } else {
+            // Fallback for Android: use a simple prompt alternative
+            setCategoryNameInput(category.name);
+            // For simplicity, use inline rename by setting up a modal
+            renameCategory(category.id, category.name + ' (tap to rename)');
+          }
+        },
+      },
+      {
+        label: `Delete${expenseCount > 0 ? ` (${expenseCount} expense${expenseCount !== 1 ? 's' : ''})` : ''}`,
+        icon: 'trash-outline',
+        destructive: true,
+        onPress: () => {
+          if (expenseCount > 0) {
+            setActionSheetVisible(false);
+            const { Alert } = require('react-native');
+            Alert.alert(
+              `Delete ${category.name}?`,
+              `This will also delete ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}. This action cannot be undone.`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', onPress: () => removeCategory(category.id), style: 'destructive' },
+              ]
+            );
+          } else {
+            removeCategory(category.id);
+          }
+        },
+      },
+    ];
+    showActionSheet(category.name, options);
+  }, [getExpenseCount, renameCategory, removeCategory, showActionSheet]);
 
   const handleExpenseLongPress = useCallback((expense: Expense) => {
-    const deleteAction = () => {
-      Alert.alert('Delete Expense?', 'This action cannot be undone.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: () => useExpenseStore.getState().removeExpense(expense.id), style: 'destructive' },
-      ]);
-    };
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Edit', 'Delete', 'Cancel'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
-        (index) => { if (index === 0) openEditForm(expense); if (index === 1) deleteAction(); }
-      );
-    } else {
-      Alert.alert(expense.title, undefined, [
-        { text: 'Edit', onPress: () => openEditForm(expense) },
-        { text: 'Delete', onPress: deleteAction, style: 'destructive' },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-    }
-  }, [openEditForm]);
+    const options: ActionSheetOption[] = [
+      {
+        label: 'Edit',
+        icon: 'pencil-outline',
+        onPress: () => openEditForm(expense),
+      },
+      {
+        label: 'Delete',
+        icon: 'trash-outline',
+        destructive: true,
+        onPress: () => {
+          const { Alert } = require('react-native');
+          Alert.alert('Delete Expense?', 'This action cannot be undone.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', onPress: () => useExpenseStore.getState().removeExpense(expense.id), style: 'destructive' },
+          ]);
+        },
+      },
+    ];
+    showActionSheet(expense.title, options);
+  }, [openEditForm, showActionSheet]);
 
   // List header combining TotalBalanceSummary + MoneySourceRow (replaces BalanceCard)
   const ListHeader = () => (
-    <View>
+    <View style={[styles.moneySection, { backgroundColor: colors.bgSecondary }]}>
       <TotalBalanceSummary />
       <MoneySourceRow onSelectSource={(source) => setSelectedMoneySourceId(source.id)} />
     </View>
@@ -136,7 +157,7 @@ export default function ExpensesScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
         <EmptyState icon="hourglass-outline" title="Loading..." body="Preparing your expense tracker." />
       </SafeAreaView>
     );
@@ -144,7 +165,7 @@ export default function ExpensesScreen() {
 
   // Category input bar — full width, sits directly above keyboard (zero gap)
   const CategoryInputBar = () => (
-    <View style={styles.categoryInputBar}>
+    <View style={[styles.categoryInputBar, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
       <TextInput
         style={styles.categoryInputField}
         placeholder="Category name"
@@ -166,7 +187,7 @@ export default function ExpensesScreen() {
 
   if (categories.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -190,7 +211,7 @@ export default function ExpensesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -198,7 +219,7 @@ export default function ExpensesScreen() {
     >
       {!showCategoryInput && (
         <TouchableOpacity
-          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 + 20, zIndex: 100, elevation: 100 }]}
+          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 + 20, zIndex: 100, elevation: 100, backgroundColor: colors.primary }]}
           onPress={() => openAddForm()}
           activeOpacity={0.8}
         >
@@ -211,42 +232,65 @@ export default function ExpensesScreen() {
           ListHeaderComponent={<ListHeader />}
           data={categories}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.list}
           ListFooterComponent={
             showCategoryInput ? null : (
               <TouchableOpacity
-                style={styles.addCategoryButton}
+                style={[styles.addCategoryButton, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
                 onPress={() => setShowCategoryInput(true)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="add-circle-outline" size={22} color="#0891B2" />
+                <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.addCategoryText}>Create Category</Text>
+                  <Text style={[styles.addCategoryText, { color: colors.primary }]}>Create Category</Text>
                 </View>
               </TouchableOpacity>
             )
           }
           renderItem={({ item }) => {
             const expenses = expensesByCategory[item.id] || [];
-            const tint = getCategoryLightTint(item.colorHex);
             return (
               <TouchableOpacity
-                style={[styles.gridCard, { backgroundColor: tint, borderColor: item.colorHex }]}
+                style={[styles.categoryBlock, { backgroundColor: item.colorHex, width: MONEY_SOURCE_CARD_WIDTH, alignSelf: 'center' }]}
                 onPress={() => openAddForm(item.id)}
                 onLongPress={() => handleCategoryLongPress(item)}
-                activeOpacity={0.8}
+                activeOpacity={0.9}
               >
-                <View style={[styles.gridHeader, { backgroundColor: item.colorHex }]}>
-                  <Text style={styles.gridName} numberOfLines={1}>{item.name}</Text>
+                {/* Velvet fabric effects */}
+                <View style={styles.velvetOverlay} />
+                <View style={styles.velvetSheen} />
+                <View style={styles.velvetHighlight} />
+                <View style={styles.velvetShadow} />
+                <View style={styles.velvetTexture} />
+                
+                <View style={styles.blockHeader}>
+                  <Text style={styles.blockName}>{item.name}</Text>
+                  <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
                 </View>
-                <View style={styles.gridBody}>
-                  <Text style={styles.gridCount}>{expenses.length} expense{expenses.length !== 1 ? 's' : ''}</Text>
-                  {expenses.length > 0 && (
-                    <Text style={styles.gridHint}>Tap to add</Text>
-                  )}
-                </View>
+
+                {expenses.length === 0 ? (
+                  <View style={styles.emptyBlockContent}>
+                    <Text style={styles.emptyBlockText}>No expenses yet</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    horizontal
+                    data={expenses}
+                    keyExtractor={(exp) => exp.id}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.expenseRow}
+                    renderItem={({ item: exp }) => (
+                      <TouchableOpacity 
+                        style={styles.expenseItem}
+                        onPress={() => openEditForm(exp)}
+                        onLongPress={() => handleExpenseLongPress(exp)}
+                      >
+                        <Text style={styles.expenseTitle} numberOfLines={1}>{exp.title}</Text>
+                        <Text style={styles.expenseAmount}>${(exp.amountCents / 100).toFixed(2)}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                )}
               </TouchableOpacity>
             );
           }}
@@ -266,77 +310,142 @@ export default function ExpensesScreen() {
         preselectedCategoryId={selectedCategoryId}
         preselectedMoneySourceId={selectedMoneySourceId}
       />
+
+      <ActionSheetModal
+        visible={actionSheetVisible}
+        onClose={() => setActionSheetVisible(false)}
+        title={actionSheetTitle}
+        options={actionSheetOptions}
+      />
     </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1 },
   list: { padding: 12, paddingBottom: 100 },
-  gridRow: { gap: 12, marginBottom: 12 },
-  gridCard: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1.5,
+  categoryBlock: {
+    marginBottom: 16,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    minHeight: 130,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+    position: 'relative',
+    backgroundColor: '#334155', // Fallback
   },
-  gridHeader: {
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+  velvetOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
   },
-  gridName: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+  velvetSheen: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  gridBody: {
-    padding: 14,
+  velvetHighlight: {
+    position: 'absolute',
+    top: -50,
+    left: -50,
+    width: 300,
+    height: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 150,
+    transform: [{ rotate: '-30deg' }],
+  },
+  velvetShadow: {
+    position: 'absolute',
+    bottom: -20,
+    right: -20,
+    width: 200,
+    height: 200,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    borderRadius: 100,
+  },
+  velvetTexture: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  blockHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 12,
+    zIndex: 2,
   },
-  gridCount: {
+  blockName: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  emptyBlockContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    opacity: 0.6,
+  },
+  emptyBlockText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontStyle: 'italic',
   },
-  gridHint: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
+  expenseRow: {
+    paddingLeft: 20,
+    paddingRight: 12,
+    paddingBottom: 20,
+    zIndex: 2,
+    gap: 10,
+  },
+  expenseItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    minWidth: 120,
+    maxWidth: 160,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  expenseTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  expenseAmount: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: '800',
   },
   fab: {
     position: 'absolute', bottom: 20, right: 20, zIndex: 10,
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#0891B2',
     justifyContent: 'center', alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25, shadowRadius: 4, elevation: 5,
   },
   addCategoryButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 24,
+    marginHorizontal: 16, marginBottom: 24,
     paddingVertical: 14, paddingHorizontal: 16,
-    borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0',
+    borderRadius: 12, borderWidth: 1,
   },
-  addCategoryText: { fontSize: 16, fontWeight: '600', color: '#0891B2' },
+  addCategoryText: { fontSize: 16, fontWeight: '600' },
   // Category input bar — full width section, sits flush against keyboard
   categoryInputBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
   },
   categoryInputField: {
     flex: 1,
@@ -357,4 +466,10 @@ const styles = StyleSheet.create({
   },
   createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   dismissBtn: { padding: 4 },
+  moneySection: {
+    paddingBottom: 12,
+    marginBottom: 8,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
 });

@@ -1,16 +1,16 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { AppState, AppStateStatus, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
+import SyncIndicator from '@/components/SyncIndicator';
 import { runMigrations } from '@/db/schema';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import SyncIndicator from '@/components/SyncIndicator';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeContext, darkTheme, lightTheme, type ThemeMode } from '@/services/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
+import { Tabs, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { ActivityIndicator, AppState, AppStateStatus, Platform, StyleSheet, Text, View, StatusBar } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // FUTURE: Import RestoreBanner in src/app/(expenses)/index.tsx
@@ -83,36 +83,56 @@ export default function RootLayout() {
   }, []);
 
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
+  const hideTabBar = segments.some(s => s === 'manual' || s === 'review' || s === 'import');
+  
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
+  const colors = theme === 'dark' ? darkTheme : lightTheme;
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  }, [theme, setTheme]);
+
+  const themeContext = useMemo(() => ({
+    mode: theme as ThemeMode,
+    colors,
+    toggleTheme,
+  }), [theme, colors, toggleTheme]);
 
   if (!dbReady) {
     return (
-      <View style={splashStyles.container}>
-        <Text style={splashStyles.title}>Finance Tracker</Text>
-        <ActivityIndicator size="small" color="#0891B2" style={{ marginTop: 24 }} />
+      <View style={[splashStyles.container, { backgroundColor: colors.bg }]}>
+        <Text style={[splashStyles.title, { color: colors.text }]}>Finance Tracker</Text>
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 24 }} />
       </View>
     );
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <ThemeContext.Provider value={themeContext}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#0891B2',
-          tabBarInactiveTintColor: '#94A3B8',
+          tabBarActiveTintColor: theme === 'dark' ? '#22D3EE' : '#0891B2',
+          tabBarInactiveTintColor: theme === 'dark' ? '#64748B' : '#94A3B8',
           tabBarShowLabel: false,
           tabBarStyle: { 
+            display: hideTabBar ? 'none' : 'flex',
             position: 'absolute',
             bottom: Math.max(insets.bottom, 16),
-            left: 20,
-            right: 20,
+            left: 0,
+            right: 0,
+            marginHorizontal: 24,
             height: 60,
             borderRadius: 30,
-            backgroundColor: Platform.OS === 'ios' ? 'transparent' : 'rgba(255, 255, 255, 0.75)',
+            backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.tabBarBg,
             borderTopWidth: 0,
             borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.3)',
+            borderColor: colors.tabBarBorder,
             elevation: 12,
-            shadowColor: '#000',
+            shadowColor: colors.shadow,
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.2,
             shadowRadius: 20,
@@ -122,21 +142,21 @@ export default function RootLayout() {
           tabBarItemStyle: {
             justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: 0,
+            paddingTop: 4,
             paddingBottom: 0,
             marginTop: 0,
             marginBottom: 0,
             height: 60,
           },
           tabBarBackground: () => (
-            <View style={{ 
-              flex: 1, 
-              borderRadius: 30, 
+            <View style={{
+              flex: 1,
+              borderRadius: 30,
               overflow: 'hidden',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: theme === 'dark' ? 'rgba(24, 24, 27, 0.95)' : 'rgba(255, 255, 255, 0.1)',
             }}>
               {Platform.OS === 'ios' && (
-                <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="ultraLight" />
+                <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="clear" />
               )}
               {/* Liquid glass light reflection */}
               <View style={{
@@ -145,14 +165,14 @@ export default function RootLayout() {
                 left: 0,
                 right: 0,
                 height: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.15)',
                 borderTopLeftRadius: 30,
                 borderTopRightRadius: 30,
               }} />
             </View>
           ),
-          headerStyle: { backgroundColor: '#F8FAFC' },
-          headerTintColor: '#0F172A',
+          headerStyle: { backgroundColor: colors.headerBg },
+          headerTintColor: colors.headerTint,
           headerTitleStyle: { fontWeight: '700', fontSize: 20 },
           headerShown: false,
         }}
@@ -170,10 +190,10 @@ export default function RootLayout() {
             title: 'Wallet',
             tabBarIcon: ({ color, focused }) => (
               <View style={[styles.iconWrapper, focused && styles.activeIconContainer]}>
-                <Ionicons 
-                  name={focused ? "wallet" : "wallet-outline"} 
-                  size={28} 
-                  color={color} 
+                <Ionicons
+                  name={focused ? "wallet" : "wallet-outline"}
+                  size={28}
+                  color={color}
                 />
               </View>
             ),
@@ -185,10 +205,10 @@ export default function RootLayout() {
             title: 'Growth',
             tabBarIcon: ({ color, focused }) => (
               <View style={[styles.iconWrapper, focused && styles.activeIconContainer]}>
-                <Ionicons 
-                  name={focused ? "trending-up" : "trending-up-outline"} 
-                  size={28} 
-                  color={color} 
+                <Ionicons
+                  name={focused ? "trending-up" : "trending-up-outline"}
+                  size={28}
+                  color={color}
                 />
               </View>
             ),
@@ -202,10 +222,10 @@ export default function RootLayout() {
             headerRight: () => <SyncIndicator />,
             tabBarIcon: ({ color, focused }) => (
               <View style={[styles.iconWrapper, focused && styles.activeIconContainer]}>
-                <Ionicons 
-                  name={focused ? "settings" : "settings-outline"} 
-                  size={28} 
-                  color={color} 
+                <Ionicons
+                  name={focused ? "settings" : "settings-outline"}
+                  size={28}
+                  color={color}
                 />
               </View>
             ),
@@ -213,6 +233,7 @@ export default function RootLayout() {
         />
       </Tabs>
     </GestureHandlerRootView>
+    </ThemeContext.Provider>
   );
 }
 

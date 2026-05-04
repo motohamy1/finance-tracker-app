@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform,
@@ -41,6 +41,22 @@ export default function ManualEntryScreen() {
   const [notes, setNotes] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [savedCount, setSavedCount] = useState(0);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetForm = useCallback(() => {
+    setShares('');
+    setPricePerShare('');
+    setFees('');
+    setNotes('');
+    setErrors({});
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   // Context: If selling, find existing buy info for the ticker
   const buyContext = useMemo(() => {
@@ -102,7 +118,7 @@ export default function ManualEntryScreen() {
     return canSaveTrade(fieldValues, errors);
   }, [ticker, shares, pricePerShare, tradeDate, direction, errors]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback((andClose: boolean) => {
     if (!validate()) return;
 
     const priceInCents = Math.round(parseFloat(pricePerShare) * 100);
@@ -119,8 +135,18 @@ export default function ManualEntryScreen() {
       notes,
     };
     addTrade(formData);
-    router.back();
-  }, [ticker, shares, pricePerShare, tradeDate, direction, fees, notes, validate, addTrade, router]);
+
+    if (andClose) {
+      router.back();
+      return;
+    }
+
+    resetForm();
+    const count = savedCount + 1;
+    setSavedCount(count);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSavedCount(0), 2500);
+  }, [ticker, shares, pricePerShare, tradeDate, direction, fees, notes, savedCount, validate, addTrade, router, resetForm]);
 
   const handleClose = useCallback(() => router.back(), [router]);
 
@@ -332,17 +358,39 @@ export default function ManualEntryScreen() {
           </View>
         )}
 
-        {/* Save button */}
-        <TouchableOpacity
-          style={[styles.saveButton, !canSaveResult && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={!canSaveResult}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.saveButtonText, !canSaveResult && styles.saveButtonTextDisabled]}>
-            {direction === 'sell' ? 'Save Sell Trade' : 'Save Trade'}
-          </Text>
-        </TouchableOpacity>
+        {/* Save buttons */}
+        {savedCount > 0 && (
+          <View style={styles.savedBanner}>
+            <Ionicons name="checkmark-circle" size={18} color="#059669" />
+            <Text style={styles.savedBannerText}>
+              {savedCount} trade{savedCount > 1 ? 's' : ''} saved
+            </Text>
+          </View>
+        )}
+        <View style={styles.saveRow}>
+          <TouchableOpacity
+            style={[styles.saveAddButton, !canSaveResult && styles.saveButtonDisabled]}
+            onPress={() => handleSave(false)}
+            disabled={!canSaveResult}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={canSaveResult ? '#FFFFFF' : '#94A3B8'} />
+            <Text style={[styles.saveButtonText, !canSaveResult && styles.saveButtonTextDisabled]}>
+              Save & Add Another
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveCloseButton, !canSaveResult && styles.saveButtonDisabled]}
+            onPress={() => handleSave(true)}
+            disabled={!canSaveResult}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="checkmark-circle" size={18} color={canSaveResult ? '#0891B2' : '#94A3B8'} />
+            <Text style={[styles.saveCloseText, !canSaveResult && styles.saveButtonTextDisabled]}>
+              Save & Close
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -376,8 +424,54 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginTop: 8,
   },
   saveButtonDisabled: { backgroundColor: '#CBD5E1' },
-  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', flexShrink: 1 },
   saveButtonTextDisabled: { color: '#94A3B8' },
+  saveRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  saveAddButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#0891B2',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  saveCloseButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#ECFEFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#0891B2',
+  },
+  saveCloseText: { color: '#0891B2', fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  savedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  savedBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#059669',
+  },
 
   // Context banner styles
   contextBanner: {
