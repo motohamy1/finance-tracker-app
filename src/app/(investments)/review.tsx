@@ -6,7 +6,7 @@ import {
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTradeStore } from '@/stores/tradeStore';
-import { getTodayISO } from '@/utils/format';
+import { getTodayISO, formatCurrency } from '@/utils/format';
 import {
   parseOCRToInitialValues,
   validateTradeFields,
@@ -37,6 +37,7 @@ export default function ReviewScreen() {
 
   const addTrade = useTradeStore((s) => s.addTrade);
   const editTrade = useTradeStore((s) => s.editTrade);
+  const allTrades = useTradeStore((s) => s.trades);
   const existingTrade = useTradeStore((s) =>
     params.tradeId ? s.trades.find((t) => t.id === params.tradeId) : undefined
   );
@@ -503,6 +504,67 @@ export default function ReviewScreen() {
           )}
         </View>
 
+        {/* P&L Preview for sell trades */}
+        {(() => {
+          const dir = fields.direction.value;
+          const tickerVal = fields.ticker.value.trim().toUpperCase();
+          const sharesVal = parseInt(fields.shares.value, 10);
+          const priceCentsVal = Math.round(parseFloat(fields.pricePerShareCents.value) * 100);
+          const feesCentsVal = fields.feesCents.value ? Math.round(parseFloat(fields.feesCents.value) * 100) : 0;
+
+          if (dir !== 'sell' || !tickerVal || isNaN(sharesVal) || sharesVal <= 0 || isNaN(priceCentsVal) || priceCentsVal <= 0) return null;
+
+          const buyTrades = allTrades.filter(t => t.ticker === tickerVal && t.direction === 'buy');
+          const sellTrades = allTrades.filter(t => t.ticker === tickerVal && t.direction === 'sell' && t.id !== existingTrade?.id);
+          const totalBought = buyTrades.reduce((s, t) => s + t.shares, 0);
+          const totalSold = sellTrades.reduce((s, t) => s + t.shares, 0);
+          const remaining = totalBought - totalSold;
+
+          if (remaining <= 0 || buyTrades.length === 0) return null;
+
+          const avgBuyCostCents = Math.round(
+            buyTrades.reduce((s, t) => s + t.shares * t.pricePerShareCents, 0) / totalBought
+          );
+          const matchShares = Math.min(sharesVal, remaining);
+          const pnlCents = (priceCentsVal - avgBuyCostCents) * matchShares - feesCentsVal;
+          const isProfitable = pnlCents >= 0;
+
+          return (
+            <View style={styles.pnlPreviewCard}>
+              <Text style={styles.pnlPreviewTitle}>P&L Preview</Text>
+              <View style={styles.pnlPreviewComparison}>
+                <View style={styles.pnlPreviewSide}>
+                  <View style={styles.pnlPreviewBuyBadge}>
+                    <Ionicons name="arrow-up-circle" size={14} color="#059669" />
+                    <Text style={styles.pnlPreviewBuyText}>Buy</Text>
+                  </View>
+                  <Text style={styles.pnlPreviewPrice}>{matchShares} × {formatCurrency(avgBuyCostCents)}</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={18} color="#94A3B8" />
+                <View style={styles.pnlPreviewSide}>
+                  <View style={styles.pnlPreviewSellBadge}>
+                    <Ionicons name="arrow-down-circle" size={14} color="#DC2626" />
+                    <Text style={styles.pnlPreviewSellText}>Sell</Text>
+                  </View>
+                  <Text style={styles.pnlPreviewPrice}>{matchShares} × {formatCurrency(priceCentsVal)}</Text>
+                </View>
+              </View>
+              <View style={styles.pnlPreviewDivider} />
+              <View style={styles.pnlPreviewResult}>
+                <Text style={styles.pnlPreviewLabel}>Estimated P&L</Text>
+                <Text style={[styles.pnlPreviewValue, { color: isProfitable ? '#059669' : '#DC2626' }]}>
+                  {isProfitable ? '+' : ''}{formatCurrency(Math.abs(pnlCents))}
+                </Text>
+              </View>
+              {sharesVal > remaining && (
+                <Text style={styles.pnlPreviewWarning}>
+                  ⚠ You own {remaining} shares but are selling {sharesVal}.
+                </Text>
+              )}
+            </View>
+          );
+        })()}
+
         {/* Save button */}
         <TouchableOpacity
           style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
@@ -511,7 +573,7 @@ export default function ReviewScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.saveButtonText, !canSave && styles.saveButtonTextDisabled]}>
-            Save Trade
+            {fields.direction.value === 'sell' ? 'Save Sell Trade' : 'Save Trade'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -766,6 +828,98 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // P&L Preview styles
+  pnlPreviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  pnlPreviewTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  pnlPreviewComparison: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  pnlPreviewSide: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  pnlPreviewBuyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  pnlPreviewBuyText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  pnlPreviewSellBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  pnlPreviewSellText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  pnlPreviewPrice: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  pnlPreviewDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
+  },
+  pnlPreviewResult: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pnlPreviewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  pnlPreviewValue: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  pnlPreviewWarning: {
+    fontSize: 12,
+    color: '#D97706',
+    marginTop: 8,
+    fontWeight: '500',
   },
 
   saveButton: {

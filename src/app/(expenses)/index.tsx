@@ -1,9 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TextInput, FlatList, StyleSheet, Alert,
-  ActionSheetIOS, Platform, TouchableOpacity, Keyboard,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  Modal,
+  Alert,
   KeyboardAvoidingView,
+  Platform,
+  Pressable,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
@@ -113,9 +122,9 @@ export default function ExpensesScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <EmptyState icon="hourglass-outline" title="Loading..." body="Preparing your expense tracker." />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -143,8 +152,9 @@ export default function ExpensesScreen() {
 
   if (categories.length === 0) {
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
@@ -162,12 +172,14 @@ export default function ExpensesScreen() {
         </View>
         {showCategoryInput && <CategoryInputBar />}
       </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
@@ -237,6 +249,7 @@ export default function ExpensesScreen() {
         preselectedCategoryId={selectedCategoryId}
       />
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
