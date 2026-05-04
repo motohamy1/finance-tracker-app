@@ -13,10 +13,12 @@ interface ExpenseFormProps {
   onClose: () => void;
   editingExpense?: Expense | null;
   preselectedCategoryId?: string;
+  preselectedMoneySourceId?: string | null;
 }
 
-export function ExpenseForm({ visible, onClose, editingExpense, preselectedCategoryId }: ExpenseFormProps) {
+export function ExpenseForm({ visible, onClose, editingExpense, preselectedCategoryId, preselectedMoneySourceId }: ExpenseFormProps) {
   const categories = useExpenseStore((s) => s.categories);
+  const moneySources = useExpenseStore((s) => s.moneySources);
   const addExpense = useExpenseStore((s) => s.addExpense);
   const editExpense = useExpenseStore((s) => s.editExpense);
   const addCategory = useExpenseStore((s) => s.addCategory);
@@ -27,8 +29,10 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
   const [amountText, setAmountText] = useState('');
   const [date, setDate] = useState(getTodayISO());
   const [categoryId, setCategoryId] = useState('');
+  const [moneySourceId, setMoneySourceId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showMoneySourcePicker, setShowMoneySourcePicker] = useState(false);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -38,9 +42,10 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
       setAmountText(editingExpense ? (editingExpense.amountCents / 100).toFixed(2) : '');
       setDate(editingExpense?.date ?? getTodayISO());
       setCategoryId(editingExpense?.categoryId ?? preselectedCategoryId ?? categories[0]?.id ?? '');
+      setMoneySourceId(editingExpense?.moneySourceId ?? preselectedMoneySourceId ?? null);
       setNotes(editingExpense?.notes ?? '');
     }
-  }, [visible, editingExpense, preselectedCategoryId, categories]);
+  }, [visible, editingExpense, preselectedCategoryId, preselectedMoneySourceId, categories]);
 
   const handleSave = useCallback(() => {
     if (!title.trim()) {
@@ -63,6 +68,7 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
       amountCents,
       date,
       categoryId,
+      moneySourceId: moneySourceId || null,
       notes: notes.trim() || '',
     };
 
@@ -72,7 +78,7 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
       addExpense(formData);
     }
     onClose();
-  }, [title, amountText, date, categoryId, notes, isEditing, editingExpense, editExpense, addExpense, onClose]);
+  }, [title, amountText, date, categoryId, moneySourceId, notes, isEditing, editingExpense, editExpense, addExpense, onClose]);
 
   const handleCreateCategory = useCallback(() => {
     const name = newCategoryName.trim();
@@ -85,6 +91,7 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
   }, [newCategoryName, addCategory]);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
+  const selectedMoneySource = moneySources.find((s) => s.id === moneySourceId) ?? null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -148,6 +155,50 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
                     </TouchableOpacity>
                   </View>
                 )}
+              </View>
+            )}
+
+            {/* Money Source Picker — inserted between Category and Title */}
+            <Text style={styles.label}>Money Source (optional)</Text>
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowMoneySourcePicker(!showMoneySourcePicker)}
+            >
+              {moneySourceId && selectedMoneySource ? (
+                <>
+                  <View style={[styles.colorDot, { backgroundColor: selectedMoneySource.colorHex }]} />
+                  <Text style={styles.selectText}>{selectedMoneySource.name}</Text>
+                </>
+              ) : (
+                <>
+                  <View style={[styles.colorDot, { backgroundColor: '#94A3B8' }]} />
+                  <Text style={[styles.selectText, { color: '#94A3B8' }]}>None</Text>
+                </>
+              )}
+              <Ionicons name={showMoneySourcePicker ? 'chevron-up' : 'chevron-down'} size={18} color="#475569" />
+            </TouchableOpacity>
+
+            {showMoneySourcePicker && (
+              <View style={styles.dropdown}>
+                {/* "None" option at top */}
+                <TouchableOpacity
+                  style={[styles.dropdownItem, moneySourceId === null && styles.dropdownItemActive]}
+                  onPress={() => { setMoneySourceId(null); setShowMoneySourcePicker(false); }}
+                >
+                  <View style={[styles.colorDot, { backgroundColor: '#94A3B8' }]} />
+                  <Text style={styles.dropdownItemText}>None</Text>
+                </TouchableOpacity>
+                {/* All money sources */}
+                {moneySources.map((source) => (
+                  <TouchableOpacity
+                    key={source.id}
+                    style={[styles.dropdownItem, source.id === moneySourceId && styles.dropdownItemActive]}
+                    onPress={() => { setMoneySourceId(source.id); setShowMoneySourcePicker(false); }}
+                  >
+                    <View style={[styles.colorDot, { backgroundColor: source.colorHex }]} />
+                    <Text style={styles.dropdownItemText}>{source.name}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
 
