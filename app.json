@@ -20,7 +20,10 @@
         "backgroundImage": "./assets/images/appicon.png",
         "monochromeImage": "./assets/images/appicon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -52,6 +55,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "10c18ffa-af35-4866-9551-b527ebd7996a"
+      }
     }
   }
 }
