@@ -26,7 +26,7 @@ decisions:
   - "D-12: Existing expenses get money_source_id = NULL — no migration auto-assigns values"
   - "balance_cents initialized to 0 in SQL (not parameterized) since new sources always start at zero"
 metrics:
-  duration: ""
+  duration: "27min"
   completed_date: "2026-05-04"
 ---
 
