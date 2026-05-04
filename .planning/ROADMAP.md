@@ -2,7 +2,7 @@
 
 **Created:** 2026-04-29
 **Granularity:** Coarse (4 phases)
-**Total v1 Requirements:** 14
+**Total v1 Requirements:** 15
 
 ## Phase Overview
 
@@ -14,6 +14,7 @@
 | 4 | Cloud Sync | Optional backup and restore to cloud | DATA-02 | 3 (3 plans) |
 | 5 | AI OCR Model | AI-powered screenshot analysis replacing plain OCR with intelligent extraction | INV-06 | 2 plans |
 | 6 | Investment Page Concept | Show gain/loss by comparing buying and selling | INV-07 | 3 plans |
+| 7 | Editable Money Source Cards | Editable bank-like cards with money categories (cash, borrowed, bank, savings) linked to expenses | EXP-06 | Not planned yet |
 
 ---
 
@@ -162,6 +163,26 @@
 
 ---
 
+## Phase 7: Editable Money Source Cards
+
+**Goal:** Make the bank-like card editable to show actual money amounts, remove card number visuals, and replace with full-width scrollable cards divided by money categories (cash, borrowed, bank, savings, etc.). Each money source links to expenses so users can associate expenses with a specific money source when adding or editing.
+
+**Requirements:** EXP-06
+
+**Success Criteria:**
+1. Bank-like card is editable — user can set their actual balance amounts per money source
+2. Card number visuals are removed; replaced by full-width scrollable cards with current height and padding
+3. Money sources cover cash, borrowed, bank, savings, and other user-defined categories
+4. Expenses can be linked to a specific money source when adding or editing
+
+**Depends on:** Phase 1 (expense tracking, data layer)
+
+**Plans:** Not planned yet
+
+**UI hint:** yes — money source cards, scrollable horizontal categories, expense linking
+
+---
+
 ## Dependency Graph
 
 ```
@@ -170,13 +191,15 @@ Phase 1 (Shell + Expenses)
     │       ├──→ Phase 3 (Investment Analytics)
     │       │       └──→ Phase 6 (Investment Page Concept)
     │       └──→ Phase 5 (AI OCR Model)
-    └──→ Phase 4 (Cloud Sync)
+    ├──→ Phase 4 (Cloud Sync)
+    └──→ Phase 7 (Editable Money Source Cards)
 ```
 
 - Phase 1 is the foundation — all other phases depend on it
 - Phase 2 → Phase 3: OCR data feeds analytics
 - Phase 2 → Phase 5: AI model replaces/enhances Phase 2 OCR engine
 - Phase 4 is independent of 2-3-5 (can run in parallel with them)
+- Phase 7 depends on Phase 1 (expense tracking, data layer); independent of 2-6
 
 ## Requirement Coverage
 
@@ -197,9 +220,10 @@ Phase 1 (Shell + Expenses)
 | DATA-02 | 4 | ✓ |
 | INV-06 | 5 | ✓ |
 | INV-07 | 6 | ✓ |
+| EXP-06 | 7 | — |
 
-**15/15 requirements mapped — 100% coverage**
+**16/16 requirements mapped — 94% coverage (15/16 complete)**
 
 ---
 *Roadmap created: 2026-04-29*
-*Last updated: 2026-04-29 after initialization*
+*Last updated: 2026-05-04 after adding Phase 7*

@@ -9,9 +9,9 @@
 |--------|-------|
 | Milestone | 1 (initial) |
 | Current Phase | 6 — Complete (3 plans executed) |
-| Completed Phases | 6 / 6 |
-| Requirements Done | 15 / 15 |
-| Last Action | Phase 6 executed — Investment Page Concept (3 waves, 3 plans) |
+| Completed Phases | 6 / 7 |
+| Requirements Done | 15 / 16 |
+| Last Action | Phase 7 added — Editable Money Source Cards |
 
 ## Phase Status
 
@@ -23,6 +23,7 @@
 | 4 | Cloud Sync | ✓ Complete | 1 | 2026-05-02 | 2026-05-02 |
 | 5 | AI OCR Model | ✓ Complete | 1 | 2026-05-02 | 2026-05-02 |
 | 6 | Investment Page Concept | ✓ Complete | 1 | 2026-05-03 | 2026-05-04 |
+| 7 | Editable Money Source Cards | Not planned | 1 | — | — |
 
 ## Project Reference
 
@@ -33,15 +34,17 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 
 ## Next Actions
 
-1. Run `/gsd-complete-milestone` to archive Milestone 1 and prepare Milestone 2
+1. `/gsd-plan-phase 7` — Plan Phase 7: Editable Money Source Cards
 2. Run `/gsd-add-tests` for any untested Phase 6 features
-3. Run `/gsd-inbox` to triage open issues and PRs
+3. Run `/gsd-complete-milestone` to archive Milestone 1 after Phase 7 is done
+4. Run `/gsd-inbox` to triage open issues and PRs
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 - Phase 5 added: AI OCR Model — AI-powered screenshot analysis replacing plain OCR with intelligent extraction
 - Phase 6 added: Investment Page Concept — Show gain or loss of investments by comparing buying and selling
+- Phase 7 added: Editable Money Source Cards — Make the bank like card editable to put actual money amounts, remove card number visuals, divide into scrollable full-width cards by money categories (cash, borrowed, bank, savings), and link money sources to expenses when adding/editing
 
 ## Quick Tasks Completed
 
@@ -53,4 +56,4 @@ See: .planning/PROJECT.md (updated 2026-04-29)
 | 2026-05-02 | fix-ocr-image-not-found | Fix "Image file not found" when importing screenshots | `src/services/ocr.ts`, `src/__tests__/ocr.test.ts` |
 
 ---
-*Last updated: 2026-05-04 — Phase 6 planned with 3 plans*
+*Last updated: 2026-05-04 — Phase 7 added to roadmap*
