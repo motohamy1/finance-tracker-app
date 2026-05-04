@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { Expense } from '@/types';
+import { useExpenseStore } from '@/stores/expenseStore';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 interface ExpenseCardProps {
@@ -8,11 +9,22 @@ interface ExpenseCardProps {
 }
 
 export function ExpenseCard({ expense, accentColor }: ExpenseCardProps) {
+  const moneySources = useExpenseStore((s) => s.moneySources);
+  const moneySource = expense.moneySourceId
+    ? moneySources.find((s) => s.id === expense.moneySourceId)
+    : null;
+
   return (
     <View style={[styles.card, { borderLeftColor: accentColor }]}>
       <Text style={styles.title} numberOfLines={1}>{expense.title}</Text>
       <Text style={styles.amount}>{formatCurrency(expense.amountCents)}</Text>
       <Text style={styles.date}>{formatDate(expense.date)}</Text>
+      {moneySource && (
+        <View style={styles.sourceRow}>
+          <View style={[styles.sourceDot, { backgroundColor: moneySource.colorHex }]} />
+          <Text style={styles.sourceName} numberOfLines={1}>{moneySource.name}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -20,7 +32,7 @@ export function ExpenseCard({ expense, accentColor }: ExpenseCardProps) {
 const styles = StyleSheet.create({
   card: {
     width: 148,
-    height: 108,
+    minHeight: 108,
     backgroundColor: 'transparent',
     borderRadius: 8,
     borderLeftWidth: 3,
@@ -43,5 +55,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400',
     color: '#475569',
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  sourceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  sourceName: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#64748B',
+    flexShrink: 1,
   },
 });
