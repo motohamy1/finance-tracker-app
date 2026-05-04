@@ -93,6 +93,26 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE trades ADD COLUMN asset_type TEXT;
     `,
   },
+  {
+    version: 5,
+    name: 'create_money_sources_and_link_expenses',
+    sql: `
+      CREATE TABLE IF NOT EXISTS money_sources (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        color_hex TEXT NOT NULL DEFAULT '#0891B2',
+        icon_name TEXT NOT NULL DEFAULT '',
+        balance_cents INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      ALTER TABLE expenses ADD COLUMN money_source_id TEXT REFERENCES money_sources(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_expenses_money_source_id ON expenses(money_source_id);
+    `,
+  },
 ];
 
 export function runMigrations(): void {
