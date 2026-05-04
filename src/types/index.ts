@@ -12,6 +12,7 @@ export interface Category {
 export interface Expense {
   id: string;              // UUID v4
   categoryId: string;      // Foreign key → Category.id
+  moneySourceId?: string | null;  // Optional FK → MoneySource.id, null when unlinked
   title: string;           // Required, user-provided title
   amountCents: number;     // Amount stored as INTEGER cents (e.g., $42.50 → 4250)
   date: string;            // ISO 8601 date (YYYY-MM-DD), defaults to today
@@ -20,12 +21,43 @@ export interface Expense {
   updatedAt: string;       // ISO 8601 timestamp
 }
 
+// ─── Money Source Types ───
+export interface MoneySource {
+  id: string;              // UUID v4
+  name: string;            // Display name (e.g., "Cash", "Bank")
+  colorHex: string;        // Solid background color from MONEY_SOURCE_PALETTE
+  iconName: string;        // Ionicons name (e.g., "cash-outline")
+  balanceCents: number;    // Balance stored as INTEGER cents (e.g., $1,500.00 → 150000)
+  sortOrder: number;       // Manual drag-to-reorder position
+  createdAt: string;       // ISO 8601 timestamp
+  updatedAt: string;       // ISO 8601 timestamp
+}
+
+export const MONEY_SOURCE_PALETTE: readonly string[] = [
+  '#22C55E', // Cash green
+  '#0EA5E9', // Bank sky blue
+  '#14B8A6', // Savings teal
+  '#F43F5E', // Borrowed rose
+  '#A855F7', // Purple-500 (fallback)
+  '#F97316', // Orange-500 (fallback)
+  '#84CC16', // Lime-500 (fallback)
+  '#06B6D4', // Cyan-500 (fallback)
+] as const;
+
+export const MONEY_SOURCE_DEFAULTS = [
+  { name: 'Cash', colorHex: '#22C55E', iconName: 'cash-outline' },
+  { name: 'Bank', colorHex: '#0EA5E9', iconName: 'business-outline' },
+  { name: 'Savings', colorHex: '#14B8A6', iconName: 'trending-up-outline' },
+  { name: 'Borrowed', colorHex: '#F43F5E', iconName: 'card-outline' },
+] as const;
+
 // ─── Form Types (for expense form state) ───
 export interface ExpenseFormData {
   title: string;
   amountCents: number;
   date: string;
   categoryId: string;
+  moneySourceId?: string | null;  // Optional, per D-09
   notes: string;
 }
 
@@ -128,6 +160,7 @@ export interface OCRResult {
   pricePerShare: number | null; // In dollars (not cents) — OCR reads display values
   tradeDate: string | null;     // ISO 8601 date or null
   direction: TradeDirection | null;
+  feesCents: number | null;     // Detected commission/fee in cents, null if not found
   rawText: string;              // Full raw OCR output for debugging
   confidence: number;           // 0.0–1.0 overall extraction confidence
   aiMeta?: AIExtractionMeta;    // AI extraction metadata (undefined for Phase 2 regex-only)

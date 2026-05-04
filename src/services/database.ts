@@ -1,5 +1,5 @@
 import { getDatabase } from '@/db/schema';
-import type { Category, Expense, Trade, TradeDirection, FailedOCRLog } from '@/types';
+import type { Category, Expense, MoneySource, Trade, TradeDirection, FailedOCRLog } from '@/types';
 import { generateUUID } from '@/utils/format';
 
 // ─── Category Operations ───
@@ -58,12 +58,85 @@ export function getExpenseCountForCategory(categoryId: string): number {
   return row?.count ?? 0;
 }
 
+// ─── Money Source Operations ───
+
+type MoneySourceRow = {
+  id: string; name: string; color_hex: string; icon_name: string;
+  balance_cents: number; sort_order: number; created_at: string; updated_at: string;
+};
+
+function rowToMoneySource(row: MoneySourceRow): MoneySource {
+  return {
+    id: row.id, name: row.name, colorHex: row.color_hex,
+    iconName: row.icon_name, balanceCents: row.balance_cents,
+    sortOrder: row.sort_order, createdAt: row.created_at, updatedAt: row.updated_at,
+  };
+}
+
+export function getAllMoneySources(): MoneySource[] {
+  const db = getDatabase();
+  const rows = db.getAllSync<MoneySourceRow>(
+    'SELECT * FROM money_sources ORDER BY sort_order ASC;'
+  );
+  return rows.map(rowToMoneySource);
+}
+
+export function getMoneySourceById(id: string): MoneySource | null {
+  const db = getDatabase();
+  const row = db.getFirstSync<MoneySourceRow>(
+    'SELECT * FROM money_sources WHERE id = ?;', [id]
+  );
+  return row ? rowToMoneySource(row) : null;
+}
+
+export function createMoneySource(id: string, name: string, colorHex: string, iconName: string, sortOrder: number): MoneySource {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  db.runSync(
+    'INSERT INTO money_sources (id, name, color_hex, icon_name, balance_cents, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?);',
+    [id, name, colorHex, iconName, sortOrder, now, now]
+  );
+  return getMoneySourceById(id)!;
+}
+
+export function updateMoneySource(id: string, updates: { name?: string; colorHex?: string; iconName?: string; balanceCents?: number; sortOrder?: number }): MoneySource | null {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  const setClauses: string[] = [];
+  const params: (string | number)[] = [];
+  if (updates.name !== undefined) { setClauses.push('name = ?'); params.push(updates.name); }
+  if (updates.colorHex !== undefined) { setClauses.push('color_hex = ?'); params.push(updates.colorHex); }
+  if (updates.iconName !== undefined) { setClauses.push('icon_name = ?'); params.push(updates.iconName); }
+  if (updates.balanceCents !== undefined) { setClauses.push('balance_cents = ?'); params.push(updates.balanceCents); }
+  if (updates.sortOrder !== undefined) { setClauses.push('sort_order = ?'); params.push(updates.sortOrder); }
+  if (setClauses.length === 0) return getMoneySourceById(id);
+  setClauses.push('updated_at = ?');
+  params.push(now, id);
+  db.runSync(`UPDATE money_sources SET ${setClauses.join(', ')} WHERE id = ?;`, params);
+  return getMoneySourceById(id);
+}
+
+export function deleteMoneySource(id: string): void {
+  const db = getDatabase();
+  // ON DELETE SET NULL in schema handles unlinking expenses (per D-03)
+  db.runSync('DELETE FROM money_sources WHERE id = ?;', [id]);
+}
+
+export function getExpenseCountForMoneySource(moneySourceId: string): number {
+  const db = getDatabase();
+  const row = db.getFirstSync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM expenses WHERE money_source_id = ?;',
+    [moneySourceId]
+  );
+  return row?.count ?? 0;
+}
+
 // ─── Expense Operations ───
 
 export function getExpensesByCategory(categoryId: string): Expense[] {
   const db = getDatabase();
   const rows = db.getAllSync<{
-    id: string; category_id: string; title: string;
+    id: string; category_id: string; money_source_id: string | null; title: string;
     amount_cents: number; date: string; notes: string | null;
     created_at: string; updated_at: string;
   }>('SELECT * FROM expenses WHERE category_id = ? ORDER BY date DESC, created_at DESC;', [categoryId]);
@@ -73,7 +146,7 @@ export function getExpensesByCategory(categoryId: string): Expense[] {
 export function getExpenseById(id: string): Expense | null {
   const db = getDatabase();
   const row = db.getFirstSync<{
-    id: string; category_id: string; title: string;
+    id: string; category_id: string; money_source_id: string | null; title: string;
     amount_cents: number; date: string; notes: string | null;
     created_at: string; updated_at: string;
   }>('SELECT * FROM expenses WHERE id = ?;', [id]);
@@ -81,19 +154,19 @@ export function getExpenseById(id: string): Expense | null {
 }
 
 export function createExpense(
-  id: string, categoryId: string, title: string,
+  id: string, categoryId: string, moneySourceId: string | null, title: string,
   amountCents: number, date: string, notes: string | null
 ): Expense {
   const db = getDatabase();
   const now = new Date().toISOString();
   db.runSync(
-    'INSERT INTO expenses (id, category_id, title, amount_cents, date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-    [id, categoryId, title, amountCents, date, notes, now, now]
+    'INSERT INTO expenses (id, category_id, money_source_id, title, amount_cents, date, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);',
+    [id, categoryId, moneySourceId, title, amountCents, date, notes, now, now]
   );
   return getExpenseById(id)!;
 }
 
-export function updateExpense(id: string, updates: { title?: string; amountCents?: number; date?: string; notes?: string | null; categoryId?: string }): Expense | null {
+export function updateExpense(id: string, updates: { title?: string; amountCents?: number; date?: string; notes?: string | null; categoryId?: string; moneySourceId?: string | null }): Expense | null {
   const db = getDatabase();
   const now = new Date().toISOString();
   const setClauses: string[] = [];
@@ -103,6 +176,7 @@ export function updateExpense(id: string, updates: { title?: string; amountCents
   if (updates.date !== undefined) { setClauses.push('date = ?'); params.push(updates.date); }
   if (updates.notes !== undefined) { setClauses.push('notes = ?'); params.push(updates.notes); }
   if (updates.categoryId !== undefined) { setClauses.push('category_id = ?'); params.push(updates.categoryId); }
+  if (updates.moneySourceId !== undefined) { setClauses.push('money_source_id = ?'); params.push(updates.moneySourceId); }
   if (setClauses.length === 0) return getExpenseById(id);
   setClauses.push('updated_at = ?');
   params.push(now, id);
@@ -128,10 +202,11 @@ function rowToCategory(row: { id: string; name: string; color_hex: string; sort_
   };
 }
 
-function rowToExpense(row: { id: string; category_id: string; title: string; amount_cents: number; date: string; notes: string | null; created_at: string; updated_at: string }): Expense {
+function rowToExpense(row: { id: string; category_id: string; money_source_id?: string | null; title: string; amount_cents: number; date: string; notes: string | null; created_at: string; updated_at: string }): Expense {
   return {
     id: row.id,
     categoryId: row.category_id,
+    moneySourceId: row.money_source_id ?? null,
     title: row.title,
     amountCents: row.amount_cents,
     date: row.date,

@@ -65,11 +65,11 @@ describe('Money Source CRUD Operations', () => {
     const paramsArg = mockDb.runSync.mock.calls[0][1];
     expect(sqlArg).toContain('INSERT INTO money_sources');
     expect(sqlArg).toContain('?'); // Parameterized
-    expect(paramsArg).toHaveLength(8);
+    expect(paramsArg).toHaveLength(7);
     expect(paramsArg[0]).toBe('uuid-ms-1');
     expect(paramsArg[1]).toBe('Cash');
-    expect(paramsArg[4]).toBe(0); // balance_cents = 0
-    expect(paramsArg[5]).toBe(0); // sort_order = 0
+    expect(paramsArg[3]).toBe('cash-outline');
+    expect(paramsArg[4]).toBe(0); // sort_order = 0
 
     expect(result).toBeDefined();
     expect(result.id).toBe('uuid-ms-1');
