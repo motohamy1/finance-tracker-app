@@ -95,26 +95,41 @@ vi.mock('react-native-safe-area-context', () => ({
     React.createElement('div', { ...props, style: safeStyle(style) }, children),
 }));
 
-// ─── Mock store ───
-const mockCategories = [
-  { id: 'cat-1', name: 'Food', colorHex: '#0891B2', sortOrder: 0, createdAt: '', updatedAt: '' },
-];
-const mockAddCategory = vi.fn();
-const mockRenameCategory = vi.fn();
-const mockRemoveCategory = vi.fn();
-const mockGetExpenseCount = vi.fn(() => 0);
+// ─── Hoisted mutable store state (for dynamic mock overrides) ───
+const { getStoreState, setStoreCategories, resetStoreState, mockAddCategory, mockRenameCategory, mockRemoveCategory, mockGetExpenseCount } = vi.hoisted(() => {
+  let categories = [
+    { id: 'cat-1', name: 'Food', colorHex: '#0891B2', sortOrder: 0, createdAt: '', updatedAt: '' },
+  ];
+  const addCategory = vi.fn();
+  const renameCategory = vi.fn();
+  const removeCategory = vi.fn();
+  const getExpenseCount = vi.fn(() => 0);
+  return {
+    getStoreState: () => ({
+      categories,
+      expensesByCategory: { 'cat-1': [] },
+      moneySources: [],
+      isLoading: false,
+      addCategory,
+      renameCategory,
+      removeCategory,
+      getExpenseCount,
+    }),
+    setStoreCategories: (cats: any[]) => { categories = cats; },
+    resetStoreState: () => {
+      categories = [
+        { id: 'cat-1', name: 'Food', colorHex: '#0891B2', sortOrder: 0, createdAt: '', updatedAt: '' },
+      ];
+    },
+    mockAddCategory: addCategory,
+    mockRenameCategory: renameCategory,
+    mockRemoveCategory: removeCategory,
+    mockGetExpenseCount: getExpenseCount,
+  };
+});
 
 vi.mock('@/stores/expenseStore', () => ({
-  useExpenseStore: (selector: any) => selector({
-    categories: mockCategories,
-    expensesByCategory: { 'cat-1': [] },
-    moneySources: [],
-    isLoading: false,
-    addCategory: mockAddCategory,
-    renameCategory: mockRenameCategory,
-    removeCategory: mockRemoveCategory,
-    getExpenseCount: mockGetExpenseCount,
-  }),
+  useExpenseStore: (selector: any) => selector(getStoreState()),
 }));
 
 // ─── Hoisted mock functions (must be in vi.hoisted to avoid TDZ with vi.mock) ───
@@ -271,19 +286,8 @@ describe('Expenses Screen — Money Source Integration', () => {
 
   // ─── Test 7: Empty state screen shows MoneySourceRow + TotalBalanceSummary ───
   it('shows MoneySourceRow + TotalBalanceSummary in empty state (no categories)', () => {
-    // Override mock to have zero categories
-    const { useExpenseStore } = require('@/stores/expenseStore');
-    const originalImpl = useExpenseStore.getMockImplementation();
-    useExpenseStore.mockImplementation((selector: any) => selector({
-      categories: [],
-      expensesByCategory: {},
-      moneySources: [],
-      isLoading: false,
-      addCategory: mockAddCategory,
-      renameCategory: mockRenameCategory,
-      removeCategory: mockRemoveCategory,
-      getExpenseCount: mockGetExpenseCount,
-    }));
+    // Set mock to have zero categories
+    setStoreCategories([]);
 
     render(React.createElement(ExpensesScreen));
 
@@ -294,6 +298,9 @@ describe('Expenses Screen — Money Source Integration', () => {
     // BalanceCard should NOT be shown
     expect(screen.queryByTestId('balance-card')).toBeNull();
     expect(BalanceCardMock).not.toHaveBeenCalled();
+
+    // Reset for other tests
+    resetStoreState();
   });
 
   // ─── Test 8: BalanceCard component file is NOT deleted (only import removed) ───

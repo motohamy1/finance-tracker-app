@@ -11,13 +11,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Keyboard,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { EmptyState } from '@/components/EmptyState';
-import { BalanceCard } from '@/components/BalanceCard';
+import { MoneySourceRow } from '@/components/MoneySourceRow';
+import { TotalBalanceSummary } from '@/components/TotalBalanceSummary';
 import { getCategoryLightTint } from '@/types';
 import type { Category, Expense } from '@/types';
 
@@ -33,6 +36,7 @@ export default function ExpensesScreen() {
   const [formVisible, setFormVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [selectedMoneySourceId, setSelectedMoneySourceId] = useState<string | null>(null);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoryNameInput, setCategoryNameInput] = useState('');
 
@@ -120,6 +124,14 @@ export default function ExpensesScreen() {
     }
   }, [openEditForm]);
 
+  // List header combining TotalBalanceSummary + MoneySourceRow (replaces BalanceCard)
+  const ListHeader = () => (
+    <View>
+      <TotalBalanceSummary />
+      <MoneySourceRow onSelectSource={(source) => setSelectedMoneySourceId(source.id)} />
+    </View>
+  );
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -159,9 +171,8 @@ export default function ExpensesScreen() {
         keyboardVerticalOffset={0}
       >
         <View style={{ flex: 1 }}>
-          <View style={{ paddingHorizontal: 12 }}>
-            <BalanceCard />
-          </View>
+          <TotalBalanceSummary />
+          <MoneySourceRow onSelectSource={(source) => setSelectedMoneySourceId(source.id)} />
           <EmptyState
             icon="wallet-outline"
             title="Start Tracking"
@@ -195,7 +206,7 @@ export default function ExpensesScreen() {
 
       <View style={{ flex: 1 }}>
         <FlatList
-          ListHeaderComponent={<BalanceCard />}
+          ListHeaderComponent={<ListHeader />}
           data={categories}
           keyExtractor={(item) => item.id}
           numColumns={2}
@@ -244,9 +255,14 @@ export default function ExpensesScreen() {
 
       <ExpenseForm
         visible={formVisible}
-        onClose={() => { setFormVisible(false); setEditingExpense(null); }}
+        onClose={() => {
+          setFormVisible(false);
+          setEditingExpense(null);
+          setSelectedMoneySourceId(null);
+        }}
         editingExpense={editingExpense}
         preselectedCategoryId={selectedCategoryId}
+        preselectedMoneySourceId={selectedMoneySourceId}
       />
     </KeyboardAvoidingView>
     </SafeAreaView>
