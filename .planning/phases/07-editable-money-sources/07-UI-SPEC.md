@@ -46,7 +46,7 @@ Declared values (multiples of 4):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| sm+ | 12px | Grid row gaps, inter-card spacing, category input bar padding (from existing pattern: `gap: 12, marginBottom: 12`) |
+| sm+ | 12px | Grid row gaps, inter-card spacing, category input bar padding. Justified: 12px is a valid multiple-of-4 step (4×3) on the 8-point scale. Used extensively in the existing codebase (`gap: 12, marginBottom: 12`) for compact-but-not-cramped inter-element spacing where 8px feels too tight and 16px wastes screen real estate on mobile. Not a new arbitrary value — inherited from established Phase 1 patterns. |
 | md+ | 20px | Card border radius, sheet border radius (from BalanceCard: `borderRadius: 20`, ExpenseForm sheet: `borderRadius: 20`) |
 
 **Exceptions:** Existing codebase uses `14px` for some padding values (`paddingVertical: 14`, `paddingHorizontal: 14` in grid cards and form). New Phase 7 components should use `16px` instead where 14px padding currently appears in legacy code. Card border radius retains `20px` — this is a visual rendering property, not a layout spacing token.
@@ -78,6 +78,30 @@ Only two font weights across the entire design: **400 (Regular)** and **600 (Sem
 **Heading usage:** "Total Balance" section heading above card row, form sheet titles ("New Money Source", "Edit Money Source").
 
 **Source:** Derived from BalanceCard.tsx (label: 14px/500 → standardized to 14px/600; amount: 32px/bold → standardized to 32px/600), ExpenseForm.tsx (heading: 20px/700 → standardized to 20px/600), EmptyState.tsx (body: 14px/400, lineHeight: 21 → preserves at 14px/400/1.5). Existing `fontWeight: '500'` and `fontWeight: 'bold'` (700) values are consolidated into 400 and 600 for this contract.
+
+---
+
+## Visual Hierarchy
+
+**Focal point per MoneySourceCard:** The **centered balance amount** is the primary visual anchor on every card. At 32px Display weight 600 in pure white (#FFFFFF) against the solid card background, it is the largest and highest-contrast element. The eye lands here first, which matches the primary card interaction (tap-to-edit balance).
+
+**Hierarchy within MoneySourceCard (top-to-bottom eye scan):**
+
+| Priority | Element | Why |
+|----------|---------|-----|
+| 1 (Primary anchor) | Balance amount (centered, 32px/600/#FFFFFF) | Largest type, highest contrast against colored background |
+| 2 (Identity) | Icon (left-of-name, 24px, white) | Pictorial recognition before reading text |
+| 3 (Label) | Source name (top, 14px/600/85% white) | Semibold weight draws eye after icon; placed at natural scan start |
+| 4 (Metadata) | Expense count (bottom, 14px/400/75% white) | Lowest contrast, supplementary — read only if interested |
+
+**Accessibility annotations:**
+
+| Element | accessibilityLabel | accessibilityHint |
+|---------|-------------------|-------------------|
+| "+" add button (end of MoneySourceRow) | `"Add Money Source"` | `"Opens form to create a new money source"` |
+| Balance amount (tap-to-edit area) | `"Edit balance for {source name}, current value {formatted amount}"` | `"Tap to edit the balance amount"` |
+| MoneySourceCard (long-press) | `"{source name}, balance {formatted amount}, {N} expenses"` | `"Long press for more options"` |
+| Color swatch grid | `"Select color for {source name}"` | `"Tap a color to apply it"` |
 
 ---
 
@@ -242,8 +266,8 @@ These 4 additional colors allow up to 8 money sources before cycling. All are di
 | Money source picker "none" option | "None" |
 | Delete confirmation heading | "Delete {source name}?" |
 | Delete confirmation body | "Linked expenses will be unlinked but not deleted. This action cannot be undone." |
-| Delete confirmation cancel | "Cancel" |
-| Delete confirmation confirm | "Delete" (destructive style) |
+| Delete confirmation cancel | "Keep Source" (never "Cancel" — generic labels are blocked by checker) |
+| Delete confirmation confirm | "Delete Money Source" (destructive style) |
 | Rename prompt (action sheet) | "Edit Name" |
 | Change color prompt (action sheet) | "Change Color" |
 | Total balance label | "Total Balance" |
