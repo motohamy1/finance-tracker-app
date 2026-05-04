@@ -1,12 +1,20 @@
 import { create } from 'zustand';
-import type { Category, Expense, ExpenseFormData, CategoryFormData } from '@/types';
+import type { Category, Expense, ExpenseFormData, CategoryFormData, MoneySource } from '@/types';
 import {
   getAllCategories, createCategory, updateCategory, deleteCategory,
   getExpenseCountForCategory, getExpensesByCategory,
   createExpense, updateExpense, deleteExpense,
+  getAllMoneySources, createMoneySource, updateMoneySource, deleteMoneySource,
+  getExpenseCountForMoneySource,
 } from '@/services/database';
 import { generateUUID, getTodayISO } from '@/utils/format';
-import { getNextAccentColor } from '@/types';
+import { getNextAccentColor, MONEY_SOURCE_PALETTE, MONEY_SOURCE_DEFAULTS } from '@/types';
+
+export interface MoneySourceFormData {
+  name: string;
+  colorHex?: string;
+  iconName?: string;
+}
 
 interface ExpenseStoreState {
   // ─── State ───
@@ -14,6 +22,9 @@ interface ExpenseStoreState {
   expensesByCategory: Record<string, Expense[]>; // categoryId → expenses
   isLoading: boolean;
   isInitialized: boolean;
+
+  // ─── Money Source state ───
+  moneySources: MoneySource[];
 
   // ─── Initialization ───
   initialize: () => void;
@@ -29,9 +40,18 @@ interface ExpenseStoreState {
   editExpense: (expenseId: string, data: Partial<ExpenseFormData>) => void;
   removeExpense: (expenseId: string) => void;
 
+  // ─── Money Source Actions ───
+  addMoneySource: (data: MoneySourceFormData) => MoneySource;
+  renameMoneySource: (id: string, newName: string) => void;
+  updateMoneySourceBalance: (id: string, balanceCents: number) => void;
+  updateMoneySourceColor: (id: string, colorHex: string) => void;
+  removeMoneySource: (id: string) => void;
+  reorderMoneySources: (orderedIds: string[]) => void;
+
   // ─── Helpers ───
   getExpenseCount: (categoryId: string) => number;
   getCategoryById: (categoryId: string) => Category | undefined;
+  getMoneySourceExpenseCount: (moneySourceId: string) => number;
 }
 
 export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
@@ -39,6 +59,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
   expensesByCategory: {},
   isLoading: true,
   isInitialized: false,
+  moneySources: [],
 
   // ─── Initialize: load all data from SQLite ───
   initialize: () => {
@@ -49,7 +70,21 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
       for (const cat of categories) {
         expensesByCategory[cat.id] = getExpensesByCategory(cat.id);
       }
-      set({ categories, expensesByCategory, isLoading: false, isInitialized: true });
+
+      // Load money sources
+      let moneySources = getAllMoneySources();
+
+      // Seed defaults on first launch (per D-01)
+      if (moneySources.length === 0) {
+        const uuids = [
+          generateUUID(), generateUUID(), generateUUID(), generateUUID(),
+        ];
+        moneySources = MONEY_SOURCE_DEFAULTS.map((def, i) =>
+          createMoneySource(uuids[i], def.name, def.colorHex, def.iconName, i)
+        );
+      }
+
+      set({ categories, expensesByCategory, moneySources, isLoading: false, isInitialized: true });
     } catch (error) {
       console.error('Failed to initialize expense store:', error);
       set({ isLoading: false, isInitialized: true });
@@ -103,7 +138,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
   addExpense: (data) => {
     const id = generateUUID();
     const expense = createExpense(
-      id, data.categoryId, data.title.trim(), data.amountCents,
+      id, data.categoryId, data.moneySourceId ?? null, data.title.trim(), data.amountCents,
       data.date || getTodayISO(), data.notes?.trim() || null
     );
     set({
@@ -122,6 +157,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
     if (data.date !== undefined) updates.date = data.date;
     if (data.notes !== undefined) updates.notes = data.notes?.trim() || null;
     if (data.categoryId !== undefined) updates.categoryId = data.categoryId;
+    if (data.moneySourceId !== undefined) updates.moneySourceId = data.moneySourceId;
 
     const updated = updateExpense(expenseId, updates as Parameters<typeof updateExpense>[1]);
     if (!updated) return;
@@ -158,6 +194,64 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
     }
   },
 
+  // ─── Money Source Actions ───
+  addMoneySource: (data) => {
+    const state = get();
+    const id = generateUUID();
+    const colorHex = data.colorHex ?? MONEY_SOURCE_PALETTE[state.moneySources.length % MONEY_SOURCE_PALETTE.length];
+    const iconName = data.iconName ?? 'wallet-outline';
+    const sortOrder = state.moneySources.length;
+    const source = createMoneySource(id, data.name.trim(), colorHex, iconName, sortOrder);
+    set({ moneySources: [...state.moneySources, source] });
+    return source;
+  },
+
+  renameMoneySource: (id, newName) => {
+    updateMoneySource(id, { name: newName.trim() });
+    set({
+      moneySources: get().moneySources.map((s) =>
+        s.id === id ? { ...s, name: newName.trim(), updatedAt: new Date().toISOString() } : s
+      ),
+    });
+  },
+
+  updateMoneySourceBalance: (id, balanceCents) => {
+    updateMoneySource(id, { balanceCents });
+    set({
+      moneySources: get().moneySources.map((s) =>
+        s.id === id ? { ...s, balanceCents, updatedAt: new Date().toISOString() } : s
+      ),
+    });
+  },
+
+  updateMoneySourceColor: (id, colorHex) => {
+    updateMoneySource(id, { colorHex });
+    set({
+      moneySources: get().moneySources.map((s) =>
+        s.id === id ? { ...s, colorHex, updatedAt: new Date().toISOString() } : s
+      ),
+    });
+  },
+
+  removeMoneySource: (id) => {
+    // Per D-03: ON DELETE SET NULL in schema unlinks expenses automatically
+    deleteMoneySource(id);
+    set({
+      moneySources: get().moneySources.filter((s) => s.id !== id),
+    });
+  },
+
+  reorderMoneySources: (orderedIds) => {
+    const state = get();
+    const reordered = orderedIds.map((id, index) => {
+      const source = state.moneySources.find((s) => s.id === id);
+      if (!source) return null;
+      updateMoneySource(id, { sortOrder: index });
+      return { ...source, sortOrder: index };
+    }).filter(Boolean) as MoneySource[];
+    set({ moneySources: reordered });
+  },
+
   // ─── Helpers ───
   getExpenseCount: (categoryId) => {
     return get().expensesByCategory[categoryId]?.length ?? 0;
@@ -165,5 +259,9 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
 
   getCategoryById: (categoryId) => {
     return get().categories.find((c) => c.id === categoryId);
+  },
+
+  getMoneySourceExpenseCount: (moneySourceId) => {
+    return getExpenseCountForMoneySource(moneySourceId);
   },
 }));
