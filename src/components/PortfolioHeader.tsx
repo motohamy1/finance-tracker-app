@@ -68,15 +68,19 @@ export function PortfolioHeader() {
   const staleCount = getStaleCount();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bgCard }]}>
+    <View style={[styles.container, { backgroundColor: '#F97316' }]}>
+      {/* Velvet fabric effects */}
+      <View style={styles.velvetOverlay} />
+      <View style={styles.velvetSheen} />
+      <View style={styles.velvetHighlight} />
       <TouchableOpacity
-        style={[styles.header, { backgroundColor: colors.bgCardElevated }]}
+        style={[styles.header, { backgroundColor: 'transparent' }]}
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name="briefcase-outline" size={20} color={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>Portfolio</Text>
+          <Ionicons name="briefcase-outline" size={20} color="rgba(255,255,255,0.9)" />
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>Portfolio</Text>
           {staleCount > 0 && (
             <View style={styles.staleBadge}>
               <Text style={styles.staleBadgeText}>{staleCount} stale</Text>
@@ -98,22 +102,22 @@ export function PortfolioHeader() {
           <Ionicons
             name={isExpanded ? 'chevron-up' : 'chevron-forward'}
             size={20}
-            color={colors.textSecondary}
+            color="rgba(255,255,255,0.7)"
           />
         </View>
       </TouchableOpacity>
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryItem}>
-          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Realized P&L</Text>
-          <Text style={[styles.summaryValue, totalRealizedPnl >= 0 ? styles.gain : styles.loss]}>
+          <Text style={[styles.summaryLabel, { color: 'rgba(255,255,255,0.7)' }]}>Realized P&L</Text>
+          <Text style={[styles.summaryValue, { color: '#FFFFFF', fontWeight: '700' }, totalRealizedPnl >= 0 ? styles.gain : styles.loss]}>
             {totalRealizedPnl >= 0 ? '+' : ''}{formatCurrency(Math.abs(totalRealizedPnl))}
           </Text>
         </View>
-        <View style={styles.summaryDivider} />
+        <View style={[styles.summaryDivider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
         <View style={styles.summaryItem}>
-          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Unrealized P&L</Text>
-          <Text style={[styles.summaryValue, totalUnrealizedPnl >= 0 ? styles.gain : styles.loss]}>
+          <Text style={[styles.summaryLabel, { color: 'rgba(255,255,255,0.7)' }]}>Unrealized P&L</Text>
+          <Text style={[styles.summaryValue, { color: '#FFFFFF', fontWeight: '700' }, totalUnrealizedPnl >= 0 ? styles.gain : styles.loss]}>
             {hasUnrealized
               ? `${totalUnrealizedPnl >= 0 ? '+' : ''}${formatCurrency(Math.abs(totalUnrealizedPnl))}`
               : 'Set prices'}
@@ -131,9 +135,9 @@ export function PortfolioHeader() {
         >
           {holdings.length === 0 ? (
             <View style={styles.emptyHoldings}>
-              <Ionicons name="briefcase-outline" size={32} color={colors.textMuted} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No open positions</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>All trades have been fully sold</Text>
+              <Ionicons name="briefcase-outline" size={32} color="rgba(255,255,255,0.5)" />
+              <Text style={[styles.emptyText, { color: 'rgba(255,255,255,0.7)' }]}>No open positions</Text>
+              <Text style={[styles.emptySubtext, { color: 'rgba(255,255,255,0.5)' }]}>All trades have been fully sold</Text>
             </View>
           ) : (
             holdings.map(h => (
@@ -238,11 +242,44 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
+    position: 'relative',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+  },
+  velvetOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    zIndex: 1,
+  },
+  velvetSheen: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    zIndex: 2,
+  },
+  velvetHighlight: {
+    position: 'absolute',
+    top: -30,
+    left: -40,
+    width: 200,
+    height: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 100,
+    transform: [{ rotate: '-20deg' }],
+    zIndex: 3,
+  },
+  velvetShadow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    zIndex: 4,
   },
   header: {
     flexDirection: 'row',
@@ -250,6 +287,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    zIndex: 10,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -284,8 +322,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 14,
     gap: 12,
+    zIndex: 10,
   },
-  summaryItem: { flex: 1 },
+  summaryItem: { flex: 1, zIndex: 10 },
   summaryLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   summaryValue: { fontSize: 18, fontWeight: '700', marginTop: 2 },
   summaryDivider: { width: 1, backgroundColor: '#F1F5F9' },

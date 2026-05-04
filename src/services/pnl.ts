@@ -77,7 +77,7 @@ export function calculateHoldings(
     { totalShares: number; totalCostCents: number; totalFeesCents: number }
   >();
 
-  for (const t of trades.sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))) {
+  for (const t of [...trades].sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))) {
     if (!tickerMap.has(t.ticker)) {
       tickerMap.set(t.ticker, { totalShares: 0, totalCostCents: 0, totalFeesCents: 0 });
     }
@@ -93,6 +93,8 @@ export function calculateHoldings(
         const costPerShare = h.totalShares > 0 ? h.totalCostCents / h.totalShares : 0;
         h.totalCostCents -= Math.round(t.shares * costPerShare);
         h.totalFeesCents += t.feesCents || 0;
+      } else {
+        h.totalCostCents = 0;
       }
       h.totalShares = Math.max(0, remainingShares);
     }

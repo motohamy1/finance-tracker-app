@@ -24,16 +24,8 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
   const isProfitable = holding.unrealizedPnlCents !== null && holding.unrealizedPnlCents >= 0;
   const stale = isStale(holding.priceUpdatedAt);
 
-  const bgTint = hasPrice
-    ? isProfitable
-      ? 'rgba(34, 197, 94, 0.08)'
-      : 'rgba(239, 68, 68, 0.08)'
-    : colors.bgCardElevated;
-  const borderTint = hasPrice
-    ? isProfitable
-      ? 'rgba(34, 197, 94, 0.2)'
-      : 'rgba(239, 68, 68, 0.2)'
-    : colors.border;
+  const bgTint = '#475569';
+  const borderTint = 'rgba(71, 85, 105, 0.5)';
 
   return (
     <TouchableOpacity
@@ -41,28 +33,32 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {/* Velvet fabric effects */}
+      <View style={[styles.velvetOverlay, { backgroundColor: 'rgba(0,0,0,0.08)' }]} />
+      <View style={[styles.velvetSheen, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
+      <View style={[styles.velvetHighlight, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
       <View style={styles.row}>
         <View style={styles.leftCol}>
           <View style={styles.tickerRow}>
-            <Text style={[styles.ticker, { color: colors.text }]}>{holding.ticker}</Text>
+            <Text style={[styles.ticker, { color: '#FFFFFF' }]}>{holding.ticker}</Text>
             {stale && hasPrice && (
               <Ionicons name="warning-outline" size={12} color="#D97706" style={styles.staleIcon} />
             )}
           </View>
-          <Text style={[styles.shares, { color: colors.textSecondary }]}>{holding.totalShares} shares</Text>
-          <Text style={[styles.costBasis, { color: colors.textMuted }]}>
+          <Text style={[styles.shares, { color: 'rgba(255,255,255,0.8)' }]}>{holding.totalShares} shares</Text>
+          <Text style={[styles.costBasis, { color: 'rgba(255,255,255,0.65)' }]}>
             Avg cost: {formatCurrency(holding.averageCostBasisCents)}
           </Text>
         </View>
         <View style={styles.rightCol}>
-          <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Current</Text>
-          <Text style={[styles.priceValue, { color: colors.text }]}>
+          <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.7)' }]}>Current</Text>
+          <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>
             {hasPrice ? formatCurrency(holding.currentPriceCents!) : 'Set price'}
           </Text>
         </View>
       </View>
       {hasPrice && (
-        <View style={[styles.pnlRow, { borderTopColor: colors.divider }, isProfitable ? styles.pnlPositive : styles.pnlNegative]}>
+        <View style={[styles.pnlRow, { borderTopColor: 'rgba(255,255,255,0.15)' }, isProfitable ? styles.pnlPositive : styles.pnlNegative]}>
           <Ionicons
             name={isProfitable ? 'trending-up' : 'trending-down'}
             size={14}
@@ -79,7 +75,7 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
       )}
 
       {/* Open Position badge + Add Sell CTA */}
-      <View style={[styles.sellSection, { borderTopColor: colors.divider }]}>
+      <View style={[styles.sellSection, { borderTopColor: 'rgba(255,255,255,0.15)' }]}>
         <View style={styles.awaitingBadge}>
           <Ionicons name="wallet-outline" size={12} color="#D97706" />
           <Text style={styles.awaitingText}>{holding.totalShares} share{holding.totalShares !== 1 ? 's' : ''} open</Text>
@@ -100,7 +96,7 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
       </View>
 
       {hasPrice && holding.priceUpdatedAt && (
-        <Text style={[styles.updatedAt, { color: colors.textMuted }, stale && styles.stale]}>
+        <Text style={[styles.updatedAt, { color: 'rgba(255,255,255,0.5)' }, stale && styles.stale]}>
           Updated {new Date(holding.priceUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </Text>
       )}
@@ -114,14 +110,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     marginBottom: 8,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  velvetOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+  velvetSheen: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
+  velvetHighlight: {
+    position: 'absolute',
+    top: -15,
+    left: -20,
+    width: 120,
+    height: 40,
+    borderRadius: 60,
+    transform: [{ rotate: '-20deg' }],
+    zIndex: 3,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    zIndex: 10,
   },
-  leftCol: { flex: 1 },
-  rightCol: { alignItems: 'flex-end' },
+  leftCol: { flex: 1, zIndex: 10 },
+  rightCol: { alignItems: 'flex-end', zIndex: 10 },
   tickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -141,6 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
+    zIndex: 10,
   },
   pnlPositive: {},
   pnlNegative: {},
@@ -152,6 +175,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
+    zIndex: 10,
   },
   awaitingBadge: {
     flexDirection: 'row',

@@ -17,12 +17,8 @@ export function PnLPairCard({ pair }: PnLPairCardProps) {
     ? ((pair.sellPriceCents - pair.buyPriceCents) / pair.buyPriceCents) * 100
     : 0;
 
-  const bgTint = isPositive
-    ? 'rgba(34, 197, 94, 0.06)'
-    : 'rgba(239, 68, 68, 0.06)';
-  const borderTint = isPositive
-    ? 'rgba(34, 197, 94, 0.15)'
-    : 'rgba(239, 68, 68, 0.15)';
+  const bgTint = 'rgba(5, 150, 105, 0.15)';
+  const borderTint = 'rgba(5, 150, 105, 0.3)';
 
   return (
     <TouchableOpacity
@@ -30,6 +26,10 @@ export function PnLPairCard({ pair }: PnLPairCardProps) {
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.7}
     >
+      {/* Velvet fabric effects */}
+      <View style={[styles.velvetOverlay, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
+      <View style={[styles.velvetSheen, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
+      <View style={[styles.velvetHighlight, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
       {/* Header: Ticker + P&L percentage badge */}
       <View style={styles.header}>
         <View style={styles.tickerSection}>
@@ -124,12 +124,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     marginBottom: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  velvetOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+  velvetSheen: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
+  velvetHighlight: {
+    position: 'absolute',
+    top: -15,
+    left: -20,
+    width: 120,
+    height: 40,
+    borderRadius: 60,
+    transform: [{ rotate: '-20deg' }],
+    zIndex: 3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
+    zIndex: 10,
   },
   tickerSection: {},
   ticker: { fontSize: 16, fontWeight: '700' },
@@ -152,6 +173,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
     marginBottom: 12,
+    zIndex: 10,
   },
   side: {
     flex: 1,
@@ -184,11 +206,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 10,
     borderTopWidth: 1,
+    zIndex: 10,
   },
   resultLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    zIndex: 10,
   },
   resultGain: { borderTopColor: 'rgba(34, 197, 94, 0.15)' },
   resultLoss: { borderTopColor: 'rgba(239, 68, 68, 0.15)' },
@@ -197,24 +221,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    zIndex: 10,
   },
-  resultValue: { fontSize: 16, fontWeight: '700' },
+  resultValue: { fontSize: 16, fontWeight: '700', zIndex: 10 },
 
   details: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     gap: 6,
+    zIndex: 10,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    zIndex: 10,
   },
-  detailLabel: { fontSize: 13 },
-  detailValue: { fontSize: 13, fontWeight: '500' },
+  detailLabel: { fontSize: 13, zIndex: 10 },
+  detailValue: { fontSize: 13, fontWeight: '500', zIndex: 10 },
   expandHint: {
     alignItems: 'center',
     marginTop: 6,
+    zIndex: 10,
   },
   gain: { color: '#059669' },
   loss: { color: '#DC2626' },

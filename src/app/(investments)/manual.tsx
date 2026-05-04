@@ -6,12 +6,14 @@ import {
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTradeStore } from '@/stores/tradeStore';
+import { useTheme } from '@/services/theme';
 import { getTodayISO, formatCurrency } from '@/utils/format';
 import { validateTradeFields, canSaveTrade } from '@/utils/tradeValidation';
 import type { TradeDirection, TradeFormData } from '@/types';
 import { DEFAULT_INVESTMENT_KINDS } from '@/types';
 
 export default function ManualEntryScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
     prefillTicker?: string;
@@ -152,9 +154,14 @@ export default function ManualEntryScreen() {
 
   const isPrefilledSell = prefillDirection === 'sell' && prefillTicker !== '';
 
+  const inputTheme = { backgroundColor: colors.bgInput, color: colors.text, borderColor: colors.border };
+  const labelTheme = { color: colors.textSecondary };
+  const toggleTheme = { backgroundColor: colors.bgCard, borderColor: colors.border };
+  const toggleTextTheme = { color: colors.text };
+
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen
@@ -163,7 +170,7 @@ export default function ManualEntryScreen() {
           title: isPrefilledSell ? `Sell ${prefillTicker}` : 'Enter Trade',
           headerLeft: () => (
             <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={24} color="#0F172A" />
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}
@@ -193,13 +200,13 @@ export default function ManualEntryScreen() {
 
         {/* Ticker */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Ticker *</Text>
+          <Text style={[styles.label, labelTheme]}>Ticker *</Text>
           <TextInput
-            style={[styles.input, errors.ticker && styles.inputError, isPrefilledSell && styles.inputLocked]}
+            style={[styles.input, inputTheme, errors.ticker && styles.inputError, isPrefilledSell && { backgroundColor: colors.bgInput, color: colors.textSecondary }]}
             value={ticker}
             onChangeText={setTicker}
             placeholder="e.g. AAPL"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="characters"
             maxLength={5}
             editable={!isPrefilledSell}
@@ -209,16 +216,15 @@ export default function ManualEntryScreen() {
 
         {/* Shares */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>
-            Shares *
+          <Text style={[styles.label, labelTheme]}>Shares *
             {buyContext ? ` (${buyContext.remaining} available)` : ''}
           </Text>
           <TextInput
-            style={[styles.input, errors.shares && styles.inputError]}
+            style={[styles.input, inputTheme, errors.shares && styles.inputError]}
             value={shares}
             onChangeText={(v) => setShares(v.replace(/[^0-9]/g, ''))}
             placeholder={buyContext ? `Max ${buyContext.remaining}` : 'e.g. 10'}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             keyboardType="number-pad"
           />
           {errors.shares && <Text style={styles.errorText}>{errors.shares}</Text>}
@@ -226,13 +232,13 @@ export default function ManualEntryScreen() {
 
         {/* Price per Share */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Price per Share ($) *</Text>
+          <Text style={[styles.label, labelTheme]}>Price per Share ($) *</Text>
           <TextInput
-            style={[styles.input, errors.pricePerShareCents && styles.inputError]}
+            style={[styles.input, inputTheme, errors.pricePerShareCents && styles.inputError]}
             value={pricePerShare}
             onChangeText={(v) => setPricePerShare(v.replace(/[^0-9.]/g, ''))}
             placeholder="e.g. 185.50"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             keyboardType="decimal-pad"
           />
           {errors.pricePerShareCents && <Text style={styles.errorText}>{errors.pricePerShareCents}</Text>}
@@ -240,13 +246,13 @@ export default function ManualEntryScreen() {
 
         {/* Date */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Trade Date *</Text>
+          <Text style={[styles.label, labelTheme]}>Trade Date *</Text>
           <TextInput
-            style={[styles.input, errors.tradeDate && styles.inputError]}
+            style={[styles.input, inputTheme, errors.tradeDate && styles.inputError]}
             value={tradeDate}
             onChangeText={setTradeDate}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             maxLength={10}
           />
           {errors.tradeDate && <Text style={styles.errorText}>{errors.tradeDate}</Text>}
@@ -254,17 +260,17 @@ export default function ManualEntryScreen() {
 
         {/* Asset Type */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Asset Type *</Text>
+          <Text style={[styles.label, labelTheme]}>Asset Type *</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
             <View style={styles.typeRow}>
               {DEFAULT_INVESTMENT_KINDS.map((kind) => (
                 <TouchableOpacity
                   key={kind.id}
-                  style={[styles.typeOption, assetType === kind.id && styles.typeOptionActive]}
+                  style={[styles.typeOption, { backgroundColor: colors.bgCard, borderColor: colors.border }, assetType === kind.id && styles.typeOptionActive]}
                   onPress={() => setAssetType(kind.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.typeText, assetType === kind.id && styles.typeTextActive]}>
+                  <Text style={[styles.typeText, { color: colors.text }, assetType === kind.id && styles.typeTextActive]}>
                     {kind.label}
                   </Text>
                 </TouchableOpacity>
@@ -275,54 +281,54 @@ export default function ManualEntryScreen() {
 
         {/* Direction toggle */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Direction</Text>
+          <Text style={[styles.label, labelTheme]}>Direction</Text>
           <View style={styles.toggleRow}>
             <TouchableOpacity
-              style={[styles.toggleOption, direction === 'buy' && styles.toggleBuyActive]}
+              style={[styles.toggleOption, toggleTheme, direction === 'buy' && styles.toggleBuyActive]}
               onPress={() => setDirection('buy')}
               disabled={isPrefilledSell}
             >
-              <Text style={[styles.toggleText, direction === 'buy' && styles.toggleTextActive]}>Buy</Text>
+              <Text style={[styles.toggleText, toggleTextTheme, direction === 'buy' && styles.toggleTextActive]}>Buy</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.toggleOption, direction === 'sell' && styles.toggleSellActive]}
+              style={[styles.toggleOption, toggleTheme, direction === 'sell' && styles.toggleSellActive]}
               onPress={() => setDirection('sell')}
               disabled={isPrefilledSell}
             >
-              <Text style={[styles.toggleText, direction === 'sell' && styles.toggleTextActive]}>Sell</Text>
+              <Text style={[styles.toggleText, toggleTextTheme, direction === 'sell' && styles.toggleTextActive]}>Sell</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Fees (optional) */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Fees ($) — Optional</Text>
+          <Text style={[styles.label, labelTheme]}>Fees ($) — Optional</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, inputTheme]}
             value={fees}
             onChangeText={(v) => setFees(v.replace(/[^0-9.]/g, ''))}
             placeholder="e.g. 0.00"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             keyboardType="decimal-pad"
           />
         </View>
 
         {/* Notes (optional) */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Notes — Optional</Text>
+          <Text style={[styles.label, labelTheme]}>Notes — Optional</Text>
           <TextInput
-            style={[styles.input, styles.notesInput]}
+            style={[styles.input, inputTheme, styles.notesInput]}
             value={notes}
             onChangeText={setNotes}
             placeholder="Add notes..."
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             multiline
           />
         </View>
 
         {/* Live P&L Preview when selling */}
         {pnlPreview && (
-          <View style={styles.pnlPreviewCard}>
+          <View style={[styles.pnlPreviewCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <Text style={styles.pnlPreviewTitle}>P&L Preview</Text>
             <View style={styles.pnlPreviewRow}>
               <View style={styles.pnlPreviewSide}>
@@ -397,27 +403,26 @@ export default function ManualEntryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   fieldGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { fontSize: 13, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14,
-    fontSize: 16, color: '#0F172A', borderWidth: 1, borderColor: '#E2E8F0',
+    borderRadius: 12, padding: 14,
+    fontSize: 16, borderWidth: 1,
   },
   inputError: { borderColor: '#DC2626', backgroundColor: '#FEF2F2' },
-  inputLocked: { backgroundColor: '#F1F5F9', color: '#64748B' },
+  inputLocked: { color: '#64748B' },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
   errorText: { fontSize: 12, color: '#DC2626', marginTop: 4 },
   toggleRow: { flexDirection: 'row', gap: 8 },
   toggleOption: {
     flex: 1, alignItems: 'center', paddingVertical: 12,
-    borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderRadius: 12, borderWidth: 1,
   },
   toggleBuyActive: { backgroundColor: '#059669', borderColor: '#059669' },
   toggleSellActive: { backgroundColor: '#DC2626', borderColor: '#DC2626' },
-  toggleText: { fontSize: 15, fontWeight: '600', color: '#475569' },
+  toggleText: { fontSize: 15, fontWeight: '600' },
   toggleTextActive: { color: '#FFFFFF' },
   saveButton: {
     backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 16,

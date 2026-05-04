@@ -7,14 +7,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTradeStore } from '@/stores/tradeStore';
 import { TradeCard } from '@/components/TradeCard';
 import { PortfolioHeader } from '@/components/PortfolioHeader';
-import { TickerChips } from '@/components/TickerChips';
-import { CategoryChips } from '@/components/CategoryChips';
-import { TickerSummaryCard } from '@/components/TickerSummaryCard';
 import { BottomSheet } from '@/components/BottomSheet';
 import { TradeFilterSheet, type FilterState } from '@/components/TradeFilterSheet';
 import { PnLPairCard } from '@/components/PnLPairCard';
 import { HoldingCard } from '@/components/HoldingCard';
 import { EmptyState } from '@/components/EmptyState';
+import { ActionSheetModal, type ActionSheetOption } from '@/components/ActionSheetModal';
 import { formatCurrency } from '@/utils/format';
 import { useTheme } from '@/services/theme';
 import type { Trade, PnLPair, Holding } from '@/types';
@@ -41,6 +39,9 @@ export default function InvestmentsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFabSheet, setShowFabSheet] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [actionSheetTitle, setActionSheetTitle] = useState('');
+  const [actionSheetOptions, setActionSheetOptions] = useState<ActionSheetOption[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     direction: 'all',
     dateFrom: null,
@@ -186,6 +187,29 @@ export default function InvestmentsScreen() {
     });
   }, [router]);
 
+  const handleHoldingPress = useCallback((holding: Holding) => {
+    const options: ActionSheetOption[] = [
+      {
+        label: 'Update Price',
+        icon: 'pricetag-outline',
+        onPress: () => {
+          const store = useTradeStore.getState();
+          store.updateCurrentPrice(holding.ticker, holding.currentPriceCents ?? 0);
+        },
+      },
+      {
+        label: `Sell ${holding.ticker} (${holding.totalShares} shares)`,
+        icon: 'swap-vertical-outline',
+        onPress: () => {
+          handleAddSell(holding.ticker, holding.totalShares, holding.averageCostBasisCents);
+        },
+      },
+    ];
+    setActionSheetTitle(holding.ticker);
+    setActionSheetOptions(options);
+    setActionSheetVisible(true);
+  }, [handleAddSell]);
+
   const handleFabPress = () => {
     setShowFabSheet(true);
   };
@@ -240,18 +264,6 @@ export default function InvestmentsScreen() {
   const ListHeader = () => (
     <View>
       <PortfolioHeader />
-      <View style={styles.filterBar}>
-        <TickerChips
-          tickers={tickers}
-          selected={selectedTicker}
-          onSelect={setSelectedTicker}
-        />
-        <CategoryChips
-          categories={availableCategories}
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
-      </View>
 
       {/* Tab selector */}
       <View style={styles.tabBar}>
@@ -309,47 +321,6 @@ export default function InvestmentsScreen() {
           />
         </TouchableOpacity>
       </View>
-
-      {/* Summary card for selected ticker/category */}
-      {selectedTicker ? (
-        <TickerSummaryCard ticker={selectedTicker} />
-      ) : null}
-      {selectedCategory && !selectedTicker ? (() => {
-        const summary = getCategorySummary(selectedCategory);
-        const catName = availableCategories.find(c => c.id === selectedCategory)?.label ?? selectedCategory;
-        return (
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTicker}>{catName}</Text>
-              {summary.pnlMultiplier !== null && (
-                <View style={[styles.summaryMultiplierBadge, summary.pnlMultiplier >= 1 ? styles.summaryMultiplierGreen : styles.summaryMultiplierRed]}>
-                  <Text style={[styles.summaryMultiplierBadgeText, summary.pnlMultiplier >= 1 ? styles.summaryMultiplierGreenText : styles.summaryMultiplierRedText]}>
-                    {summary.pnlMultiplier >= 1 ? '+' : ''}{((summary.pnlMultiplier - 1) * 100).toFixed(1)}%
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Invested</Text>
-                <Text style={styles.summaryValue}>{formatCurrency(summary.totalInvestedCents)}</Text>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Realized P&L</Text>
-                <Text style={[styles.summaryValue, summary.totalRealizedCents >= 0 ? styles.gain : styles.loss]}>
-                  {summary.totalRealizedCents >= 0 ? '+' : ''}{formatCurrency(Math.abs(summary.totalRealizedCents))}
-                </Text>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Trades</Text>
-                <Text style={styles.summaryValue}>{summary.tradeCount}</Text>
-              </View>
-            </View>
-          </View>
-        );
-      })() : null}
     </View>
   );
 
@@ -369,9 +340,9 @@ export default function InvestmentsScreen() {
               <Ionicons
                 name={section.type === 'holdings' ? 'time-outline' : 'checkmark-circle-outline'}
                 size={16}
-                color={section.type === 'holdings' ? '#D97706' : '#059669'}
+                color={section.type === 'holdings' ? '#3B82F6' : '#059669'}
               />
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{section.title}</Text>
             </View>
           )}
           renderItem={({ item, section }) => {
@@ -381,7 +352,7 @@ export default function InvestmentsScreen() {
                 <View style={styles.sectionItemContainer}>
                   <HoldingCard
                     holding={holding}
-                    onPress={() => setSelectedTicker(holding.ticker)}
+                    onPress={() => handleHoldingPress(holding)}
                     onAddSell={handleAddSell}
                   />
                 </View>
@@ -477,6 +448,13 @@ export default function InvestmentsScreen() {
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
+
+      <ActionSheetModal
+        visible={actionSheetVisible}
+        onClose={() => setActionSheetVisible(false)}
+        title={actionSheetTitle}
+        options={actionSheetOptions}
+      />
     </SafeAreaView>
   );
 }
@@ -548,47 +526,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  tabActive: {
-    backgroundColor: '#ECFEFF',
-    borderColor: '#0891B2',
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  tabTextActive: {
-    color: '#0891B2',
-  },
-  tabBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-    minWidth: 22,
-    alignItems: 'center',
-  },
-  tabBadgeActive: {
-    backgroundColor: 'rgba(8, 145, 178, 0.15)',
-  },
-  tabBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  tabBadgeTextActive: {
-    color: '#0891B2',
-  },
-  filterIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   filterIconButtonActive: {
     backgroundColor: '#0891B2',
     borderColor: '#0891B2',
@@ -606,7 +543,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#475569',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
