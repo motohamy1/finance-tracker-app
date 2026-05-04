@@ -21,7 +21,7 @@ describe('parseOCRToInitialValues', () => {
       shares: 10,
       pricePerShare: 185.50,
       tradeDate: '2026-04-28',
-      direction: 'buy',
+      direction: 'buy', feesCents: null,
       rawText: 'Bought 10 AAPL @ $185.50',
       confidence: 0.95,
     };
@@ -43,7 +43,7 @@ describe('parseOCRToInitialValues', () => {
       shares: 50,
       pricePerShare: 250.75,
       tradeDate: '2026-05-01',
-      direction: 'sell',
+      direction: 'sell', feesCents: null,
       rawText: 'Sold 50 MSFT @ $250.75',
       confidence: 0.9,
     };
@@ -58,7 +58,7 @@ describe('parseOCRToInitialValues', () => {
       shares: 5,
       pricePerShare: 200.00,
       tradeDate: null,
-      direction: 'buy',
+      direction: 'buy', feesCents: null,
       rawText: 'TSLA 5 shares',
       confidence: 0.5,
     };
@@ -75,7 +75,7 @@ describe('parseOCRToInitialValues', () => {
       shares: 20,
       pricePerShare: 900.00,
       tradeDate: '2026-04-30',
-      direction: null,
+      direction: null, feesCents: null,
       rawText: 'NVDA 20 @ 900',
       confidence: 0.6,
     };
@@ -90,7 +90,7 @@ describe('parseOCRToInitialValues', () => {
       shares: null,
       pricePerShare: null,
       tradeDate: null,
-      direction: null,
+      direction: null, feesCents: null,
       rawText: 'garbage text',
       confidence: 0.1,
     };
@@ -235,7 +235,7 @@ describe('isMissingFromOCR', () => {
     shares: 10,
     pricePerShare: 150.00,
     tradeDate: '2026-05-01',
-    direction: 'buy',
+    direction: 'buy', feesCents: null,
     rawText: 'AAPL 10 buy',
     confidence: 1.0,
   };
@@ -245,7 +245,7 @@ describe('isMissingFromOCR', () => {
     shares: null,        // missing
     pricePerShare: null, // missing
     tradeDate: null,     // missing
-    direction: null,     // missing
+    direction: null, feesCents: null,     // missing
     rawText: 'AAPL',
     confidence: 0.2,
   };
@@ -270,11 +270,10 @@ describe('isMissingFromOCR', () => {
     expect(isMissingFromOCR(partialOCR, 'direction')).toBe(true);
   });
 
-  it('returns false for fields that OCR does not attempt to detect (fees, notes)', () => {
-    expect(isMissingFromOCR(fullOCR, 'feesCents')).toBe(false);
-    expect(isMissingFromOCR(fullOCR, 'notes')).toBe(false);
-    expect(isMissingFromOCR(partialOCR, 'feesCents')).toBe(false);
-    expect(isMissingFromOCR(partialOCR, 'notes')).toBe(false);
+  it('returns true for feesCents when OCR did not detect fees (null)', () => {
+    expect(isMissingFromOCR(partialOCR, 'feesCents')).toBe(true);
+    expect(isMissingFromOCR(fullOCR, 'feesCents')).toBe(true); // fullOCR has feesCents:null too
+    expect(isMissingFromOCR(fullOCR, 'notes')).toBe(false); // notes not tracked by OCR
   });
 });
 
@@ -314,7 +313,7 @@ describe('canSaveTrade', () => {
       shares: '10',
       pricePerShareCents: '15000',
       tradeDate: '2026-05-01',
-      direction: 'buy' as TradeDirection,
+      direction: 'buy' as TradeDirection, feesCents: '',
     };
     const errors: Record<string, string> = {};
 
@@ -324,7 +323,7 @@ describe('canSaveTrade', () => {
   it('returns false when ticker is empty', () => {
     const fields = {
       ticker: '', shares: '10', pricePerShareCents: '15000',
-      tradeDate: '2026-05-01', direction: 'buy' as TradeDirection,
+      tradeDate: '2026-05-01', direction: 'buy', feesCents: '' as string,
     };
     const errors: Record<string, string> = {};
 
@@ -334,7 +333,7 @@ describe('canSaveTrade', () => {
   it('returns false when shares is empty', () => {
     const fields = {
       ticker: 'AAPL', shares: '', pricePerShareCents: '15000',
-      tradeDate: '2026-05-01', direction: 'buy' as TradeDirection,
+      tradeDate: '2026-05-01', direction: 'buy', feesCents: '' as string,
     };
     const errors: Record<string, string> = {};
 
@@ -344,7 +343,7 @@ describe('canSaveTrade', () => {
   it('returns false when there are validation errors', () => {
     const fields = {
       ticker: 'AAPL', shares: '10', pricePerShareCents: '15000',
-      tradeDate: '2026-05-01', direction: 'buy' as TradeDirection,
+      tradeDate: '2026-05-01', direction: 'buy', feesCents: '' as string,
     };
     const errors = { ticker: 'Invalid ticker' };
 
@@ -354,7 +353,7 @@ describe('canSaveTrade', () => {
   it('returns false when pricePerShareCents is empty', () => {
     const fields = {
       ticker: 'AAPL', shares: '10', pricePerShareCents: '',
-      tradeDate: '2026-05-01', direction: 'buy' as TradeDirection,
+      tradeDate: '2026-05-01', direction: 'buy', feesCents: '' as string,
     };
     const errors: Record<string, string> = {};
 
@@ -364,7 +363,7 @@ describe('canSaveTrade', () => {
   it('returns false when tradeDate is empty', () => {
     const fields = {
       ticker: 'AAPL', shares: '10', pricePerShareCents: '15000',
-      tradeDate: '', direction: 'buy' as TradeDirection,
+      tradeDate: '', direction: 'buy', feesCents: '' as string,
     };
     const errors: Record<string, string> = {};
 

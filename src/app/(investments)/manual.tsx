@@ -9,6 +9,7 @@ import { useTradeStore } from '@/stores/tradeStore';
 import { getTodayISO, formatCurrency } from '@/utils/format';
 import { validateTradeFields, canSaveTrade } from '@/utils/tradeValidation';
 import type { TradeDirection, TradeFormData } from '@/types';
+import { DEFAULT_INVESTMENT_KINDS } from '@/types';
 
 export default function ManualEntryScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function ManualEntryScreen() {
   const [pricePerShare, setPricePerShare] = useState('');
   const [tradeDate, setTradeDate] = useState(getTodayISO());
   const [direction, setDirection] = useState<TradeDirection>(prefillDirection);
+  const [assetType, setAssetType] = useState<string>(DEFAULT_INVESTMENT_KINDS[0].id);
   const [fees, setFees] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -79,6 +81,7 @@ export default function ManualEntryScreen() {
       pricePerShareCents: pricePerShare,
       tradeDate,
       direction,
+      assetType,
       feesCents: fees,
       notes,
     };
@@ -94,6 +97,7 @@ export default function ManualEntryScreen() {
       pricePerShareCents: pricePerShare,
       tradeDate,
       direction,
+      assetType,
     };
     return canSaveTrade(fieldValues, errors);
   }, [ticker, shares, pricePerShare, tradeDate, direction, errors]);
@@ -110,6 +114,7 @@ export default function ManualEntryScreen() {
       pricePerShareCents: String(priceInCents),
       tradeDate,
       direction,
+      assetType,
       feesCents: fees ? String(feesInCents) : '',
       notes,
     };
@@ -219,6 +224,27 @@ export default function ManualEntryScreen() {
             maxLength={10}
           />
           {errors.tradeDate && <Text style={styles.errorText}>{errors.tradeDate}</Text>}
+        </View>
+
+        {/* Asset Type */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Asset Type *</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+            <View style={styles.typeRow}>
+              {DEFAULT_INVESTMENT_KINDS.map((kind) => (
+                <TouchableOpacity
+                  key={kind.id}
+                  style={[styles.typeOption, assetType === kind.id && styles.typeOptionActive]}
+                  onPress={() => setAssetType(kind.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.typeText, assetType === kind.id && styles.typeTextActive]}>
+                    {kind.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
         </View>
 
         {/* Direction toggle */}
@@ -475,4 +501,26 @@ const styles = StyleSheet.create({
   },
   gain: { color: '#059669' },
   loss: { color: '#DC2626' },
+  typeScroll: { marginBottom: 4 },
+  typeRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
+  typeOption: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  typeOptionActive: {
+    backgroundColor: '#0891B2',
+    borderColor: '#0891B2',
+  },
+  typeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  typeTextActive: {
+    color: '#FFFFFF',
+  },
 });

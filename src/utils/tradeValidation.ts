@@ -16,6 +16,7 @@ export function parseOCRToInitialValues(ocrResult: OCRResult | null): TradeFormD
       pricePerShareCents: '',
       tradeDate: today,
       direction: 'buy',
+      assetType: 'stock',
       feesCents: '',
       notes: '',
     };
@@ -25,13 +26,19 @@ export function parseOCRToInitialValues(ocrResult: OCRResult | null): TradeFormD
     ? String(Math.round(ocrResult.pricePerShare * 100))
     : '';
 
+  // If OCR detected a commission/fee, pre-fill it (converted from cents to dollar string for the form)
+  const feesCents = ocrResult.feesCents !== null && ocrResult.feesCents > 0
+    ? String((ocrResult.feesCents / 100).toFixed(2))
+    : '';
+
   return {
     ticker: ocrResult.ticker || '',
     shares: ocrResult.shares !== null ? String(ocrResult.shares) : '',
     pricePerShareCents,
     tradeDate: ocrResult.tradeDate || today,
     direction: ocrResult.direction || 'buy',
-    feesCents: '',
+    assetType: ocrResult.assetType || 'stock',
+    feesCents,
     notes: '',
   };
 }
@@ -47,6 +54,7 @@ export function validateTradeFields(fields: {
   pricePerShareCents: string;
   tradeDate: string;
   direction: string;
+  assetType: string;
   feesCents?: string;
   notes?: string;
 }): Record<string, string> {
@@ -79,6 +87,11 @@ export function validateTradeFields(fields: {
   // direction: required
   if (!fields.direction) {
     errors.direction = 'Direction is required';
+  }
+
+  // assetType: required
+  if (!fields.assetType) {
+    errors.assetType = 'Asset type is required';
   }
 
   return errors;
@@ -155,6 +168,10 @@ export function isMissingFromOCR(ocrResult: OCRResult | null, fieldKey: string):
       return !ocrResult.tradeDate;
     case 'direction':
       return !ocrResult.direction;
+    case 'assetType':
+      return !ocrResult.assetType;
+    case 'feesCents':
+      return ocrResult.feesCents === null;
     default:
       return false;
   }
@@ -177,6 +194,8 @@ export function formatTradeFieldDisplay(fieldKey: string, rawValue: string): str
       if (isNaN(cents)) return '\u2014';
       return formatCurrency(cents);
     }
+    case 'assetType':
+      return rawValue.charAt(0).toUpperCase() + rawValue.slice(1);
     default:
       return rawValue;
   }
@@ -202,6 +221,7 @@ export function canSaveTrade(
     fields.pricePerShareCents.trim() !== '' &&
     fields.tradeDate.trim() !== '' &&
     fields.direction !== '' &&
+    fields.assetType !== '' &&
     Object.keys(errors).length === 0
   );
 }

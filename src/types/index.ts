@@ -145,11 +145,12 @@ export type InvestmentKindId = typeof DEFAULT_INVESTMENT_KINDS[number]['id'];
 
 export interface TradeFormData {
   ticker: string;
-  shares: string;             // String for form input (parsed to integer on save)
-  pricePerShareCents: string; // String for form input (parsed to integer on save)
+  shares: string;
+  pricePerShareCents: string;
   tradeDate: string;
   direction: TradeDirection;
-  feesCents: string;          // String for form input (parsed to integer or null on save)
+  assetType?: string;
+  feesCents: string;
   notes: string;
 }
 
@@ -157,13 +158,14 @@ export interface TradeFormData {
 export interface OCRResult {
   ticker: string | null;
   shares: number | null;
-  pricePerShare: number | null; // In dollars (not cents) — OCR reads display values
-  tradeDate: string | null;     // ISO 8601 date or null
+  pricePerShare: number | null;
+  tradeDate: string | null;
   direction: TradeDirection | null;
-  feesCents: number | null;     // Detected commission/fee in cents, null if not found
-  rawText: string;              // Full raw OCR output for debugging
-  confidence: number;           // 0.0–1.0 overall extraction confidence
-  aiMeta?: AIExtractionMeta;    // AI extraction metadata (undefined for Phase 2 regex-only)
+  feesCents: number | null;
+  assetType: string | null;
+  rawText: string;
+  confidence: number;
+  aiMeta?: AIExtractionMeta;
 }
 
 export interface FailedOCRLog {

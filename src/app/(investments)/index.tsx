@@ -1,5 +1,5 @@
 import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert, SectionList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -22,6 +22,7 @@ type ViewTab = 'positions' | 'trades';
 
 export default function InvestmentsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const trades = useTradeStore((s) => s.trades);
   const isLoading = useTradeStore((s) => s.isLoading);
   const isInitialized = useTradeStore((s) => s.isInitialized);
@@ -390,7 +391,7 @@ export default function InvestmentsScreen() {
               </View>
             );
           }}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 16) + 60 + 40 }]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyTab}>
@@ -432,7 +433,7 @@ export default function InvestmentsScreen() {
               />
             );
           }}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 16) + 60 + 40 }]}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -468,7 +469,7 @@ export default function InvestmentsScreen() {
       </BottomSheet>
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 + 20, zIndex: 100, elevation: 100 }]}
         onPress={handleFabPress}
         activeOpacity={0.8}
       >

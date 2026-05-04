@@ -190,20 +190,43 @@ export function parseTradeFromText(rawText: string): OCRResult {
 
   // ─── Price extraction ───
   let pricePerShare: number | null = null;
-  // Pattern: "$185.50" or "185.50" near "price" or "per share"
-  const priceContextPattern = /(?:price|per\s*share|@|at)\s*\$?(\d+(?:\.\d{1,2})?)/i;
+
+  // Priority 1: explicit "price per share" or "@ / at" label  
+  const priceContextPattern = /(?:price(?:\s*per\s*share)?|per\s*share|avg\.?\s*price|filled\s*at|@|at)\s*\$?(\d+(?:\.\d{1,4})?)/i;
   const priceMatch = text.match(priceContextPattern);
   if (priceMatch) {
     pricePerShare = parseFloat(priceMatch[1]) || null;
-  } else {
-    // Fallback: find any dollar amount
-    const dollarPattern = /\$(\d+(?:\.\d{1,2})?)/g;
-    const dollarMatches = [...text.matchAll(dollarPattern)];
+  }
+
+  // Priority 2: dollar amounts excluding those labeled as total/amount/value
+  if (pricePerShare === null) {
+    // Strip lines that are clearly totals so we don’t mistake them for per-share prices
+    const stripped = text
+      .split('\n')
+      .filter(line => !/(?:total|amount|value|cost|proceeds|subtotal)/i.test(line))
+      .join('\n');
+    const dollarPattern = /\$(\d+(?:\.\d{1,4})?)/g;
+    const dollarMatches = [...stripped.matchAll(dollarPattern)];
     if (dollarMatches.length >= 1) {
-      const values = dollarMatches.map(m => parseFloat(m[1]));
-      // Take the middle value as price (not the total, not zero)
-      values.sort((a, b) => a - b);
-      pricePerShare = values[Math.floor(values.length / 2)] || null;
+      const values = dollarMatches
+        .map(m => parseFloat(m[1]))
+        .filter(v => v > 0);
+      if (values.length > 0) {
+        // If shares are known, prefer the value where (value * shares) looks like a total
+        // i.e. pick the smallest value among non-trivial ones as the per-share price
+        values.sort((a, b) => a - b);
+        pricePerShare = values[0] || null; // smallest non-zero = most likely per-share
+      }
+    }
+  }
+
+  // Priority 3: original fallback — middle dollar value across entire text
+  if (pricePerShare === null) {
+    const dollarPattern = /\$(\d+(?:\.\d{1,4})?)/g;
+    const allDollar = [...text.matchAll(dollarPattern)].map(m => parseFloat(m[1])).filter(v => v > 0);
+    if (allDollar.length > 0) {
+      allDollar.sort((a, b) => a - b);
+      pricePerShare = allDollar[Math.floor(allDollar.length / 2)] || null;
     }
   }
 
@@ -238,14 +261,38 @@ export function parseTradeFromText(rawText: string): OCRResult {
     tradeDate = new Date().toISOString().split('T')[0];
   }
 
+  // ─── Fees / commission extraction ───
+  let feesCents: number | null = null;
+  // Patterns: "Commission: $1.50", "Fee: $0.65", "Brokerage fee $2.00", "Fees $1.25"
+  const feesContextPattern = /(?:commission|fee|brokerage(?:\s*fee)?|service\s*charge)\s*:?\s*\$?(\d+(?:\.\d{1,2})?)/i;
+  const feesMatch = text.match(feesContextPattern);
+  if (feesMatch) {
+    const feesValue = parseFloat(feesMatch[1]);
+    if (!isNaN(feesValue) && feesValue > 0) {
+      feesCents = Math.round(feesValue * 100);
+    }
+  }
+
   // ─── Confidence calculation ───
+  // Core fields: ticker, shares, price, direction (fees is bonus — not penalised if absent)
   let fieldsFound = 0;
-  const totalFields = 4; // ticker, shares, price, direction
+  const totalFields = 4;
   if (ticker) fieldsFound++;
   if (shares) fieldsFound++;
   if (pricePerShare) fieldsFound++;
   if (direction) fieldsFound++;
   const confidence = fieldsFound / totalFields;
+
+  // ─── Asset Type Detection (Basic Keyword Search) ───
+  let assetType: string | null = 'stock'; // Default to stock
+  const lowerText = text.toLowerCase();
+  if (lowerText.includes('crypto') || lowerText.includes('btc') || lowerText.includes('eth') || lowerText.includes('sol')) {
+    assetType = 'crypto';
+  } else if (lowerText.includes('forex') || lowerText.includes('eur/') || lowerText.includes('usd/')) {
+    assetType = 'forex';
+  } else if (lowerText.includes('call') || lowerText.includes('put') || lowerText.includes('strike') || lowerText.includes('expir')) {
+    assetType = 'options';
+  }
 
   return {
     ticker,
@@ -253,6 +300,8 @@ export function parseTradeFromText(rawText: string): OCRResult {
     pricePerShare,
     tradeDate,
     direction,
+    feesCents,
+    assetType,
     rawText: text,
     confidence,
   };

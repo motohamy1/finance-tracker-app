@@ -14,7 +14,7 @@ import {
   Keyboard,
   ActionSheetIOS,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
@@ -39,6 +39,8 @@ export default function ExpensesScreen() {
   const [selectedMoneySourceId, setSelectedMoneySourceId] = useState<string | null>(null);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoryNameInput, setCategoryNameInput] = useState('');
+
+  const insets = useSafeAreaInsets();
 
   const handleCreateCategory = useCallback(() => {
     const name = categoryNameInput.trim();
@@ -196,7 +198,7 @@ export default function ExpensesScreen() {
     >
       {!showCategoryInput && (
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 + 20, zIndex: 100, elevation: 100 }]}
           onPress={() => openAddForm()}
           activeOpacity={0.8}
         >

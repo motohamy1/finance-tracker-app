@@ -9,14 +9,14 @@ import type { OCRResult } from '@/types';
 
 const perfectGroundTruth: OCRResult = {
   ticker: 'AAPL', shares: 10, pricePerShare: 185.50,
-  tradeDate: '2026-04-28', direction: 'buy',
+  tradeDate: '2026-04-28', direction: 'buy', feesCents: null,
   rawText: 'Bought 10 AAPL at $185.50',
   confidence: 1.0,
 };
 
 const perfectExtracted: OCRResult = {
   ticker: 'AAPL', shares: 10, pricePerShare: 185.50,
-  tradeDate: '2026-04-28', direction: 'buy',
+  tradeDate: '2026-04-28', direction: 'buy', feesCents: null,
   rawText: 'Bought 10 AAPL at $185.50',
   confidence: 1.0,
   aiMeta: { platform: 'robinhood', extractionMethod: 'template', platformConfidence: 1.0, perFieldConfidence: { ticker: 1, shares: 1, pricePerShare: 1, tradeDate: 1, direction: 1 } },
@@ -37,14 +37,14 @@ describe('evaluateAccuracy', () => {
   });
 
   it('handles nulls correctly — null in both = correct', () => {
-    const gt: OCRResult = { ...perfectGroundTruth, direction: null, rawText: '', confidence: 0 };
-    const ex: OCRResult = { ...perfectExtracted, direction: null, rawText: '', confidence: 0 };
+    const gt: OCRResult = { ...perfectGroundTruth, direction: null, feesCents: null, rawText: '', confidence: 0 };
+    const ex: OCRResult = { ...perfectExtracted, direction: null, feesCents: null, rawText: '', confidence: 0 };
     const report = evaluateAccuracy(gt, ex);
     expect(report.overallAccuracy).toBe(1.0);
   });
 
   it('handles null mismatch — null vs value = miss', () => {
-    const report = evaluateAccuracy(perfectGroundTruth, { ...perfectExtracted, direction: null });
+    const report = evaluateAccuracy(perfectGroundTruth, { ...perfectExtracted, direction: null, feesCents: null });
     expect(report.overallAccuracy).toBeLessThan(1.0);
     const dirField = report.fieldAccuracies.find(f => f.field === 'direction');
     expect(dirField?.correct).toBe(0);

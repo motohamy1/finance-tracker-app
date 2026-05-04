@@ -78,7 +78,7 @@ describe('Trade Types', () => {
       shares: 100,
       pricePerShare: 150.00,
       tradeDate: '2026-05-01',
-      direction: 'buy',
+      direction: 'buy', feesCents: null,
       rawText: 'BUY 100 AAPL @ $150.00',
       confidence: 0.95,
     };

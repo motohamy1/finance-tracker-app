@@ -89,7 +89,7 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
       data.tradeDate || getTodayISO(),
       data.direction,
       feesCents,
-      null,
+      data.assetType || null,
       data.notes?.trim() || null,
       null
     );
@@ -109,6 +109,7 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
       updates.feesCents = data.feesCents ? (parseInt(data.feesCents, 10) || null) : null;
     }
     if (data.notes !== undefined) updates.notes = data.notes?.trim() || null;
+    if (data.assetType !== undefined) updates.assetType = data.assetType || null;
 
     const updated = dbUpdateTrade(tradeId, updates as Parameters<typeof dbUpdateTrade>[1]);
     if (!updated) return;

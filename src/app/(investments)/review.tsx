@@ -18,8 +18,9 @@ import {
   CONFIDENCE_COLORS,
 } from '@/utils/tradeValidation';
 import type { TradeDirection, TradeFormData, OCRResult } from '@/types';
+import { DEFAULT_INVESTMENT_KINDS } from '@/types';
 
-type FieldKey = 'ticker' | 'shares' | 'pricePerShareCents' | 'tradeDate' | 'direction' | 'feesCents' | 'notes';
+type FieldKey = 'ticker' | 'shares' | 'pricePerShareCents' | 'tradeDate' | 'direction' | 'assetType' | 'feesCents' | 'notes';
 
 interface FieldState {
   value: string;
@@ -57,6 +58,7 @@ export default function ReviewScreen() {
         pricePerShareCents: String(existingTrade.pricePerShareCents),
         tradeDate: existingTrade.tradeDate,
         direction: existingTrade.direction,
+        assetType: existingTrade.assetType || 'stock',
         feesCents: existingTrade.feesCents ? String(existingTrade.feesCents) : '',
         notes: existingTrade.notes || '',
       };
@@ -70,6 +72,7 @@ export default function ReviewScreen() {
     pricePerShareCents: { value: initialValues.pricePerShareCents, isEditing: false, error: null },
     tradeDate: { value: initialValues.tradeDate, isEditing: false, error: null },
     direction: { value: initialValues.direction, isEditing: false, error: null },
+    assetType: { value: initialValues.assetType, isEditing: false, error: null },
     feesCents: { value: initialValues.feesCents, isEditing: false, error: null },
     notes: { value: initialValues.notes, isEditing: false, error: null },
   });
@@ -81,6 +84,7 @@ export default function ReviewScreen() {
     pricePerShareCents: fields.pricePerShareCents.value,
     tradeDate: fields.tradeDate.value,
     direction: fields.direction.value,
+    assetType: fields.assetType.value,
     feesCents: fields.feesCents.value,
     notes: fields.notes.value,
   }), [fields]);
@@ -103,7 +107,7 @@ export default function ReviewScreen() {
   // Show confidence dot for OCR-extractable fields when AI metadata is available
   const showConfidenceDot = useCallback((key: FieldKey): boolean => {
     // Only show dots for fields that OCR attempts to extract and when aiMeta exists
-    const extractableKeys: FieldKey[] = ['ticker', 'shares', 'pricePerShareCents', 'tradeDate', 'direction'];
+    const extractableKeys: FieldKey[] = ['ticker', 'shares', 'pricePerShareCents', 'tradeDate', 'direction', 'assetType'];
     if (!extractableKeys.includes(key)) return false;
     return ocrResult?.aiMeta?.perFieldConfidence !== undefined;
   }, [ocrResult]);
@@ -174,6 +178,7 @@ export default function ReviewScreen() {
       pricePerShareCents: fields.pricePerShareCents.value.trim(),
       tradeDate: fields.tradeDate.value.trim(),
       direction: fields.direction.value as TradeDirection,
+      assetType: fields.assetType.value,
       feesCents: fields.feesCents.value.trim(),
       notes: fields.notes.value.trim(),
     };
@@ -414,13 +419,76 @@ export default function ReviewScreen() {
             )}
           </View>
 
+          {/* Asset Type selection */}
+          <View style={[
+            styles.fieldRow,
+            checkMissingFromOCR('assetType') && !fieldError('assetType') && styles.fieldRowWarning,
+            fieldError('assetType') && styles.fieldRowError,
+          ]}>
+            <View style={styles.fieldLabelRow}>
+              <Text style={styles.label}>Asset Type</Text>
+              {getConfidenceDotProps('assetType', 'Asset Type') && (
+                <TouchableOpacity
+                  style={[styles.confidenceDot, {
+                    backgroundColor: fieldConfidenceColor('assetType') || '#94A3B8',
+                  }]}
+                  onPress={() => setTooltipField({ key: 'assetType', label: 'Asset Type' })}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.confidenceDotText}>
+                    {Math.round((fieldConfidence('assetType') ?? 0) * 100)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.assetTypeScroll}
+            >
+              {DEFAULT_INVESTMENT_KINDS.map((kind) => {
+                const isActive = fields.assetType.value === kind.id;
+                return (
+                  <TouchableOpacity
+                    key={kind.id}
+                    style={[
+                      styles.assetTypeOption,
+                      isActive && styles.assetTypeOptionActive,
+                    ]}
+                    onPress={() => updateField('assetType', kind.id)}
+                  >
+                    <Ionicons
+                      name={kind.icon as any}
+                      size={14}
+                      color={isActive ? '#FFFFFF' : '#64748B'}
+                    />
+                    <Text
+                      style={[
+                        styles.assetTypeText,
+                        isActive && styles.assetTypeTextActive,
+                      ]}
+                    >
+                      {kind.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            {fieldError('assetType') && (
+              <Text style={styles.errorText}>{fieldError('assetType')}</Text>
+            )}
+            {checkMissingFromOCR('assetType') && !fieldError('assetType') && (
+              <Text style={styles.warningText}>Not detected — please verify</Text>
+            )}
+          </View>
+
           {/* Fees (optional per D-22) */}
           <FieldRow
             label="Fees"
             value={fields.feesCents.value ? formatTradeFieldDisplay('pricePerShareCents', fields.feesCents.value) : 'None'}
             isEditing={fields.feesCents.isEditing}
             error={fieldError('feesCents')}
-            isWarning={false}
+            isWarning={!fieldError('feesCents') && ocrResult !== null && checkMissingFromOCR('feesCents')}
             onPress={() => toggleEdit('feesCents')}
           >
             {fields.feesCents.isEditing && (
@@ -802,6 +870,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
+  },
+  assetTypeScroll: {
+    paddingVertical: 8,
+    gap: 8,
+  },
+  assetTypeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  assetTypeOptionActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  assetTypeText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  assetTypeTextActive: {
+    color: '#FFFFFF',
   },
   tooltipTitle: {
     fontSize: 14,
