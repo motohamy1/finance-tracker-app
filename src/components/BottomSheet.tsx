@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableWithoutFeedback, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -16,6 +17,7 @@ interface BottomSheetProps {
 
 export function BottomSheet({ visible, onClose, title, children }: BottomSheetProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(300);
 
@@ -43,7 +45,7 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
           <View style={{ flex: 1 }} />
         </TouchableWithoutFeedback>
       </Animated.View>
-      <Animated.View style={[styles.sheet, sheetStyle, { backgroundColor: colors.bgCard }]}>
+      <Animated.View style={[styles.sheet, sheetStyle, { backgroundColor: colors.bgCard, paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
         <View style={styles.handleContainer}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>

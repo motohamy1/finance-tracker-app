@@ -19,7 +19,15 @@ export default function SettingsScreen() {
   const handleLogin = async () => {
     const result = await login();
     if (!result) {
-      Alert.alert('Sign-In Failed', 'Could not sign in with Google. Please try again.');
+      // Read fresh error from store (Zustand update is synchronous)
+      const freshError = useSettingsStore.getState().lastSyncError;
+      const errorDetail = freshError
+        ? `\n\nError: ${freshError}`
+        : '';
+      Alert.alert(
+        'Sign-In Failed',
+        `Could not sign in with Google. Please try again.${errorDetail}`
+      );
     }
   };
 

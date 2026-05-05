@@ -216,7 +216,7 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
 
             <Text style={styles.label}>Amount</Text>
             <View style={styles.amountRow}>
-              <Text style={styles.currencySymbol}>$</Text>
+              <Text style={styles.currencySymbol}>{selectedMoneySource?.currencySymbol ?? 'EGP'}</Text>
               <TextInput
                 style={[styles.input, styles.amountInput]}
                 placeholder="0.00"

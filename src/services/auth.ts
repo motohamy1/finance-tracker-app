@@ -5,22 +5,31 @@
  * with PKCE flow (required by Google for mobile apps).
  *
  * SETUP REQUIRED:
- *   1. Create a Google Cloud OAuth 2.0 client ID at:
- *      https://console.cloud.google.com/apis/credentials
- *   2. Configure the OAuth consent screen with scope:
- *      https://www.googleapis.com/auth/drive.appdata
- *   3. Add redirect URI: finance-tracker://
- *   4. Set the client ID in .env:
- *      EXPO_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+ *   1. Go to https://console.cloud.google.com/apis/credentials
+ *   2. Create an OAuth 2.0 Client ID for YOUR PLATFORM (NOT "Web application"):
+ *        • iOS:   Use your bundle ID (e.g. com.motohamy.financetracker)
+ *        • Android: Use your package name + SHA-1 fingerprint
+ *   3. For iOS/Android client IDs you do NOT configure a redirect URI in the
+ *      console — Google derives it automatically from the reversed client ID.
+ *   4. Add the reversed client ID to app.json schemes (see step 5).
+ *   5. Set environment variables in .env:
+ *        EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id.apps.googleusercontent.com
+ *        EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleusercontent.com
+ *
+ *   ⚠️  DO NOT use a "Web application" client ID — Google blocks custom-scheme
+ *      redirects for Web clients (Error 400: invalid_request).
+ *
+ *   iOS scheme in app.json should include:
+ *     "scheme": ["finance-tracker", "com.googleusercontent.apps.YOUR_IOS_CLIENT_ID"]
  *
  * Threats mitigated:
  *   T-04-01: PKCE prevents authorization code interception
- *   T-04-02: Tokens stored in expo-secure-store (iOS Keychain / Android EncryptedSharedPreferences)
+ *   T-04-02: Tokens stored in expo-secure-store (iOS Keychain / Android Keystore)
  *   T-04-05: Client ID loaded from env var, scoped to drive.appdata only
  */
 
+import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
-import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -35,11 +44,13 @@ const DISCOVERY = {
   revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
 };
 
-// ─── Scopes (D-01: Google Drive, D-02: appDataFolder) ───
+// ─── Scopes (D-01: Google Drive appDataFolder, D-02: email) ───
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.appdata',
   'https://www.googleapis.com/auth/userinfo.email',
+  'openid',
+  'profile',
 ];
 
 // ─── SecureStore Keys for Token Persistence ───
@@ -48,45 +59,47 @@ const TOKEN_KEY = 'google_access_token';
 const REFRESH_KEY = 'google_refresh_token';
 const EMAIL_KEY = 'google_email';
 
-// ─── PKCE Helpers ───
+// ─── Client ID Resolution ───
 
-/**
- * Generate a cryptographically random PKCE code verifier.
- * Returns a base64url-encoded string without padding.
- */
-async function generateCodeVerifier(): Promise<string> {
-  const randomBytes = Crypto.getRandomBytes(32);
-  return base64UrlEncode(randomBytes);
+function getClientId(): string | null {
+  const iosId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const androidId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+  const fallbackId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+
+  if (Platform.OS === 'ios' && iosId) return iosId;
+  if (Platform.OS === 'android' && androidId) return androidId;
+  return fallbackId ?? null;
 }
 
+// ─── Redirect URI Generation ───
+
 /**
- * Create a SHA-256 code challenge from a verifier.
+ * Build the correct redirect URI for Google OAuth.
+ *
+ * For iOS/Android client IDs, Google expects the reversed client ID as the
+ * URL scheme. For example, client ID `123-abc.apps.googleusercontent.com`
+ * becomes redirect URI:
+ *   com.googleusercontent.apps.123-abc:/oauth2redirect/google
+ *
+ * For Web client IDs (not recommended), we fall back to the app's custom scheme.
  */
-async function generateCodeChallenge(verifier: string): Promise<string> {
-  const hash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    verifier
+function getRedirectUri(clientId: string): string {
+  // iOS/Android client IDs contain '.apps.googleusercontent.com'
+  // Web client IDs also contain it, but we can detect the difference by
+  // checking if the user provided platform-specific IDs.
+  const hasPlatformId = !!(
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
   );
-  return base64UrlEncodeFromHex(hash);
-}
 
-/**
- * Base64url-encode a Uint8Array.
- */
-function base64UrlEncode(buffer: Uint8Array): string {
-  const binary = String.fromCharCode(...buffer);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/**
- * Base64url-encode from a hex string (output of Crypto.digestStringAsync).
- */
-function base64UrlEncodeFromHex(hex: string): string {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  if (hasPlatformId) {
+    const reversed = clientId.split('.').reverse().join('.');
+    return `${reversed}:/oauth2redirect/google`;
   }
-  return base64UrlEncode(bytes);
+
+  // Fallback: custom scheme (only works with Web client IDs that have
+  // explicitly authorized this URI, which Google now often blocks).
+  return AuthSession.makeRedirectUri({ scheme: 'finance-tracker' });
 }
 
 // ─── Token Exchange Helpers ───
@@ -105,9 +118,9 @@ async function exchangeCodeForTokens(
   id_token: string;
 } | null> {
   try {
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = getClientId();
     if (!clientId) {
-      console.error('[auth] EXPO_PUBLIC_GOOGLE_CLIENT_ID is not set in environment');
+      console.error('[auth] Google Client ID is not set in environment');
       return null;
     }
 
@@ -156,6 +169,14 @@ function decodeIdToken(idToken: string): { email?: string } {
 // ─── Public API ───
 
 /**
+ * Get the last authentication error message (for UI display).
+ */
+let lastAuthError: string | null = null;
+export function getLastAuthError(): string | null {
+  return lastAuthError;
+}
+
+/**
  * Initiate Google Sign-In flow using PKCE (D-11).
  * Opens system browser for authentication.
  * Stores tokens in expo-secure-store on success.
@@ -163,35 +184,63 @@ function decodeIdToken(idToken: string): { email?: string } {
  * @returns true if sign-in succeeded, false if cancelled or failed.
  */
 export async function signIn(): Promise<boolean> {
+  lastAuthError = null;
+
   try {
     // 1. Validate client ID is configured
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = getClientId();
     if (!clientId) {
-      console.error('[auth] EXPO_PUBLIC_GOOGLE_CLIENT_ID is not set in .env');
+      lastAuthError =
+        'Google Client ID not configured. ' +
+        'Set EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID (iOS) or ' +
+        'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID (Android) in .env';
+      console.error('[auth]', lastAuthError);
       return false;
     }
 
-    // 2. Generate PKCE code verifier and challenge
-    const codeVerifier = await generateCodeVerifier();
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    // Warn if using a generic fallback (likely a Web client ID)
+    if (!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID &&
+        !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) {
+      console.warn(
+        '[auth] Using fallback EXPO_PUBLIC_GOOGLE_CLIENT_ID. ' +
+        'If you get Error 400, create platform-specific iOS/Android OAuth client IDs ' +
+        'instead of a Web application client ID.'
+      );
+    }
 
-    // 3. Build redirect URI
-    const redirectUri = AuthSession.makeRedirectUri({ scheme: 'finance-tracker' });
+    // 2. Build redirect URI
+    const redirectUri = getRedirectUri(clientId);
+    console.log('[auth] Redirect URI:', redirectUri);
 
-    // 4. Create AuthRequest with PKCE
+    // 3. Create AuthRequest with library-managed PKCE.
+    //    usePKCE: true lets expo-auth-session generate the verifier internally.
+    //    We read request.codeVerifier after promptAsync for manual token exchange.
     const request = new AuthSession.AuthRequest({
       clientId,
       scopes: SCOPES,
       redirectUri,
       usePKCE: true,
-      codeChallenge,
     });
 
-    // 5. Prompt user to authenticate
+    // 4. Prompt user to authenticate
     const discovery = { authorizationEndpoint: DISCOVERY.authorizationEndpoint };
     const response = await request.promptAsync(discovery);
 
+    if (response.type === 'error') {
+      lastAuthError = response.error?.description || 'OAuth authorization failed';
+      console.error('[auth] OAuth error:', lastAuthError);
+      return false;
+    }
+
     if (response.type === 'success' && response.params.code) {
+      // 5. Retrieve the library-generated code verifier
+      const codeVerifier = request.codeVerifier;
+      if (!codeVerifier) {
+        lastAuthError = 'PKCE code verifier missing — authorization cannot complete';
+        console.error('[auth]', lastAuthError);
+        return false;
+      }
+
       // 6. Exchange authorization code for tokens
       const tokenResponse = await exchangeCodeForTokens(
         response.params.code,
@@ -200,6 +249,7 @@ export async function signIn(): Promise<boolean> {
       );
 
       if (!tokenResponse) {
+        lastAuthError = 'Token exchange failed — check your Google OAuth client ID type';
         return false;
       }
 
@@ -219,8 +269,10 @@ export async function signIn(): Promise<boolean> {
       return true;
     }
 
+    // Cancelled or dismissed
     return false;
   } catch (error) {
+    lastAuthError = error instanceof Error ? error.message : 'Sign-in failed';
     console.error('[auth] Sign-in error:', error);
     return false;
   }
@@ -285,9 +337,9 @@ export async function getAccessToken(): Promise<string | null> {
       return null;
     }
 
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = getClientId();
     if (!clientId) {
-      console.error('[auth] EXPO_PUBLIC_GOOGLE_CLIENT_ID is not set for token refresh');
+      console.error('[auth] Google Client ID is not set for token refresh');
       return null;
     }
 

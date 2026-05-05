@@ -51,6 +51,9 @@ export const MONEY_SOURCE_DEFAULTS = [
   { name: 'Borrowed', colorHex: '#F43F5E', iconName: 'card-outline' },
 ] as const;
 
+/** Supported currencies (EGP default, USD/SAR/AED/EUR as options) */
+export const CURRENCIES: readonly string[] = ['EGP', 'USD', 'SAR', 'AED', 'EUR'] as const;
+
 // ─── Form Types (for expense form state) ───
 export interface ExpenseFormData {
   title: string;

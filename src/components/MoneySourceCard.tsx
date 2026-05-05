@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { ActionSheetModal, type ActionSheetOption } from '@/components/ActionSheetModal';
 import { formatCurrency } from '@/utils/format';
-import { MONEY_SOURCE_PALETTE } from '@/types';
+import { MONEY_SOURCE_PALETTE, CURRENCIES } from '@/types';
 import type { MoneySource } from '@/types';
 
 // ─── Constants ───
@@ -25,7 +25,7 @@ export const MONEY_SOURCE_CARD_WIDTH = Math.min(
 );
 
 const CARD_HEIGHT = 180;
-const CARD_RADIUS = 20;
+const CARD_RADIUS = 24;
 const INTERNAL_PADDING = 24;
 const ANIMATION_DURATION = 150;
 
@@ -167,7 +167,7 @@ export function MoneySourceCard({
 
   // ─── Edit Currency flow ───
   const handleEditCurrency = useCallback(() => {
-    const currencies = ['$', 'EGP', '€', '£', '¥'];
+    const currencies = [...CURRENCIES];
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {

@@ -91,7 +91,7 @@ export function getMoneySourceById(id: string): MoneySource | null {
   return row ? rowToMoneySource(row) : null;
 }
 
-export function createMoneySource(id: string, name: string, colorHex: string, iconName: string, sortOrder: number, currencySymbol: string = '$'): MoneySource {
+export function createMoneySource(id: string, name: string, colorHex: string, iconName: string, sortOrder: number, currencySymbol: string = 'EGP'): MoneySource {
   const db = getDatabase();
   const now = new Date().toISOString();
   db.runSync(

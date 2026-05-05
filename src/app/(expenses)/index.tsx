@@ -28,10 +28,19 @@ export default function ExpensesScreen() {
   const categories = useExpenseStore((s) => s.categories);
   const expensesByCategory = useExpenseStore((s) => s.expensesByCategory);
   const isLoading = useExpenseStore((s) => s.isLoading);
+  const moneySources = useExpenseStore((s) => s.moneySources);
   const addCategory = useExpenseStore((s) => s.addCategory);
   const renameCategory = useExpenseStore((s) => s.renameCategory);
   const removeCategory = useExpenseStore((s) => s.removeCategory);
   const getExpenseCount = useExpenseStore((s) => s.getExpenseCount);
+
+  const moneySourceById = useMemo(() => {
+    const map: Record<string, typeof moneySources[0]> = {};
+    for (const source of moneySources) {
+      map[source.id] = source;
+    }
+    return map;
+  }, [moneySources]);
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -286,7 +295,7 @@ export default function ExpensesScreen() {
                         onLongPress={() => handleExpenseLongPress(exp)}
                       >
                         <Text style={styles.expenseTitle} numberOfLines={1}>{exp.title}</Text>
-                        <Text style={styles.expenseAmount}>${(exp.amountCents / 100).toFixed(2)}</Text>
+                        <Text style={styles.expenseAmount}>{moneySourceById[exp.moneySourceId ?? '']?.currencySymbol ?? 'EGP'} {(exp.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                       </TouchableOpacity>
                     )}
                   />
@@ -470,6 +479,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     marginBottom: 8,
     marginTop: 8,
+    marginHorizontal: 12,
+    borderRadius: 20,
     overflow: 'hidden',
   },
 });

@@ -15,7 +15,7 @@ export function TotalBalanceSummary() {
   const formattedTotal = formatCurrency(totalCents);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bgCard }]}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>Total Balance</Text>
       <Text style={[styles.amount, { color: colors.text }]}>{formattedTotal}</Text>
     </View>
@@ -29,6 +29,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderRadius: 16,
+    marginHorizontal: 12,
+    marginTop: 8,
   },
   label: {
     fontSize: 14,

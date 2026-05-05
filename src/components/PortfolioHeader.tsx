@@ -1,29 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from 'react-native-reanimated';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTradeStore } from '@/stores/tradeStore';
 import { HoldingCard } from './HoldingCard';
 import { useTheme } from '@/services/theme';
 import { formatCurrency } from '@/utils/format';
+import { usePersistedToggle } from '@/hooks/usePersistedToggle';
+import type { Holding } from '@/types';
 
-export function PortfolioHeader() {
+interface PortfolioHeaderProps {
+  onHoldingPress?: (holding: Holding) => void;
+}
+
+export function PortfolioHeader({ onHoldingPress }: PortfolioHeaderProps) {
   const { colors } = useTheme();
   const trades = useTradeStore((s) => s.trades);
   const currentPrices = useTradeStore((s) => s.currentPrices);
   const getHoldings = useTradeStore((s) => s.getHoldings);
   const getPnlPairs = useTradeStore((s) => s.getPnlPairs);
-  const updateCurrentPrice = useTradeStore((s) => s.updateCurrentPrice);
   const bulkUpdatePrices = useTradeStore((s) => s.bulkUpdatePrices);
 
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
+  const { value: isExpanded, toggle: toggleExpanded } = usePersistedToggle('portfolio_expanded', false);
   const [showBulkForm, setShowBulkForm] = useState(false);
-  const animHeight = useSharedValue(300);
 
   const holdings = useMemo(() => getHoldings(), [trades, currentPrices]);
   const pnlPairs = useMemo(() => getPnlPairs(), [trades]);
@@ -42,19 +40,6 @@ export function PortfolioHeader() {
   );
 
   const hasUnrealized = holdings.some(h => h.currentPriceCents !== null);
-
-  useEffect(() => {
-    if (isExpanded && contentHeight > 0) {
-      animHeight.value = withTiming(contentHeight, { duration: 250 });
-    } else {
-      animHeight.value = withTiming(0, { duration: 250 });
-    }
-  }, [isExpanded, contentHeight]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    height: animHeight.value,
-    opacity: animHeight.value > 0 ? 1 : 0,
-  }));
 
   const getStaleCount = () => {
     const now = new Date();
@@ -75,7 +60,7 @@ export function PortfolioHeader() {
       <View style={styles.velvetHighlight} />
       <TouchableOpacity
         style={[styles.header, { backgroundColor: 'transparent' }]}
-        onPress={() => setIsExpanded(!isExpanded)}
+        onPress={toggleExpanded}
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
@@ -125,14 +110,8 @@ export function PortfolioHeader() {
         </View>
       </View>
 
-      <Animated.View style={[{ overflow: 'hidden' }, animatedStyle]}>
-        <View
-          style={styles.content}
-          onLayout={(e) => {
-            const h = e.nativeEvent.layout.height;
-            if (h > 0) setContentHeight(h);
-          }}
-        >
+      {isExpanded && (
+        <View style={styles.content}>
           {holdings.length === 0 ? (
             <View style={styles.emptyHoldings}>
               <Ionicons name="briefcase-outline" size={32} color="rgba(255,255,255,0.5)" />
@@ -140,18 +119,13 @@ export function PortfolioHeader() {
               <Text style={[styles.emptySubtext, { color: 'rgba(255,255,255,0.5)' }]}>All trades have been fully sold</Text>
             </View>
           ) : (
-            holdings.map(h => (
-              <HoldingCard
-                key={h.ticker}
-                holding={h}
-                onPress={() => {
-                  updateCurrentPrice(h.ticker, h.currentPriceCents ?? 0);
-                }}
-              />
-            ))
+            <HorizontalHoldingGrid
+              holdings={holdings}
+              onHoldingPress={onHoldingPress}
+            />
           )}
         </View>
-      </Animated.View>
+      )}
 
       <BulkPriceForm
         visible={showBulkForm}
@@ -163,6 +137,62 @@ export function PortfolioHeader() {
         }}
       />
     </View>
+  );
+}
+
+// ─── Horizontal Paged Grid for Holdings ───
+// Each "page" shows 2 full-width cards stacked vertically.
+// Swipe horizontally to see the next 2 cards.
+const PAGE_GAP = 12;
+const CONTAINER_MARGIN = 16;
+const CONTENT_PADDING = 16;
+
+function HorizontalHoldingGrid({
+  holdings,
+  onHoldingPress,
+}: {
+  holdings: Holding[];
+  onHoldingPress?: (holding: Holding) => void;
+}) {
+  const screenWidth = Dimensions.get('window').width;
+  // Available width for the ScrollView:
+  // screen - container margin (16*2) - content padding (16*2)
+  const pageWidth = screenWidth - (CONTAINER_MARGIN * 2) - (CONTENT_PADDING * 2);
+
+  // Split into chunks of 2 (each chunk = 1 page)
+  const pages: Holding[][] = [];
+  for (let i = 0; i < holdings.length; i += 2) {
+    pages.push(holdings.slice(i, i + 2));
+  }
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={pageWidth + PAGE_GAP}
+      decelerationRate="fast"
+      contentContainerStyle={styles.gridScrollContent}
+    >
+      {pages.map((page, pageIndex) => (
+        <View
+          key={pageIndex}
+          style={[
+            styles.gridPage,
+            { width: pageWidth },
+            pageIndex < pages.length - 1 && { marginRight: PAGE_GAP },
+          ]}
+        >
+          {page.map((holding) => (
+            <View key={holding.ticker} style={styles.gridCardWrapper}>
+              <HoldingCard
+                holding={holding}
+                onPress={() => onHoldingPress?.(holding)}
+              />
+            </View>
+          ))}
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -331,6 +361,18 @@ const styles = StyleSheet.create({
   gain: { color: '#059669' },
   loss: { color: '#DC2626' },
   content: { paddingHorizontal: 16, paddingBottom: 16 },
+  gridScrollContent: {
+    paddingVertical: 4,
+  },
+  gridPage: {
+    flexDirection: 'column',
+    gap: 10,
+    paddingHorizontal: 0,
+  },
+  gridCardWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   emptyHoldings: {
     alignItems: 'center',
     paddingVertical: 24,

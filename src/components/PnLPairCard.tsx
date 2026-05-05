@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PnLPair } from '@/types';
 import { useTheme } from '@/services/theme';
@@ -7,9 +7,10 @@ import { formatCurrency, formatDate } from '@/utils/format';
 
 interface PnLPairCardProps {
   pair: PnLPair;
+  onEditTrade?: (tradeId: string) => void;
 }
 
-export function PnLPairCard({ pair }: PnLPairCardProps) {
+export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const isPositive = pair.realizedPnlCents >= 0;
@@ -19,6 +20,25 @@ export function PnLPairCard({ pair }: PnLPairCardProps) {
 
   const bgTint = 'rgba(5, 150, 105, 0.15)';
   const borderTint = 'rgba(5, 150, 105, 0.3)';
+
+  const handleEditPress = () => {
+    if (!onEditTrade) return;
+    Alert.alert(
+      'Edit Trade',
+      'Which side do you want to edit?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Edit Buy',
+          onPress: () => onEditTrade(pair.buyTradeId),
+        },
+        {
+          text: 'Edit Sell',
+          onPress: () => onEditTrade(pair.sellTradeId),
+        },
+      ]
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -30,21 +50,35 @@ export function PnLPairCard({ pair }: PnLPairCardProps) {
       <View style={[styles.velvetOverlay, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
       <View style={[styles.velvetSheen, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
       <View style={[styles.velvetHighlight, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
-      {/* Header: Ticker + P&L percentage badge */}
+      {/* Header: Ticker + P&L percentage badge + Edit */}
       <View style={styles.header}>
         <View style={styles.tickerSection}>
           <Text style={[styles.ticker, { color: colors.text }]}>{pair.ticker}</Text>
           <Text style={[styles.shares, { color: colors.textSecondary }]}>{pair.matchedShares} shares</Text>
         </View>
-        <View style={[styles.pnlBadge, isPositive ? styles.pnlBadgeGain : styles.pnlBadgeLoss]}>
-          <Ionicons
-            name={isPositive ? 'arrow-up' : 'arrow-down'}
-            size={12}
-            color={isPositive ? colors.success : colors.danger}
-          />
-          <Text style={[styles.pnlBadgeText, { color: isPositive ? colors.success : colors.danger }]}>
-            {isPositive ? '+' : ''}{pnlPercent.toFixed(1)}%
-          </Text>
+        <View style={styles.headerRight}>
+          {onEditTrade && (
+            <TouchableOpacity
+              style={styles.editBtn}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleEditPress();
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          <View style={[styles.pnlBadge, isPositive ? styles.pnlBadgeGain : styles.pnlBadgeLoss]}>
+            <Ionicons
+              name={isPositive ? 'arrow-up' : 'arrow-down'}
+              size={12}
+              color={isPositive ? colors.success : colors.danger}
+            />
+            <Text style={[styles.pnlBadgeText, { color: isPositive ? colors.success : colors.danger }]}>
+              {isPositive ? '+' : ''}{pnlPercent.toFixed(1)}%
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -155,6 +189,14 @@ const styles = StyleSheet.create({
   tickerSection: {},
   ticker: { fontSize: 16, fontWeight: '700' },
   shares: { fontSize: 12, marginTop: 1 },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editBtn: {
+    padding: 4,
+  },
   pnlBadge: {
     flexDirection: 'row',
     alignItems: 'center',

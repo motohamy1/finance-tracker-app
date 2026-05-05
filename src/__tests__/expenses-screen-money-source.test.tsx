@@ -175,6 +175,7 @@ vi.mock('@/components/TotalBalanceSummary', () => ({
 // ─── Mock types ───
 vi.mock('@/types', () => ({
   getCategoryLightTint: (hex: string) => hex + '20', // simple mock — appends alpha
+  CURRENCIES: ['EGP', 'USD', 'SAR', 'AED', 'EUR'],
 }));
 
 // ─── Import screen AFTER all mocks ───

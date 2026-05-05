@@ -82,7 +82,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
           generateUUID(), generateUUID(), generateUUID(), generateUUID(),
         ];
         moneySources = MONEY_SOURCE_DEFAULTS.map((def, i) =>
-          createMoneySource(uuids[i], def.name, def.colorHex, def.iconName, i, '$')
+          createMoneySource(uuids[i], def.name, def.colorHex, def.iconName, i, 'EGP')
         );
       }
 
@@ -97,7 +97,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
   addCategory: (data) => {
     const state = get();
     const id = generateUUID();
-    const colorHex = CATEGORY_ACCENT_PALETTE[Math.floor(Math.random() * CATEGORY_ACCENT_PALETTE.length)];
+    const colorHex = getNextAccentColor(state.categories.length);
     const sortOrder = state.categories.length;
     const category = createCategory(id, data.name.trim(), colorHex, sortOrder);
     set({
@@ -202,7 +202,7 @@ export const useExpenseStore = create<ExpenseStoreState>((set, get) => ({
     const id = generateUUID();
     const colorHex = data.colorHex ?? MONEY_SOURCE_PALETTE[state.moneySources.length % MONEY_SOURCE_PALETTE.length];
     const iconName = data.iconName ?? 'wallet-outline';
-    const currencySymbol = data.currencySymbol ?? '$';
+    const currencySymbol = data.currencySymbol ?? 'EGP';
     const sortOrder = state.moneySources.length;
     const source = createMoneySource(id, data.name.trim(), colorHex, iconName, sortOrder, currencySymbol);
     set({ moneySources: [...state.moneySources, source] });

@@ -156,6 +156,7 @@ vi.mock('@/types', () => ({
     '#22C55E', '#0EA5E9', '#14B8A6', '#F43F5E',
     '#A855F7', '#F97316', '#84CC16', '#06B6D4',
   ],
+  CURRENCIES: ['EGP', 'USD', 'SAR', 'AED', 'EUR'],
 }));
 
 import { MoneySourceRow } from '@/components/MoneySourceRow';

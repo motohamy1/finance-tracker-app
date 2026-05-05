@@ -6,7 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/appicon.png",
     "scheme": [
-      "finance-tracker"
+      "finance-tracker",
+      "com.googleusercontent.apps.317497946553-fls1h4ds0g2188l4tl86iv017nj3i6fb"
     ],
     "userInterfaceStyle": "automatic",
     "ios": {

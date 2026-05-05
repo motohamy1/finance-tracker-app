@@ -1,4 +1,4 @@
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert, SectionList } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert, SectionList, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { ActionSheetModal, type ActionSheetOption } from '@/components/ActionSheetModal';
 import { formatCurrency } from '@/utils/format';
 import { useTheme } from '@/services/theme';
+import { usePersistedToggle } from '@/hooks/usePersistedToggle';
 import type { Trade, PnLPair, Holding } from '@/types';
 
 type ViewTab = 'positions' | 'trades';
@@ -42,6 +43,10 @@ export default function InvestmentsScreen() {
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [actionSheetTitle, setActionSheetTitle] = useState('');
   const [actionSheetOptions, setActionSheetOptions] = useState<ActionSheetOption[]>([]);
+  const [showHoldingSheet, setShowHoldingSheet] = useState(false);
+  const [holdingSheetTicker, setHoldingSheetTicker] = useState<string | null>(null);
+  const openPositionsToggle = usePersistedToggle('investments_open_positions_expanded', true);
+  const completedTradesToggle = usePersistedToggle('investments_completed_trades_expanded', true);
   const [filters, setFilters] = useState<FilterState>({
     direction: 'all',
     dateFrom: null,
@@ -188,27 +193,17 @@ export default function InvestmentsScreen() {
   }, [router]);
 
   const handleHoldingPress = useCallback((holding: Holding) => {
-    const options: ActionSheetOption[] = [
-      {
-        label: 'Update Price',
-        icon: 'pricetag-outline',
-        onPress: () => {
-          const store = useTradeStore.getState();
-          store.updateCurrentPrice(holding.ticker, holding.currentPriceCents ?? 0);
-        },
-      },
-      {
-        label: `Sell ${holding.ticker} (${holding.totalShares} shares)`,
-        icon: 'swap-vertical-outline',
-        onPress: () => {
-          handleAddSell(holding.ticker, holding.totalShares, holding.averageCostBasisCents);
-        },
-      },
-    ];
-    setActionSheetTitle(holding.ticker);
-    setActionSheetOptions(options);
-    setActionSheetVisible(true);
-  }, [handleAddSell]);
+    setHoldingSheetTicker(holding.ticker);
+    setShowHoldingSheet(true);
+  }, []);
+
+  const toggleSection = useCallback((sectionType: 'holdings' | 'pairs') => {
+    if (sectionType === 'holdings') {
+      openPositionsToggle.toggle();
+    } else {
+      completedTradesToggle.toggle();
+    }
+  }, [openPositionsToggle, completedTradesToggle]);
 
   const handleFabPress = () => {
     setShowFabSheet(true);
@@ -246,7 +241,7 @@ export default function InvestmentsScreen() {
             </View>
           </View>
         </EmptyState>
-        <View style={styles.emptyActions}>
+        <View style={[styles.emptyActions, { paddingBottom: Math.max(insets.bottom, 16) + 60 + 24 }]}>
           <TouchableOpacity style={styles.primaryButton} onPress={handleGalleryImport} activeOpacity={0.8}>
             <Ionicons name="images-outline" size={20} color="#FFFFFF" />
             <Text style={styles.primaryButtonText}>Import Screenshot</Text>
@@ -263,7 +258,7 @@ export default function InvestmentsScreen() {
   // ── Tab header component ──
   const ListHeader = () => (
     <View>
-      <PortfolioHeader />
+      <PortfolioHeader onHoldingPress={handleHoldingPress} />
 
       {/* Tab selector */}
       <View style={styles.tabBar}>
@@ -335,17 +330,37 @@ export default function InvestmentsScreen() {
               : `holding-${(item as Holding).ticker}`
           }
           ListHeaderComponent={<ListHeader />}
-          renderSectionHeader={({ section }) => (
-            <View style={styles.sectionHeader}>
-              <Ionicons
-                name={section.type === 'holdings' ? 'time-outline' : 'checkmark-circle-outline'}
-                size={16}
-                color={section.type === 'holdings' ? '#3B82F6' : '#059669'}
-              />
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{section.title}</Text>
-            </View>
-          )}
+          renderSectionHeader={({ section }) => {
+            const isExpanded = section.type === 'holdings'
+              ? openPositionsToggle.value
+              : completedTradesToggle.value;
+            return (
+              <TouchableOpacity
+                style={styles.sectionHeader}
+                onPress={() => toggleSection(section.type)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sectionHeaderLeft}>
+                  <Ionicons
+                    name={section.type === 'holdings' ? 'time-outline' : 'checkmark-circle-outline'}
+                    size={16}
+                    color={section.type === 'holdings' ? '#3B82F6' : '#059669'}
+                  />
+                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{section.title}</Text>
+                </View>
+                <Ionicons
+                  name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            );
+          }}
           renderItem={({ item, section }) => {
+            const isExpanded = section.type === 'holdings'
+              ? openPositionsToggle.value
+              : completedTradesToggle.value;
+            if (!isExpanded) return null;
             if (section.type === 'holdings') {
               const holding = item as Holding;
               return (
@@ -360,7 +375,12 @@ export default function InvestmentsScreen() {
             }
             return (
               <View style={styles.sectionItemContainer}>
-                <PnLPairCard pair={item as PnLPair} />
+                <PnLPairCard
+                  pair={item as PnLPair}
+                  onEditTrade={(tradeId) => {
+                    router.push({ pathname: '/(investments)/review', params: { tradeId } });
+                  }}
+                />
               </View>
             );
           }}
@@ -455,7 +475,136 @@ export default function InvestmentsScreen() {
         title={actionSheetTitle}
         options={actionSheetOptions}
       />
+
+      <HoldingTradesSheet
+        visible={showHoldingSheet}
+        ticker={holdingSheetTicker}
+        trades={trades}
+        onClose={() => { setShowHoldingSheet(false); setHoldingSheetTicker(null); }}
+        onEditTrade={(tradeId) => {
+          setShowHoldingSheet(false);
+          setHoldingSheetTicker(null);
+          router.push({ pathname: '/(investments)/review', params: { tradeId } });
+        }}
+        onDeleteTrade={(tradeId) => {
+          const store = useTradeStore.getState();
+          store.removeTrade(tradeId);
+        }}
+        onSell={(ticker, shares, avgCostCents) => {
+          setShowHoldingSheet(false);
+          setHoldingSheetTicker(null);
+          handleAddSell(ticker, shares, avgCostCents);
+        }}
+      />
     </SafeAreaView>
+  );
+}
+
+// ─── Holding Trades Sheet ───
+// Shows all individual buy trades for a ticker so user can edit/delete each one
+function HoldingTradesSheet({
+  visible,
+  ticker,
+  trades,
+  onClose,
+  onEditTrade,
+  onDeleteTrade,
+  onSell,
+}: {
+  visible: boolean;
+  ticker: string | null;
+  trades: Trade[];
+  onClose: () => void;
+  onEditTrade: (tradeId: string) => void;
+  onDeleteTrade: (tradeId: string) => void;
+  onSell: (ticker: string, shares: number, avgCostCents: number) => void;
+}) {
+  const { colors } = useTheme();
+
+  const tickerTrades = useMemo(() => {
+    if (!ticker) return [];
+    return trades
+      .filter((t) => t.ticker === ticker && t.direction === 'buy')
+      .sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
+  }, [trades, ticker]);
+
+  const totalShares = tickerTrades.reduce((s, t) => s + t.shares, 0);
+  const avgCostCents =
+    totalShares > 0
+      ? Math.round(
+          tickerTrades.reduce((s, t) => s + t.shares * t.pricePerShareCents, 0) / totalShares
+        )
+      : 0;
+
+  return (
+    <BottomSheet visible={visible} onClose={onClose} title={ticker ?? 'Trades'}>
+      {/* Summary row */}
+      {ticker && (
+        <View style={[styles.sheetSummary, { backgroundColor: colors.bgInput }]}>
+          <Text style={[styles.sheetSummaryLabel, { color: colors.textSecondary }]}>
+            {totalShares} shares · Avg {formatCurrency(avgCostCents)}
+          </Text>
+          <TouchableOpacity
+            style={[styles.sheetSellBtn, { backgroundColor: colors.danger }]}
+            onPress={() => onSell(ticker, totalShares, avgCostCents)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="swap-vertical" size={14} color="#FFFFFF" />
+            <Text style={styles.sheetSellBtnText}>Sell</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Trade list */}
+      <View style={{ gap: 8, marginTop: 8 }}>
+        {tickerTrades.map((trade) => (
+          <TouchableOpacity
+            key={trade.id}
+            style={[styles.sheetTradeRow, { backgroundColor: colors.bgInput }]}
+            onPress={() => onEditTrade(trade.id)}
+            onLongPress={() => {
+              Alert.alert(
+                'Delete Trade?',
+                `${trade.ticker} · ${trade.shares} shares · ${formatCurrency(trade.pricePerShareCents)}`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => onDeleteTrade(trade.id),
+                  },
+                ]
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.sheetTradeLeft}>
+              <View
+                style={[
+                  styles.sheetTradeDirBadge,
+                  { backgroundColor: colors.success + '20' },
+                ]}
+              >
+                <Ionicons name="arrow-up" size={12} color={colors.success} />
+                <Text style={[styles.sheetTradeDirText, { color: colors.success }]}>Buy</Text>
+              </View>
+              <Text style={[styles.sheetTradeDate, { color: colors.textSecondary }]}>
+                {trade.tradeDate}
+              </Text>
+            </View>
+            <View style={styles.sheetTradeRight}>
+              <Text style={[styles.sheetTradeShares, { color: colors.text }]}>
+                {trade.shares} shares
+              </Text>
+              <Text style={[styles.sheetTradePrice, { color: colors.textSecondary }]}>
+                {formatCurrency(trade.pricePerShareCents)}
+              </Text>
+            </View>
+            <Ionicons name="pencil-outline" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </BottomSheet>
   );
 }
 
@@ -535,10 +684,15 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sectionTitle: {
     fontSize: 14,
@@ -664,4 +818,44 @@ const styles = StyleSheet.create({
   sheetActionText: { flex: 1 },
   sheetActionTitle: { fontSize: 16, fontWeight: '600', color: '#0F172A' },
   sheetActionSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+
+  // Holding trades sheet
+  sheetSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 12,
+  },
+  sheetSummaryLabel: { fontSize: 14, fontWeight: '600' },
+  sheetSellBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  sheetSellBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  sheetTradeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    gap: 12,
+  },
+  sheetTradeLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sheetTradeDirBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  sheetTradeDirText: { fontSize: 11, fontWeight: '600' },
+  sheetTradeDate: { fontSize: 12 },
+  sheetTradeRight: { flex: 1, alignItems: 'flex-end' },
+  sheetTradeShares: { fontSize: 14, fontWeight: '600' },
+  sheetTradePrice: { fontSize: 12, marginTop: 2 },
 });

@@ -294,9 +294,9 @@ describe('formatTradeFieldDisplay', () => {
   });
 
   it('formats price as currency', () => {
-    // 15000 cents = $150.00
+    // 15000 cents = EGP150.00 (default currency is EGP)
     const result = formatTradeFieldDisplay('pricePerShareCents', '15000');
-    expect(result).toBe('$150.00');
+    expect(result).toBe('EGP150.00');
   });
 
   it('returns raw value for unrecognized field keys', () => {

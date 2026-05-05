@@ -5,7 +5,7 @@ import { useExpenseStore } from '@/stores/expenseStore';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomSheet } from '@/components/BottomSheet';
 import { MoneySourceCard, MONEY_SOURCE_CARD_WIDTH } from '@/components/MoneySourceCard';
-import { MONEY_SOURCE_PALETTE } from '@/types';
+import { MONEY_SOURCE_PALETTE, CURRENCIES } from '@/types';
 import type { MoneySource } from '@/types';
 
 // ─── Constants ───
@@ -45,8 +45,7 @@ function CreationSheet({
 }) {
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(MONEY_SOURCE_PALETTE[0]);
-  const currencies = ['$', 'EGP', '€', '£', '¥'];
-  const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
+  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
 
   const handleCreate = useCallback(() => {
     const trimmed = name.trim();
@@ -54,10 +53,10 @@ function CreationSheet({
       onCreate(trimmed, selectedColor, selectedCurrency);
       setName('');
       setSelectedColor(MONEY_SOURCE_PALETTE[0]);
-      setSelectedCurrency(currencies[0]);
+      setSelectedCurrency(CURRENCIES[0]);
       onClose();
     }
-  }, [name, selectedColor, selectedCurrency, onCreate, onClose, currencies]);
+  }, [name, selectedColor, selectedCurrency, onCreate, onClose]);
 
   return (
     <BottomSheet visible={visible} onClose={onClose} title="New Money Source">
@@ -103,7 +102,7 @@ function CreationSheet({
         {/* Currency selection */}
         <Text style={styles.fieldLabel}>Currency</Text>
         <View style={styles.currencyRow}>
-          {currencies.map((symbol) => (
+          {CURRENCIES.map((symbol) => (
             <TouchableOpacity
               key={symbol}
               style={[
@@ -227,7 +226,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: ADD_BUTTON_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 20,
+    borderRadius: 24,
     backgroundColor: 'rgba(8,145,178,0.15)',
     borderWidth: 2,
     borderColor: '#0891B2',

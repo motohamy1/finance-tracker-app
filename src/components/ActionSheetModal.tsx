@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/services/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface ActionSheetOption {
   label: string;
@@ -19,13 +20,17 @@ interface ActionSheetModalProps {
 
 export function ActionSheetModal({ visible, onClose, title, options }: ActionSheetModalProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      {/* Full-screen backdrop */}
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View />
       </Pressable>
-      <View style={[styles.sheet, { backgroundColor: colors.bgCard }]}>
+
+      {/* Sheet positioned at bottom, above backdrop */}
+      <View style={[styles.sheet, { backgroundColor: colors.bgCard, paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
         {title && (
           <Text style={[styles.title, { color: colors.textSecondary }]}>{title}</Text>
         )}
@@ -38,7 +43,8 @@ export function ActionSheetModal({ visible, onClose, title, options }: ActionShe
             ]}
             onPress={() => {
               onClose();
-              opt.onPress();
+              // Defer callback so modal close animation can start
+              setTimeout(() => opt.onPress(), 0);
             }}
             activeOpacity={0.6}
           >
@@ -73,16 +79,18 @@ export function ActionSheetModal({ visible, onClose, title, options }: ActionShe
 
 const styles = StyleSheet.create({
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
   },
   sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 8,
     paddingTop: 8,
-    paddingBottom: 34,
   },
   title: {
     fontSize: 13,

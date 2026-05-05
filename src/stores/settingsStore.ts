@@ -7,6 +7,7 @@ import {
   signOut,
   isAuthenticated,
   getGoogleEmail,
+  getLastAuthError,
 } from '@/services/auth';
 import {
   syncAll,
@@ -158,12 +159,16 @@ export const useSettingsStore = create<SyncState & { theme: ThemeMode } & Settin
         // Check for restore after successful login (fresh install scenario)
         const restoreAvail = await checkRestoreAvailable();
         set({ restoreAvailable: restoreAvail });
+      } else {
+        const authError = getLastAuthError();
+        set({ lastSyncError: authError || 'Sign-in failed' });
       }
       return result;
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sign-in failed';
       console.error('[settingsStore] Login failed:', error);
       set({
-        lastSyncError: error instanceof Error ? error.message : 'Sign-in failed',
+        lastSyncError: message,
       });
       return false;
     }

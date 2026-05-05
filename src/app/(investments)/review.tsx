@@ -6,6 +6,7 @@ import {
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTradeStore } from '@/stores/tradeStore';
+import { useTheme } from '@/services/theme';
 import { getTodayISO, formatCurrency } from '@/utils/format';
 import {
   parseOCRToInitialValues,
@@ -30,6 +31,7 @@ interface FieldState {
 
 export default function ReviewScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{
     ocrResult?: string;
     imageUri?: string;
@@ -106,7 +108,6 @@ export default function ReviewScreen() {
 
   // Show confidence dot for OCR-extractable fields when AI metadata is available
   const showConfidenceDot = useCallback((key: FieldKey): boolean => {
-    // Only show dots for fields that OCR attempts to extract and when aiMeta exists
     const extractableKeys: FieldKey[] = ['ticker', 'shares', 'pricePerShareCents', 'tradeDate', 'direction', 'assetType'];
     if (!extractableKeys.includes(key)) return false;
     return ocrResult?.aiMeta?.perFieldConfidence !== undefined;
@@ -141,7 +142,6 @@ export default function ReviewScreen() {
   const validate = useCallback((): boolean => {
     const errors = validateTradeFields(fieldValues);
     if (Object.keys(errors).length === 0) {
-      // Clear all errors
       setFields((prev) => {
         const cleared = { ...prev };
         for (const key of Object.keys(cleared)) {
@@ -151,7 +151,6 @@ export default function ReviewScreen() {
       });
       return true;
     }
-    // Set errors on each field
     setFields((prev) => {
       const updated = { ...prev };
       for (const key of Object.keys(updated) as FieldKey[]) {
@@ -219,16 +218,18 @@ export default function ReviewScreen() {
     return fields[key].error;
   }, [fields]);
 
+  const themedStyles = useMemo(() => getThemedStyles(colors), [colors]);
+
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen
         options={{
           headerRight: () => (
             <TouchableOpacity onPress={handleDiscard} style={styles.headerButton}>
-              <Text style={styles.discardText}>Discard</Text>
+              <Text style={[styles.discardText, { color: colors.danger }]}>Discard</Text>
             </TouchableOpacity>
           ),
         }}
@@ -237,14 +238,14 @@ export default function ReviewScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Screenshot preview if available */}
         {params.imageUri && (
-          <View style={styles.imagePreview}>
+          <View style={[styles.imagePreview, { backgroundColor: colors.bgInput }]}>
             <Image source={{ uri: params.imageUri }} style={styles.image} resizeMode="cover" />
           </View>
         )}
 
         {/* Card preview layout per D-20 */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>
+        <View style={[styles.card, { backgroundColor: colors.bgCard }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
             {existingTrade ? 'Edit Trade' : 'Review Trade'}
           </Text>
 
@@ -257,14 +258,15 @@ export default function ReviewScreen() {
             isWarning={!fieldError('ticker') && checkMissingFromOCR('ticker')}
             onPress={() => toggleEdit('ticker')}
             confidenceDot={getConfidenceDotProps('ticker', 'Ticker')}
+            colors={colors}
           >
             {fields.ticker.isEditing && (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, backgroundColor: colors.bgInput, borderColor: colors.border }]}
                 value={fields.ticker.value}
                 onChangeText={(v) => updateField('ticker', v.toUpperCase())}
                 placeholder="e.g. AAPL"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="characters"
                 autoFocus
                 maxLength={5}
@@ -282,14 +284,15 @@ export default function ReviewScreen() {
             isWarning={!fieldError('shares') && checkMissingFromOCR('shares')}
             onPress={() => toggleEdit('shares')}
             confidenceDot={getConfidenceDotProps('shares', 'Shares')}
+            colors={colors}
           >
             {fields.shares.isEditing && (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, backgroundColor: colors.bgInput, borderColor: colors.border }]}
                 value={fields.shares.value}
                 onChangeText={(v) => updateField('shares', v.replace(/[^0-9]/g, ''))}
                 placeholder="e.g. 10"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
                 autoFocus
                 onBlur={() => toggleEdit('shares')}
@@ -306,14 +309,15 @@ export default function ReviewScreen() {
             isWarning={!fieldError('pricePerShareCents') && checkMissingFromOCR('pricePerShareCents')}
             onPress={() => toggleEdit('pricePerShareCents')}
             confidenceDot={getConfidenceDotProps('pricePerShareCents', 'Price/Share')}
+            colors={colors}
           >
             {fields.pricePerShareCents.isEditing && (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, backgroundColor: colors.bgInput, borderColor: colors.border }]}
                 value={fields.pricePerShareCents.value}
                 onChangeText={(v) => updateField('pricePerShareCents', v.replace(/[^0-9.]/g, ''))}
                 placeholder="e.g. 185.50"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="decimal-pad"
                 autoFocus
                 onBlur={() => toggleEdit('pricePerShareCents')}
@@ -330,14 +334,15 @@ export default function ReviewScreen() {
             isWarning={!fieldError('tradeDate') && checkMissingFromOCR('tradeDate')}
             onPress={() => toggleEdit('tradeDate')}
             confidenceDot={getConfidenceDotProps('tradeDate', 'Date')}
+            colors={colors}
           >
             {fields.tradeDate.isEditing && (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, backgroundColor: colors.bgInput, borderColor: colors.border }]}
                 value={fields.tradeDate.value}
                 onChangeText={(v) => updateField('tradeDate', v)}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 autoFocus
                 maxLength={10}
                 onBlur={() => toggleEdit('tradeDate')}
@@ -348,15 +353,16 @@ export default function ReviewScreen() {
           {/* Direction toggle per D-16: user can override */}
           <View style={[
             styles.fieldRow,
-            checkMissingFromOCR('direction') && !fieldError('direction') && styles.fieldRowWarning,
-            fieldError('direction') && styles.fieldRowError,
+            { borderBottomColor: colors.divider },
+            checkMissingFromOCR('direction') && !fieldError('direction') && [styles.fieldRowWarning, { backgroundColor: colors.warning + '15', borderColor: colors.warning + '40' }],
+            fieldError('direction') && [styles.fieldRowError, { backgroundColor: colors.danger + '15', borderColor: colors.danger + '40' }],
           ]}>
             <View style={styles.fieldLabelRow}>
-              <Text style={styles.label}>Direction</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Direction</Text>
               {getConfidenceDotProps('direction', 'Direction') && (
                 <TouchableOpacity
                   style={[styles.confidenceDot, {
-                    backgroundColor: fieldConfidenceColor('direction') || '#94A3B8',
+                    backgroundColor: fieldConfidenceColor('direction') || colors.textMuted,
                   }]}
                   onPress={() => setTooltipField({ key: 'direction', label: 'Direction' })}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -371,18 +377,20 @@ export default function ReviewScreen() {
               <TouchableOpacity
                 style={[
                   styles.toggleOption,
-                  fields.direction.value === 'buy' && styles.toggleBuyActive,
+                  { borderColor: colors.border },
+                  fields.direction.value === 'buy' && [styles.toggleBuyActive, { backgroundColor: colors.success, borderColor: colors.success }],
                 ]}
                 onPress={() => updateField('direction', 'buy')}
               >
                 <Ionicons
                   name="arrow-up-circle"
                   size={16}
-                  color={fields.direction.value === 'buy' ? '#FFFFFF' : '#059669'}
+                  color={fields.direction.value === 'buy' ? '#FFFFFF' : colors.success}
                 />
                 <Text
                   style={[
                     styles.toggleText,
+                    { color: colors.textSecondary },
                     fields.direction.value === 'buy' && styles.toggleTextActive,
                   ]}
                 >
@@ -392,18 +400,20 @@ export default function ReviewScreen() {
               <TouchableOpacity
                 style={[
                   styles.toggleOption,
-                  fields.direction.value === 'sell' && styles.toggleSellActive,
+                  { borderColor: colors.border },
+                  fields.direction.value === 'sell' && [styles.toggleSellActive, { backgroundColor: colors.danger, borderColor: colors.danger }],
                 ]}
                 onPress={() => updateField('direction', 'sell')}
               >
                 <Ionicons
                   name="arrow-down-circle"
                   size={16}
-                  color={fields.direction.value === 'sell' ? '#FFFFFF' : '#DC2626'}
+                  color={fields.direction.value === 'sell' ? '#FFFFFF' : colors.danger}
                 />
                 <Text
                   style={[
                     styles.toggleText,
+                    { color: colors.textSecondary },
                     fields.direction.value === 'sell' && styles.toggleTextActive,
                   ]}
                 >
@@ -412,25 +422,26 @@ export default function ReviewScreen() {
               </TouchableOpacity>
             </View>
             {fieldError('direction') && (
-              <Text style={styles.errorText}>{fieldError('direction')}</Text>
+              <Text style={[styles.errorText, { color: colors.danger }]}>{fieldError('direction')}</Text>
             )}
             {checkMissingFromOCR('direction') && !fieldError('direction') && (
-              <Text style={styles.warningText}>Not detected — please verify</Text>
+              <Text style={[styles.warningText, { color: colors.warning }]}>Not detected — please verify</Text>
             )}
           </View>
 
           {/* Asset Type selection */}
           <View style={[
             styles.fieldRow,
-            checkMissingFromOCR('assetType') && !fieldError('assetType') && styles.fieldRowWarning,
-            fieldError('assetType') && styles.fieldRowError,
+            { borderBottomColor: colors.divider },
+            checkMissingFromOCR('assetType') && !fieldError('assetType') && [styles.fieldRowWarning, { backgroundColor: colors.warning + '15', borderColor: colors.warning + '40' }],
+            fieldError('assetType') && [styles.fieldRowError, { backgroundColor: colors.danger + '15', borderColor: colors.danger + '40' }],
           ]}>
             <View style={styles.fieldLabelRow}>
-              <Text style={styles.label}>Asset Type</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Asset Type</Text>
               {getConfidenceDotProps('assetType', 'Asset Type') && (
                 <TouchableOpacity
                   style={[styles.confidenceDot, {
-                    backgroundColor: fieldConfidenceColor('assetType') || '#94A3B8',
+                    backgroundColor: fieldConfidenceColor('assetType') || colors.textMuted,
                   }]}
                   onPress={() => setTooltipField({ key: 'assetType', label: 'Asset Type' })}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -453,18 +464,20 @@ export default function ReviewScreen() {
                     key={kind.id}
                     style={[
                       styles.assetTypeOption,
-                      isActive && styles.assetTypeOptionActive,
+                      { backgroundColor: colors.bgInput, borderColor: colors.border },
+                      isActive && [styles.assetTypeOptionActive, { backgroundColor: colors.primary, borderColor: colors.primary }],
                     ]}
                     onPress={() => updateField('assetType', kind.id)}
                   >
                     <Ionicons
                       name={kind.icon as any}
                       size={14}
-                      color={isActive ? '#FFFFFF' : '#64748B'}
+                      color={isActive ? '#FFFFFF' : colors.textSecondary}
                     />
                     <Text
                       style={[
                         styles.assetTypeText,
+                        { color: colors.textSecondary },
                         isActive && styles.assetTypeTextActive,
                       ]}
                     >
@@ -475,10 +488,10 @@ export default function ReviewScreen() {
               })}
             </ScrollView>
             {fieldError('assetType') && (
-              <Text style={styles.errorText}>{fieldError('assetType')}</Text>
+              <Text style={[styles.errorText, { color: colors.danger }]}>{fieldError('assetType')}</Text>
             )}
             {checkMissingFromOCR('assetType') && !fieldError('assetType') && (
-              <Text style={styles.warningText}>Not detected — please verify</Text>
+              <Text style={[styles.warningText, { color: colors.warning }]}>Not detected — please verify</Text>
             )}
           </View>
 
@@ -490,14 +503,15 @@ export default function ReviewScreen() {
             error={fieldError('feesCents')}
             isWarning={!fieldError('feesCents') && ocrResult !== null && checkMissingFromOCR('feesCents')}
             onPress={() => toggleEdit('feesCents')}
+            colors={colors}
           >
             {fields.feesCents.isEditing && (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, backgroundColor: colors.bgInput, borderColor: colors.border }]}
                 value={fields.feesCents.value}
                 onChangeText={(v) => updateField('feesCents', v.replace(/[^0-9.]/g, ''))}
                 placeholder="e.g. 0.00"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="decimal-pad"
                 autoFocus
                 onBlur={() => toggleEdit('feesCents')}
@@ -513,14 +527,15 @@ export default function ReviewScreen() {
             error={null}
             isWarning={false}
             onPress={() => toggleEdit('notes')}
+            colors={colors}
           >
             {fields.notes.isEditing && (
               <TextInput
-                style={[styles.input, styles.notesInput]}
+                style={[styles.input, styles.notesInput, { color: colors.text, backgroundColor: colors.bgInput, borderColor: colors.border }]}
                 value={fields.notes.value}
                 onChangeText={(v) => updateField('notes', v)}
                 placeholder="Optional notes..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 autoFocus
                 multiline
                 onBlur={() => toggleEdit('notes')}
@@ -530,15 +545,15 @@ export default function ReviewScreen() {
 
           {/* AI Extraction metadata — replaces simple OCR confidence */}
           {ocrResult && (
-            <View style={styles.confidenceSection}>
+            <View style={[styles.confidenceSection, { borderTopColor: colors.divider }]}>
               {/* Main confidence row */}
               <View style={styles.confidenceRow}>
                 <Ionicons
                   name={ocrResult.confidence >= 0.75 ? 'checkmark-circle' : 'warning'}
                   size={16}
-                  color={ocrResult.confidence >= 0.75 ? '#059669' : '#D97706'}
+                  color={ocrResult.confidence >= 0.75 ? colors.success : colors.warning}
                 />
-                <Text style={styles.confidenceText}>
+                <Text style={[styles.confidenceText, { color: colors.textSecondary }]}>
                   Extraction Confidence: {Math.round(ocrResult.confidence * 100)}%
                 </Text>
               </View>
@@ -547,14 +562,16 @@ export default function ReviewScreen() {
               {ocrResult.aiMeta && ocrResult.aiMeta.platform !== 'generic' && (
                 <View style={styles.aiMetaRow}>
                   <Ionicons name="hardware-chip-outline" size={14} color="#6366F1" />
-                  <Text style={styles.aiMetaText}>
+                  <Text style={[styles.aiMetaText, { color: '#6366F1' }]}>
                     AI-enhanced · {ocrResult.aiMeta.platform.charAt(0).toUpperCase() + ocrResult.aiMeta.platform.slice(1)} template
                   </Text>
                   <View style={[
                     styles.aiPill,
-                    ocrResult.aiMeta.platformConfidence >= 0.7 ? styles.aiPillHigh : styles.aiPillLow,
+                    ocrResult.aiMeta.platformConfidence >= 0.7
+                      ? [styles.aiPillHigh, { backgroundColor: colors.primary + '15' }]
+                      : [styles.aiPillLow, { backgroundColor: colors.warning + '15' }],
                   ]}>
-                    <Text style={styles.aiPillText}>
+                    <Text style={[styles.aiPillText, { color: colors.primary }]}>
                       {Math.round(ocrResult.aiMeta.platformConfidence * 100)}% match
                     </Text>
                   </View>
@@ -564,8 +581,8 @@ export default function ReviewScreen() {
               {/* Generic regex fallback indicator */}
               {(!ocrResult.aiMeta || ocrResult.aiMeta.platform === 'generic') && (
                 <View style={styles.aiMetaRow}>
-                  <Ionicons name="text-outline" size={14} color="#94A3B8" />
-                  <Text style={styles.aiMetaTextMuted}>Generic text extraction</Text>
+                  <Ionicons name="text-outline" size={14} color={colors.textMuted} />
+                  <Text style={[styles.aiMetaTextMuted, { color: colors.textMuted }]}>Generic text extraction</Text>
                 </View>
               )}
             </View>
@@ -598,34 +615,34 @@ export default function ReviewScreen() {
           const isProfitable = pnlCents >= 0;
 
           return (
-            <View style={styles.pnlPreviewCard}>
-              <Text style={styles.pnlPreviewTitle}>P&L Preview</Text>
+            <View style={[styles.pnlPreviewCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+              <Text style={[styles.pnlPreviewTitle, { color: colors.textSecondary }]}>P&L Preview</Text>
               <View style={styles.pnlPreviewComparison}>
                 <View style={styles.pnlPreviewSide}>
-                  <View style={styles.pnlPreviewBuyBadge}>
-                    <Ionicons name="arrow-up-circle" size={14} color="#059669" />
-                    <Text style={styles.pnlPreviewBuyText}>Buy</Text>
+                  <View style={[styles.pnlPreviewBuyBadge, { backgroundColor: colors.success + '15' }]}>
+                    <Ionicons name="arrow-up-circle" size={14} color={colors.success} />
+                    <Text style={[styles.pnlPreviewBuyText, { color: colors.success }]}>Buy</Text>
                   </View>
-                  <Text style={styles.pnlPreviewPrice}>{matchShares} × {formatCurrency(avgBuyCostCents)}</Text>
+                  <Text style={[styles.pnlPreviewPrice, { color: colors.text }]}>{matchShares} × {formatCurrency(avgBuyCostCents)}</Text>
                 </View>
-                <Ionicons name="arrow-forward" size={18} color="#94A3B8" />
+                <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
                 <View style={styles.pnlPreviewSide}>
-                  <View style={styles.pnlPreviewSellBadge}>
-                    <Ionicons name="arrow-down-circle" size={14} color="#DC2626" />
-                    <Text style={styles.pnlPreviewSellText}>Sell</Text>
+                  <View style={[styles.pnlPreviewSellBadge, { backgroundColor: colors.danger + '15' }]}>
+                    <Ionicons name="arrow-down-circle" size={14} color={colors.danger} />
+                    <Text style={[styles.pnlPreviewSellText, { color: colors.danger }]}>Sell</Text>
                   </View>
-                  <Text style={styles.pnlPreviewPrice}>{matchShares} × {formatCurrency(priceCentsVal)}</Text>
+                  <Text style={[styles.pnlPreviewPrice, { color: colors.text }]}>{matchShares} × {formatCurrency(priceCentsVal)}</Text>
                 </View>
               </View>
-              <View style={styles.pnlPreviewDivider} />
+              <View style={[styles.pnlPreviewDivider, { backgroundColor: colors.divider }]} />
               <View style={styles.pnlPreviewResult}>
-                <Text style={styles.pnlPreviewLabel}>Estimated P&L</Text>
-                <Text style={[styles.pnlPreviewValue, { color: isProfitable ? '#059669' : '#DC2626' }]}>
+                <Text style={[styles.pnlPreviewLabel, { color: colors.textSecondary }]}>Estimated P&L</Text>
+                <Text style={[styles.pnlPreviewValue, { color: isProfitable ? colors.success : colors.danger }]}>
                   {isProfitable ? '+' : ''}{formatCurrency(Math.abs(pnlCents))}
                 </Text>
               </View>
               {sharesVal > remaining && (
-                <Text style={styles.pnlPreviewWarning}>
+                <Text style={[styles.pnlPreviewWarning, { color: colors.warning }]}>
                   ⚠ You own {remaining} shares but are selling {sharesVal}.
                 </Text>
               )}
@@ -635,12 +652,12 @@ export default function ReviewScreen() {
 
         {/* Save button */}
         <TouchableOpacity
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.primary }, !canSave && { backgroundColor: colors.textMuted }]}
           onPress={handleSave}
           disabled={!canSave}
           activeOpacity={0.8}
         >
-          <Text style={[styles.saveButtonText, !canSave && styles.saveButtonTextDisabled]}>
+          <Text style={[styles.saveButtonText, !canSave && { color: colors.bg }]}>
             {fields.direction.value === 'sell' ? 'Save Sell Trade' : 'Save Trade'}
           </Text>
         </TouchableOpacity>
@@ -653,23 +670,23 @@ export default function ReviewScreen() {
         animationType="fade"
         onRequestClose={() => setTooltipField(null)}
       >
-        <Pressable style={styles.tooltipOverlay} onPress={() => setTooltipField(null)}>
-          <View style={styles.tooltipContent}>
-            <Text style={styles.tooltipTitle}>
+        <Pressable style={[styles.tooltipOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setTooltipField(null)}>
+          <View style={[styles.tooltipContent, { backgroundColor: colors.bgCard }]}>
+            <Text style={[styles.tooltipTitle, { color: colors.text }]}>
               {tooltipField?.label} Extraction Confidence
             </Text>
-            <Text style={styles.tooltipPercentage}>
+            <Text style={[styles.tooltipPercentage, { color: colors.primary }]}>
               {tooltipField ? `${Math.round((fieldConfidence(tooltipField.key) ?? 0) * 100)}%` : ''}
             </Text>
             {ocrResult?.aiMeta && (
-              <Text style={styles.tooltipMethod}>
+              <Text style={[styles.tooltipMethod, { color: colors.textSecondary }]}>
                 Method: {ocrResult.aiMeta.extractionMethod === 'template'
                   ? `${ocrResult.aiMeta.platform.charAt(0).toUpperCase() + ocrResult.aiMeta.platform.slice(1)} template`
                   : 'Generic regex'}
               </Text>
             )}
             <TouchableOpacity
-              style={styles.tooltipClose}
+              style={[styles.tooltipClose, { backgroundColor: colors.primary }]}
               onPress={() => setTooltipField(null)}
             >
               <Text style={styles.tooltipCloseText}>Got it</Text>
@@ -684,7 +701,7 @@ export default function ReviewScreen() {
 // ─── FieldRow sub-component for inline editing ───
 function FieldRow({
   label, value, isEditing, error, isWarning, onPress, children,
-  confidenceDot,
+  confidenceDot, colors,
 }: {
   label: string;
   value: string;
@@ -694,20 +711,22 @@ function FieldRow({
   onPress: () => void;
   children?: React.ReactNode;
   confidenceDot?: { color: string; confidence: number; onPress: () => void };
+  colors: any;
 }) {
   return (
     <TouchableOpacity
       style={[
         styles.fieldRow,
-        isWarning && styles.fieldRowWarning,
-        error && styles.fieldRowError,
+        { borderBottomColor: colors.divider },
+        isWarning && !error && [styles.fieldRowWarning, { backgroundColor: colors.warning + '15', borderColor: colors.warning + '40' }],
+        error && [styles.fieldRowError, { backgroundColor: colors.danger + '15', borderColor: colors.danger + '40' }],
       ]}
       onPress={onPress}
       activeOpacity={0.7}
       disabled={isEditing}
     >
       <View style={styles.fieldLabelRow}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
         {confidenceDot && (
           <TouchableOpacity
             style={[styles.confidenceDot, { backgroundColor: confidenceDot.color }]}
@@ -726,51 +745,56 @@ function FieldRow({
       {isEditing ? (
         children
       ) : (
-        <Text style={[styles.value, (value === '\u2014') && styles.valuePlaceholder]}>
+        <Text style={[styles.value, { color: colors.text }, (value === '\u2014' || value === 'None') && { color: colors.textMuted }]}>
           {value}
         </Text>
       )}
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
       {isWarning && !error && (
-        <Text style={styles.warningText}>Not detected — please verify</Text>
+        <Text style={[styles.warningText, { color: colors.warning }]}>Not detected — please verify</Text>
       )}
     </TouchableOpacity>
   );
 }
 
+function getThemedStyles(colors: any) {
+  return StyleSheet.create({
+    // This is a placeholder so we don't break anything
+  });
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1 },
   headerButton: { paddingHorizontal: 8 },
-  discardText: { color: '#DC2626', fontSize: 16, fontWeight: '500' },
+  discardText: { fontSize: 16, fontWeight: '500' },
   content: { padding: 16, paddingBottom: 40 },
   imagePreview: {
     width: '100%', height: 180, borderRadius: 14,
-    overflow: 'hidden', marginBottom: 16, backgroundColor: '#1E293B',
+    overflow: 'hidden', marginBottom: 16,
   },
   image: { width: '100%', height: '100%' },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20,
+    borderRadius: 16, padding: 20,
     elevation: 2, shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
   },
-  cardTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A', marginBottom: 16 },
+  cardTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
   fieldRow: {
     flexDirection: 'column', gap: 4,
     paddingVertical: 12, paddingHorizontal: 12,
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 1,
     borderRadius: 8,
   },
-  fieldRowWarning: { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
-  fieldRowError: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
-  label: { fontSize: 12, fontWeight: '500', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 16, color: '#0F172A', fontWeight: '500' },
-  valuePlaceholder: { color: '#CBD5E1' },
-  errorText: { fontSize: 12, color: '#DC2626', marginTop: 2 },
-  warningText: { fontSize: 12, color: '#D97706', marginTop: 2 },
+  fieldRowWarning: { borderRadius: 8 },
+  fieldRowError: { borderRadius: 8 },
+  label: { fontSize: 12, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 16, fontWeight: '500' },
+  errorText: { fontSize: 12, marginTop: 2 },
+  warningText: { fontSize: 12, marginTop: 2 },
   input: {
-    fontSize: 16, color: '#0F172A', fontWeight: '500',
-    backgroundColor: '#F8FAFC', borderRadius: 8, padding: 10,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    fontSize: 16, fontWeight: '500',
+    borderRadius: 8, padding: 10,
+    borderWidth: 1,
   },
   notesInput: { minHeight: 60, textAlignVertical: 'top' },
 
@@ -778,23 +802,22 @@ const styles = StyleSheet.create({
   toggleOption: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    borderWidth: 1,
   },
-  toggleBuyActive: { backgroundColor: '#059669', borderColor: '#059669' },
-  toggleSellActive: { backgroundColor: '#DC2626', borderColor: '#DC2626' },
-  toggleText: { fontSize: 14, fontWeight: '600', color: '#475569' },
+  toggleBuyActive: {},
+  toggleSellActive: {},
+  toggleText: { fontSize: 14, fontWeight: '600' },
   toggleTextActive: { color: '#FFFFFF' },
 
   confidenceRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
   },
-  confidenceText: { fontSize: 13, color: '#64748B' },
+  confidenceText: { fontSize: 13 },
 
   confidenceSection: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
     gap: 8,
   },
   aiMetaRow: {
@@ -805,13 +828,11 @@ const styles = StyleSheet.create({
   },
   aiMetaText: {
     fontSize: 12,
-    color: '#6366F1',
     fontWeight: '500',
     flex: 1,
   },
   aiMetaTextMuted: {
     fontSize: 12,
-    color: '#94A3B8',
     fontWeight: '400',
     flex: 1,
   },
@@ -820,16 +841,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
   },
-  aiPillHigh: {
-    backgroundColor: '#EEF2FF',
-  },
-  aiPillLow: {
-    backgroundColor: '#FEF3C7',
-  },
+  aiPillHigh: {},
+  aiPillLow: {},
   aiPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#4338CA',
   },
 
   fieldLabelRow: {
@@ -852,13 +868,11 @@ const styles = StyleSheet.create({
 
   tooltipOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   tooltipContent: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -882,18 +896,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
-  assetTypeOptionActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
+  assetTypeOptionActive: {},
   assetTypeText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#64748B',
   },
   assetTypeTextActive: {
     color: '#FFFFFF',
@@ -901,19 +909,15 @@ const styles = StyleSheet.create({
   tooltipTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0F172A',
   },
   tooltipPercentage: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#6366F1',
   },
   tooltipMethod: {
     fontSize: 12,
-    color: '#64748B',
   },
   tooltipClose: {
-    backgroundColor: '#6366F1',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 24,
@@ -927,12 +931,10 @@ const styles = StyleSheet.create({
 
   // P&L Preview styles
   pnlPreviewCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -942,7 +944,6 @@ const styles = StyleSheet.create({
   pnlPreviewTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -962,7 +963,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#DCFCE7',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -970,13 +970,11 @@ const styles = StyleSheet.create({
   pnlPreviewBuyText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#059669',
   },
   pnlPreviewSellBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEE2E2',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -984,16 +982,13 @@ const styles = StyleSheet.create({
   pnlPreviewSellText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#DC2626',
   },
   pnlPreviewPrice: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F172A',
   },
   pnlPreviewDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
   pnlPreviewResult: {
@@ -1004,7 +999,6 @@ const styles = StyleSheet.create({
   pnlPreviewLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
   },
   pnlPreviewValue: {
     fontSize: 20,
@@ -1012,16 +1006,13 @@ const styles = StyleSheet.create({
   },
   pnlPreviewWarning: {
     fontSize: 12,
-    color: '#D97706',
     marginTop: 8,
     fontWeight: '500',
   },
 
   saveButton: {
-    backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 16,
+    borderRadius: 14, paddingVertical: 16,
     alignItems: 'center', marginTop: 16,
   },
-  saveButtonDisabled: { backgroundColor: '#CBD5E1' },
   saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  saveButtonTextDisabled: { color: '#94A3B8' },
 });
