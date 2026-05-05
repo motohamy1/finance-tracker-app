@@ -60,8 +60,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "10c18ffa-af35-4866-9551-b527ebd7996a"
+        "projectId": "051b693f-b464-4591-8f79-40ea586954ee"
       }
-    }
+    },
+    "owner": "motohamy0000"
   }
 }
