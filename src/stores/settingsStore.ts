@@ -53,6 +53,9 @@ interface SettingsActions {
   /** Set the app theme (persisted to AsyncStorage) */
   setTheme: (theme: ThemeMode) => void;
 
+  /** Show/hide category input overlay (hides tab bar when visible) */
+  setOverlayInputVisible: (visible: boolean) => void;
+
   /**
    * Initialize the sync store on app start:
    *   1. Check if already authenticated (token in SecureStore)
@@ -80,7 +83,7 @@ interface SettingsActions {
  *   D-08: Fresh install restore prompt shown once (restorePromptDismissed)
  *   D-09: "Sync Now" button and "Last synced" display
  */
-export const useSettingsStore = create<SyncState & { theme: ThemeMode } & SettingsActions>((set, get) => ({
+export const useSettingsStore = create<SyncState & { theme: ThemeMode; isOverlayInputVisible: boolean } & SettingsActions>((set, get) => ({
   // ─── State ───
 
   isAuthenticated: false,
@@ -93,6 +96,7 @@ export const useSettingsStore = create<SyncState & { theme: ThemeMode } & Settin
   restorePromptDismissed: false,
   syncLogs: { ...INITIAL_SYNC_LOGS },
   theme: 'dark',                // dark theme as default
+  isOverlayInputVisible: false, // hides tab bar when category input is shown
 
   // ─── Actions ───
 
@@ -331,5 +335,9 @@ export const useSettingsStore = create<SyncState & { theme: ThemeMode } & Settin
   setTheme: (theme: ThemeMode) => {
     set({ theme });
     AsyncStorage.setItem('@finance_tracker/theme', theme).catch(console.error);
+  },
+
+  setOverlayInputVisible: (visible: boolean) => {
+    set({ isOverlayInputVisible: visible });
   },
 }));

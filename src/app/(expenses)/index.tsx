@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,54 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { EmptyState } from '@/components/EmptyState';
 import { MoneySourceRow } from '@/components/MoneySourceRow';
-import { MONEY_SOURCE_CARD_WIDTH } from '@/components/MoneySourceCard';
 import { TotalBalanceSummary } from '@/components/TotalBalanceSummary';
 import { ActionSheetModal, type ActionSheetOption } from '@/components/ActionSheetModal';
 import { useTheme } from '@/services/theme';
 import { getCategoryLightTint } from '@/types';
 import type { Category, Expense } from '@/types';
+
+// ─── CategoryInputBar (memo'd, outside render to prevent remount on keystrokes) ───
+
+const CategoryInputBar = memo(function CategoryInputBar({
+  value,
+  onChangeText,
+  onSubmit,
+  onDismiss,
+  colors,
+}: {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSubmit: () => void;
+  onDismiss: () => void;
+  colors: ReturnType<typeof useTheme>['colors'];
+}) {
+  return (
+    <View style={[styles.categoryInputBar, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
+      <TextInput
+        style={styles.categoryInputField}
+        placeholder="Category name"
+        placeholderTextColor="#94A3B8"
+        value={value}
+        onChangeText={onChangeText}
+        onSubmitEditing={onSubmit}
+        autoFocus
+        returnKeyType="done"
+      />
+      <TouchableOpacity style={styles.createBtn} onPress={onSubmit}>
+        <Text style={styles.createBtnText}>Create</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.dismissBtn} onPress={onDismiss}>
+        <Ionicons name="close" size={20} color="#94A3B8" />
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+// ─── Main Component ───
 
 export default function ExpensesScreen() {
   const { colors } = useTheme();
@@ -33,6 +72,7 @@ export default function ExpensesScreen() {
   const renameCategory = useExpenseStore((s) => s.renameCategory);
   const removeCategory = useExpenseStore((s) => s.removeCategory);
   const getExpenseCount = useExpenseStore((s) => s.getExpenseCount);
+  const setOverlayInputVisible = useSettingsStore((s) => s.setOverlayInputVisible);
 
   const moneySourceById = useMemo(() => {
     const map: Record<string, typeof moneySources[0]> = {};
@@ -51,6 +91,14 @@ export default function ExpensesScreen() {
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [actionSheetTitle, setActionSheetTitle] = useState('');
   const [actionSheetOptions, setActionSheetOptions] = useState<ActionSheetOption[]>([]);
+
+  // Hide tab bar when category input overlay is active
+  useEffect(() => {
+    setOverlayInputVisible(showCategoryInput);
+    return () => {
+      if (showCategoryInput) setOverlayInputVisible(false);
+    };
+  }, [showCategoryInput, setOverlayInputVisible]);
 
   const showActionSheet = useCallback((title: string, options: ActionSheetOption[]) => {
     setActionSheetTitle(title);
@@ -101,9 +149,7 @@ export default function ExpensesScreen() {
               if (newName?.trim()) renameCategory(category.id, newName.trim());
             }, 'plain-text', category.name);
           } else {
-            // Fallback for Android: use a simple prompt alternative
             setCategoryNameInput(category.name);
-            // For simplicity, use inline rename by setting up a modal
             renameCategory(category.id, category.name + ' (tap to rename)');
           }
         },
@@ -156,7 +202,6 @@ export default function ExpensesScreen() {
     showActionSheet(expense.title, options);
   }, [openEditForm, showActionSheet]);
 
-  // List header combining TotalBalanceSummary + MoneySourceRow (replaces BalanceCard)
   const ListHeader = () => (
     <View style={[styles.moneySection, { backgroundColor: colors.bgSecondary }]}>
       <TotalBalanceSummary />
@@ -172,33 +217,12 @@ export default function ExpensesScreen() {
     );
   }
 
-  // Category input bar — full width, sits directly above keyboard (zero gap)
-  const CategoryInputBar = () => (
-    <View style={[styles.categoryInputBar, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
-      <TextInput
-        style={styles.categoryInputField}
-        placeholder="Category name"
-        placeholderTextColor="#94A3B8"
-        value={categoryNameInput}
-        onChangeText={setCategoryNameInput}
-        onSubmitEditing={handleCreateCategory}
-        autoFocus
-        returnKeyType="done"
-      />
-      <TouchableOpacity style={styles.createBtn} onPress={handleCreateCategory}>
-        <Text style={styles.createBtnText}>Create</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.dismissBtn} onPress={dismissCategoryInput}>
-        <Ionicons name="close" size={20} color="#94A3B8" />
-      </TouchableOpacity>
-    </View>
-  );
-
+  // ─── Empty state (no categories yet) ───
   if (categories.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
@@ -209,35 +233,52 @@ export default function ExpensesScreen() {
             icon="wallet-outline"
             title="Start Tracking"
             body="Create your first spending category to begin logging expenses."
-            ctaText={showCategoryInput ? undefined : "Create Category"}
+            ctaText={showCategoryInput ? undefined : 'Create Category'}
             onCtaPress={() => setShowCategoryInput(true)}
           />
         </View>
-        {showCategoryInput && <CategoryInputBar />}
       </KeyboardAvoidingView>
-      </SafeAreaView>
+
+      {showCategoryInput && (
+        <View style={styles.categoryInputAbsolute}>
+          <CategoryInputBar
+            value={categoryNameInput}
+            onChangeText={setCategoryNameInput}
+            onSubmit={handleCreateCategory}
+            onDismiss={dismissCategoryInput}
+            colors={colors}
+          />
+        </View>
+      )}
+    </SafeAreaView>
     );
   }
 
+  // ─── Main content (categories exist) ───
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      {!showCategoryInput && (
-        <TouchableOpacity
-          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 60 + 20, zIndex: 100, elevation: 100, backgroundColor: colors.primary }]}
-          onPress={() => openAddForm()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        {!showCategoryInput && (
+          <TouchableOpacity
+            style={[styles.fab, {
+              bottom: Math.max(insets.bottom, 16) + 60 + 20,
+              zIndex: 100,
+              elevation: 100,
+              backgroundColor: colors.primary,
+            }]}
+            onPress={() => openAddForm()}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
 
-      <View style={{ flex: 1 }}>
         <FlatList
+          style={{ flex: 1 }}
           ListHeaderComponent={<ListHeader />}
           data={categories}
           keyExtractor={(item) => item.id}
@@ -260,18 +301,17 @@ export default function ExpensesScreen() {
             const expenses = expensesByCategory[item.id] || [];
             return (
               <TouchableOpacity
-                style={[styles.categoryBlock, { backgroundColor: item.colorHex, width: MONEY_SOURCE_CARD_WIDTH, alignSelf: 'center' }]}
+                style={[styles.categoryBlock, { backgroundColor: item.colorHex }]}
                 onPress={() => openAddForm(item.id)}
                 onLongPress={() => handleCategoryLongPress(item)}
                 activeOpacity={0.9}
               >
-                {/* Velvet fabric effects */}
                 <View style={styles.velvetOverlay} />
                 <View style={styles.velvetSheen} />
                 <View style={styles.velvetHighlight} />
                 <View style={styles.velvetShadow} />
                 <View style={styles.velvetTexture} />
-                
+
                 <View style={styles.blockHeader}>
                   <Text style={styles.blockName}>{item.name}</Text>
                   <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
@@ -289,13 +329,16 @@ export default function ExpensesScreen() {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.expenseRow}
                     renderItem={({ item: exp }) => (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.expenseItem}
                         onPress={() => openEditForm(exp)}
                         onLongPress={() => handleExpenseLongPress(exp)}
                       >
                         <Text style={styles.expenseTitle} numberOfLines={1}>{exp.title}</Text>
-                        <Text style={styles.expenseAmount}>{moneySourceById[exp.moneySourceId ?? '']?.currencySymbol ?? 'EGP'} {(exp.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                        <Text style={styles.expenseAmount}>
+                          {moneySourceById[exp.moneySourceId ?? '']?.currencySymbol ?? 'EGP'}{' '}
+                          {(exp.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Text>
                       </TouchableOpacity>
                     )}
                   />
@@ -304,36 +347,46 @@ export default function ExpensesScreen() {
             );
           }}
         />
-      </View>
 
-      {showCategoryInput && <CategoryInputBar />}
+        <ExpenseForm
+          visible={formVisible}
+          onClose={() => {
+            setFormVisible(false);
+            setEditingExpense(null);
+            setSelectedMoneySourceId(null);
+          }}
+          editingExpense={editingExpense}
+          preselectedCategoryId={selectedCategoryId}
+          preselectedMoneySourceId={selectedMoneySourceId}
+        />
 
-      <ExpenseForm
-        visible={formVisible}
-        onClose={() => {
-          setFormVisible(false);
-          setEditingExpense(null);
-          setSelectedMoneySourceId(null);
-        }}
-        editingExpense={editingExpense}
-        preselectedCategoryId={selectedCategoryId}
-        preselectedMoneySourceId={selectedMoneySourceId}
-      />
+        <ActionSheetModal
+          visible={actionSheetVisible}
+          onClose={() => setActionSheetVisible(false)}
+          title={actionSheetTitle}
+          options={actionSheetOptions}
+        />
+      </KeyboardAvoidingView>
 
-      <ActionSheetModal
-        visible={actionSheetVisible}
-        onClose={() => setActionSheetVisible(false)}
-        title={actionSheetTitle}
-        options={actionSheetOptions}
-      />
-    </KeyboardAvoidingView>
+      {/* CategoryInputBar — absolute, sits above tab bar & keyboard */}
+      {showCategoryInput && (
+        <View style={styles.categoryInputAbsolute}>
+          <CategoryInputBar
+            value={categoryNameInput}
+            onChangeText={setCategoryNameInput}
+            onSubmit={handleCreateCategory}
+            onDismiss={dismissCategoryInput}
+            colors={colors}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: 12, paddingBottom: 100 },
+  list: { paddingHorizontal: 16, paddingVertical: 12, paddingBottom: 100 },
   categoryBlock: {
     marginBottom: 16,
     borderRadius: 24,
@@ -344,7 +397,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
     position: 'relative',
-    backgroundColor: '#334155', // Fallback
+    backgroundColor: '#334155',
   },
   velvetOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -406,8 +459,8 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   expenseRow: {
-    paddingLeft: 20,
-    paddingRight: 12,
+    paddingLeft: 16,
+    paddingRight: 16,
     paddingBottom: 20,
     zIndex: 2,
     gap: 10,
@@ -434,20 +487,33 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   fab: {
-    position: 'absolute', bottom: 20, right: 20, zIndex: 10,
-    width: 56, height: 56, borderRadius: 28,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25, shadowRadius: 4, elevation: 5,
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    zIndex: 10,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   addCategoryButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 16, marginBottom: 24,
-    paddingVertical: 14, paddingHorizontal: 16,
-    borderRadius: 12, borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   addCategoryText: { fontSize: 16, fontWeight: '600' },
-  // Category input bar — full width section, sits flush against keyboard
   categoryInputBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -479,8 +545,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     marginBottom: 8,
     marginTop: 8,
-    marginHorizontal: 12,
     borderRadius: 20,
-    overflow: 'hidden',
+  },
+  // Absolute overlay for category input — sits above tab bar & keyboard
+  categoryInputAbsolute: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
 });

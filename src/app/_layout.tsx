@@ -84,7 +84,8 @@ export default function RootLayout() {
 
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const hideTabBar = segments.some(s => s === 'manual' || s === 'review' || s === 'import');
+  const isOverlayInputVisible = useSettingsStore((s) => s.isOverlayInputVisible);
+  const hideTabBar = segments.some(s => s === 'manual' || s === 'review' || s === 'import') || isOverlayInputVisible;
   
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);

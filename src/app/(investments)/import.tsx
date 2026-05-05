@@ -98,23 +98,26 @@ export default function ImportScreen() {
       const result = await processScreenshot(uri);
       setOcrResult(result);
 
-      // Brief success confirmation (D-13: ~1 second)
+      // Success — show confirmation and let user tap to continue
       setStage('success');
-      setTimeout(() => {
-        router.push({
-          pathname: '/(investments)/review',
-          params: {
-            ocrResult: JSON.stringify(result),
-            imageUri: uri,
-          },
-        });
-      }, 1000);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'OCR processing failed';
       setErrorMessage(message);
       setStage('error');
     }
-  }, [router]);
+  }, []);
+
+  // Navigate to review screen
+  const navigateToReview = useCallback(() => {
+    if (!ocrResult) return;
+    router.push({
+      pathname: '/(investments)/review',
+      params: {
+        ocrResult: JSON.stringify(ocrResult),
+        imageUri: imageUri ?? '',
+      },
+    });
+  }, [router, ocrResult, imageUri]);
 
   // ─── Cancel OCR (D-12) ───
   const handleCancel = useCallback(() => {
@@ -179,7 +182,7 @@ export default function ImportScreen() {
     );
   }
 
-  // ─── Success state (D-13: brief confirmation before auto-advance) ───
+  // ─── Success state: confirmation with manual Continue button ───
   if (stage === 'success' && imageUri) {
     return (
       <View style={styles.container}>
@@ -187,7 +190,14 @@ export default function ImportScreen() {
         <View style={styles.overlay}>
           <View style={styles.progressCard}>
             <Ionicons name="checkmark-circle" size={48} color="#059669" />
-            <Text style={styles.successTitle}>Data Extracted ✓</Text>
+            <Text style={styles.successTitle}>Data Extracted</Text>
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={navigateToReview}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.continueButtonText}>Continue</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -245,6 +255,14 @@ const styles = StyleSheet.create({
   progressTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A' },
   progressSubtitle: { fontSize: 14, color: '#64748B' },
   successTitle: { fontSize: 18, fontWeight: '600', color: '#059669', marginTop: 8 },
+  continueButton: {
+    marginTop: 16,
+    backgroundColor: '#0891B2',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
+  continueButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   cancelButton: {
     marginTop: 24, paddingHorizontal: 24, paddingVertical: 12,
     borderWidth: 1, borderColor: '#FFFFFF', borderRadius: 12,

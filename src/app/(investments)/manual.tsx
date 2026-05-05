@@ -232,7 +232,7 @@ export default function ManualEntryScreen() {
 
         {/* Price per Share */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, labelTheme]}>Price per Share ($) *</Text>
+          <Text style={[styles.label, labelTheme]}>Price per Share (EGP) *</Text>
           <TextInput
             style={[styles.input, inputTheme, errors.pricePerShareCents && styles.inputError]}
             value={pricePerShare}
@@ -302,7 +302,7 @@ export default function ManualEntryScreen() {
 
         {/* Fees (optional) */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, labelTheme]}>Fees ($) — Optional</Text>
+          <Text style={[styles.label, labelTheme]}>Fees (EGP) — Optional</Text>
           <TextInput
             style={[styles.input, inputTheme]}
             value={fees}

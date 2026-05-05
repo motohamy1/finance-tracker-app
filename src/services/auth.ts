@@ -190,10 +190,12 @@ export async function signIn(): Promise<boolean> {
     // 1. Validate client ID is configured
     const clientId = getClientId();
     if (!clientId) {
+      const platform = Platform.OS === 'ios' ? 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID' : 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID';
       lastAuthError =
-        'Google Client ID not configured. ' +
-        'Set EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID (iOS) or ' +
-        'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID (Android) in .env';
+        `Google ${Platform.OS.toUpperCase()} Client ID not configured. ` +
+        `Set ${platform} in your EAS environment variables ` +
+        `(eas env:create) or in a .env file. Note: .env files are gitignored ` +
+        `by default — they won't be included in EAS Build unless committed.`;
       console.error('[auth]', lastAuthError);
       return false;
     }
@@ -227,7 +229,12 @@ export async function signIn(): Promise<boolean> {
     const response = await request.promptAsync(discovery);
 
     if (response.type === 'error') {
-      lastAuthError = response.error?.description || 'OAuth authorization failed';
+      const googleError = response.error?.description || response.params?.error || 'OAuth authorization failed';
+      lastAuthError = googleError.includes('redirect_uri_mismatch')
+        ? 'redirect_uri_mismatch — Your OAuth client redirect URI does not match.\n' +
+          'Ensure the scheme in app.json includes: ' +
+          `com.googleusercontent.apps.${clientId.split('.').reverse().join('.')}`
+        : googleError;
       console.error('[auth] OAuth error:', lastAuthError);
       return false;
     }
@@ -249,7 +256,11 @@ export async function signIn(): Promise<boolean> {
       );
 
       if (!tokenResponse) {
-        lastAuthError = 'Token exchange failed — check your Google OAuth client ID type';
+        lastAuthError = 'Token exchange failed. Common causes:\n' +
+          '1. SHA-1 fingerprint mismatch — run `eas credentials` to get the ' +
+          'correct SHA-1 and add it to Google Cloud Console OAuth client.\n' +
+          '2. Wrong OAuth client type — use Android/iOS type, NOT Web application.\n' +
+          '3. Redirect URI not authorized — the scheme must match app.json.';
         return false;
       }
 

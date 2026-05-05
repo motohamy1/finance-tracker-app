@@ -22,13 +22,14 @@ export function parseOCRToInitialValues(ocrResult: OCRResult | null): TradeFormD
     };
   }
 
+  // Store price as dollar string (like manual entry form) — converted to cents on save
   const pricePerShareCents = ocrResult.pricePerShare !== null
-    ? String(Math.round(ocrResult.pricePerShare * 100))
+    ? ocrResult.pricePerShare.toFixed(2)
     : '';
 
-  // If OCR detected a commission/fee, pre-fill it (converted from cents to dollar string for the form)
+  // Fees stored as dollar string (converted to cents on save)
   const feesCents = ocrResult.feesCents !== null && ocrResult.feesCents > 0
-    ? String((ocrResult.feesCents / 100).toFixed(2))
+    ? (ocrResult.feesCents / 100).toFixed(2)
     : '';
 
   return {
@@ -190,8 +191,9 @@ export function formatTradeFieldDisplay(fieldKey: string, rawValue: string): str
     case 'shares':
       return `${rawValue} shares`;
     case 'pricePerShareCents': {
-      const cents = parseInt(rawValue, 10);
-      if (isNaN(cents)) return '\u2014';
+      const dollars = parseFloat(rawValue);
+      if (isNaN(dollars)) return '\u2014';
+      const cents = Math.round(dollars * 100);
       return formatCurrency(cents);
     }
     case 'assetType':
@@ -212,6 +214,7 @@ export function canSaveTrade(
     pricePerShareCents: string;
     tradeDate: string;
     direction: string;
+    assetType?: string;
   },
   errors: Record<string, string>
 ): boolean {
@@ -221,7 +224,7 @@ export function canSaveTrade(
     fields.pricePerShareCents.trim() !== '' &&
     fields.tradeDate.trim() !== '' &&
     fields.direction !== '' &&
-    fields.assetType !== '' &&
+    (fields.assetType ?? '') !== '' &&
     Object.keys(errors).length === 0
   );
 }

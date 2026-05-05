@@ -57,11 +57,11 @@ export default function ReviewScreen() {
       return {
         ticker: existingTrade.ticker,
         shares: String(existingTrade.shares),
-        pricePerShareCents: String(existingTrade.pricePerShareCents),
+        pricePerShareCents: (existingTrade.pricePerShareCents / 100).toFixed(2),
         tradeDate: existingTrade.tradeDate,
         direction: existingTrade.direction,
         assetType: existingTrade.assetType || 'stock',
-        feesCents: existingTrade.feesCents ? String(existingTrade.feesCents) : '',
+        feesCents: existingTrade.feesCents ? (existingTrade.feesCents / 100).toFixed(2) : '',
         notes: existingTrade.notes || '',
       };
     }
@@ -74,7 +74,7 @@ export default function ReviewScreen() {
     pricePerShareCents: { value: initialValues.pricePerShareCents, isEditing: false, error: null },
     tradeDate: { value: initialValues.tradeDate, isEditing: false, error: null },
     direction: { value: initialValues.direction, isEditing: false, error: null },
-    assetType: { value: initialValues.assetType, isEditing: false, error: null },
+    assetType: { value: initialValues.assetType || 'stock', isEditing: false, error: null },
     feesCents: { value: initialValues.feesCents, isEditing: false, error: null },
     notes: { value: initialValues.notes, isEditing: false, error: null },
   });
@@ -171,14 +171,19 @@ export default function ReviewScreen() {
   const handleSave = useCallback(() => {
     if (!validate()) return;
 
+    const priceCents = Math.round(parseFloat(fields.pricePerShareCents.value) * 100);
+    const feesCentsVal = fields.feesCents.value.trim()
+      ? Math.round(parseFloat(fields.feesCents.value) * 100)
+      : null;
+
     const formData: TradeFormData = {
       ticker: fields.ticker.value.trim().toUpperCase(),
       shares: fields.shares.value.trim(),
-      pricePerShareCents: fields.pricePerShareCents.value.trim(),
+      pricePerShareCents: String(isNaN(priceCents) ? 0 : priceCents),
       tradeDate: fields.tradeDate.value.trim(),
       direction: fields.direction.value as TradeDirection,
       assetType: fields.assetType.value,
-      feesCents: fields.feesCents.value.trim(),
+      feesCents: feesCentsVal !== null ? String(feesCentsVal) : '',
       notes: fields.notes.value.trim(),
     };
 

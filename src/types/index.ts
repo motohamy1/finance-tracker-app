@@ -28,6 +28,7 @@ export interface MoneySource {
   colorHex: string;        // Solid background color from MONEY_SOURCE_PALETTE
   iconName: string;        // Ionicons name (e.g., "cash-outline")
   balanceCents: number;    // Balance stored as INTEGER cents (e.g., $1,500.00 → 150000)
+  currencySymbol: string;  // Currency symbol (e.g., "EGP", "USD")
   sortOrder: number;       // Manual drag-to-reorder position
   createdAt: string;       // ISO 8601 timestamp
   updatedAt: string;       // ISO 8601 timestamp
@@ -138,10 +139,10 @@ export interface Trade {
 }
 
 export const DEFAULT_INVESTMENT_KINDS = [
-  { id: 'stocks', label: 'Stocks' },
-  { id: 'crypto', label: 'Crypto' },
-  { id: 'forex', label: 'Forex' },
-  { id: 'commodities', label: 'Commodities' },
+  { id: 'stocks', label: 'Stocks', icon: 'trending-up-outline' },
+  { id: 'crypto', label: 'Crypto', icon: 'logo-bitcoin' },
+  { id: 'forex', label: 'Forex', icon: 'swap-horizontal-outline' },
+  { id: 'commodities', label: 'Commodities', icon: 'diamond-outline' },
 ] as const;
 
 export type InvestmentKindId = typeof DEFAULT_INVESTMENT_KINDS[number]['id'];

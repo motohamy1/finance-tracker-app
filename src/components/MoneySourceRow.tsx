@@ -146,10 +146,14 @@ export function MoneySourceRow({ onSelectSource }: MoneySourceRowProps) {
   const [showCreateSheet, setShowCreateSheet] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
+  // Available width accounts for parent FlatList padding (16px each side)
+  const availableWidth = screenWidth - 32;
   // Total width of all cards + gaps + trailing add button
   const totalWidth = moneySources.length * (MONEY_SOURCE_CARD_WIDTH + CARD_GAP) + ADD_BUTTON_WIDTH - CARD_GAP;
-  // Center when content fits, otherwise use base padding for scroll
-  const sidePad = totalWidth < screenWidth ? (screenWidth - totalWidth) / 2 : 12;
+  // Center all content when it fits; when scrolling, center the first card on screen
+  const sidePad = totalWidth < availableWidth
+    ? (availableWidth - totalWidth) / 2
+    : (availableWidth - MONEY_SOURCE_CARD_WIDTH) / 2;
 
   const handleCreateSource = useCallback(
     (name: string, colorHex: string, currencySymbol: string) => {

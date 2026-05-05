@@ -141,19 +141,35 @@ export function parseTradeFromText(rawText: string): OCRResult {
   const text = rawText || '';
 
   // ─── Ticker extraction (D-17: uppercase, strip artifacts) ───
-  // First, clean common OCR noise characters from the text
-  const cleanedText = text.replace(/[$%^&*#@!~`]+/g, ' ');
-  // Pattern: 1-5 uppercase letters, possibly preceded by white space or start of string
-  const tickerPattern = /(?:\s|^)([A-Z]{1,5})(?:\s|$|,|\.|\s|%)/g;
-  const tickerMatches = [...cleanedText.matchAll(tickerPattern)];
+  // Clean common OCR noise characters from the text
+  const cleanedText = text.replace(/[$%^&*#@!~`'"\-_=+\[\]{}|:;<>]+/g, ' ');
+  // Convert to uppercase for matching (OCR may return lowercase or mixed case)
+  const upperText = cleanedText.toUpperCase();
+  // Pattern: 1-5 uppercase letters, bounded by whitespace or punctuation
+  const tickerPattern = /(?:\s|^)([A-Z]{1,5})(?:\s|$|,|\.|%)/g;
+  const tickerMatches = [...upperText.matchAll(tickerPattern)];
   let ticker: string | null = null;
+  const noise: Set<string> = new Set([
+    'BUY', 'SELL', 'LMT', 'MKT', 'STP', 'GTC', 'DAY', 'IOC',
+    'TOTAL', 'PRICE', 'QTY', 'AMT', 'USD', 'THE', 'FOR', 'AND',
+    'NOT', 'ALL', 'NEW', 'FEE', 'NET', 'TAX', 'VIA', 'EST',
+    'NYSE', 'NASDAQ', 'STOCK', 'TRADE', 'ORDER', 'LIMIT',
+    'STOP', 'FILL', 'OPEN', 'HIGH', 'LOW', 'VOL', 'AVG',
+    'COST', 'FEES', 'COMM', 'SEC', 'TXN', 'TXNS',
+  ]);
   for (const match of tickerMatches) {
     const candidate = match[1];
-    // Filter out common OCR noise words that happen to be uppercase
-    const noise = ['BUY', 'SELL', 'LMT', 'MKT', 'STP', 'GTC', 'DAY', 'IOC', 'TOTAL', 'PRICE', 'QTY', 'AMT', 'USD', 'THE', 'FOR'];
-    if (!noise.includes(candidate)) {
+    if (!noise.has(candidate)) {
       ticker = candidate;
       break;
+    }
+  }
+  // Fallback: try to find ticker near "shares" or "order" keywords
+  if (!ticker) {
+    const tickerNearKeyword = /(?:shares?\s*of\s*|symbol\s*:?\s*|order\s*(?:for|to)\s*(?:buy|sell)\s*)([A-Z]{1,5})\b/i;
+    const nearMatch = text.match(tickerNearKeyword);
+    if (nearMatch) {
+      ticker = nearMatch[1].toUpperCase();
     }
   }
 
@@ -191,25 +207,26 @@ export function parseTradeFromText(rawText: string): OCRResult {
   // ─── Price extraction ───
   let pricePerShare: number | null = null;
 
-  // Priority 1: explicit "price per share" or "@ / at" label  
-  const priceContextPattern = /(?:price(?:\s*per\s*share)?|per\s*share|avg\.?\s*price|filled\s*at|@|at)\s*\$?(\d+(?:\.\d{1,4})?)/i;
+  // Priority 1: explicit "price per share" or "@ / at" label
+  const priceContextPattern = /(?:price(?:\s*per\s*share)?|per\s*share|avg\.?\s*(?:price|fill)|filled\s*(?:at|price)|executed\s*(?:at|price)|@|at)\s*\$?(\d+(?:[.,]\d{1,4})?)/i;
   const priceMatch = text.match(priceContextPattern);
   if (priceMatch) {
-    pricePerShare = parseFloat(priceMatch[1]) || null;
+    const cleanedPrice = priceMatch[1].replace(/,/g, '.');
+    pricePerShare = parseFloat(cleanedPrice) || null;
   }
 
   // Priority 2: dollar amounts excluding those labeled as total/amount/value
   if (pricePerShare === null) {
-    // Strip lines that are clearly totals so we don’t mistake them for per-share prices
+    // Strip lines that are clearly totals so we don't mistake them for per-share prices
     const stripped = text
       .split('\n')
-      .filter(line => !/(?:total|amount|value|cost|proceeds|subtotal)/i.test(line))
+      .filter(line => !/(?:total|amount|value|cost|proceeds|subtotal|net\s+amount)/i.test(line))
       .join('\n');
-    const dollarPattern = /\$(\d+(?:\.\d{1,4})?)/g;
+    const dollarPattern = /\$?(\d+(?:[.,]\d{1,4})?)/g;
     const dollarMatches = [...stripped.matchAll(dollarPattern)];
     if (dollarMatches.length >= 1) {
       const values = dollarMatches
-        .map(m => parseFloat(m[1]))
+        .map(m => parseFloat(m[1].replace(/,/g, '.')))
         .filter(v => v > 0);
       if (values.length > 0) {
         // If shares are known, prefer the value where (value * shares) looks like a total
@@ -222,8 +239,10 @@ export function parseTradeFromText(rawText: string): OCRResult {
 
   // Priority 3: original fallback — middle dollar value across entire text
   if (pricePerShare === null) {
-    const dollarPattern = /\$(\d+(?:\.\d{1,4})?)/g;
-    const allDollar = [...text.matchAll(dollarPattern)].map(m => parseFloat(m[1])).filter(v => v > 0);
+    const dollarPattern = /\$(\d+(?:[.,]\d{1,4})?)/g;
+    const allDollar = [...text.matchAll(dollarPattern)]
+      .map(m => parseFloat(m[1].replace(/,/g, '.')))
+      .filter(v => v > 0);
     if (allDollar.length > 0) {
       allDollar.sort((a, b) => a - b);
       pricePerShare = allDollar[Math.floor(allDollar.length / 2)] || null;
@@ -263,13 +282,24 @@ export function parseTradeFromText(rawText: string): OCRResult {
 
   // ─── Fees / commission extraction ───
   let feesCents: number | null = null;
-  // Patterns: "Commission: $1.50", "Fee: $0.65", "Brokerage fee $2.00", "Fees $1.25"
-  const feesContextPattern = /(?:commission|fee|brokerage(?:\s*fee)?|service\s*charge)\s*:?\s*\$?(\d+(?:\.\d{1,2})?)/i;
+  // Patterns: "Commission: $1.50", "Fee: $0.65", "Brokerage fee $2.00", "Fees $1.25", "SEC Fee", "TAF"
+  const feesContextPattern = /(?:commission|fees?|brokerage(?:\s*fee)?|service\s*charge|sec\s*fee|taf)\s*:?\s*\$?(\d+(?:\.\d{1,4})?)/i;
   const feesMatch = text.match(feesContextPattern);
   if (feesMatch) {
     const feesValue = parseFloat(feesMatch[1]);
     if (!isNaN(feesValue) && feesValue > 0) {
       feesCents = Math.round(feesValue * 100);
+    }
+  }
+  // Fallback: look for any small dollar amount labeled as fee-like
+  if (feesCents === null) {
+    const altFeesPattern = /(?:fees?\s*(?:&|and)?\s*(?:commissions?|charges?)?)\s*:?\s*\$?(\d+(?:\.\d{1,4})?)/i;
+    const altMatch = text.match(altFeesPattern);
+    if (altMatch) {
+      const val = parseFloat(altMatch[1]);
+      if (!isNaN(val) && val > 0) {
+        feesCents = Math.round(val * 100);
+      }
     }
   }
 
