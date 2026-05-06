@@ -1,0 +1,149 @@
+{
+  "description": "Ground truth labels for OCR training images. Verify each entry against the actual screenshot.",
+  "images": {
+    "Screenshot_2026-04-27-11-29-47-14_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": "DSCW",
+      "shares": 300,
+      "pricePerShare": 2.12,
+      "tradeDate": "2026-04-27",
+      "direction": "sell",
+      "feesCents": 583,
+      "notes": "Thndr sell order, DSCW (دايس للملابس الجاهزة)"
+    },
+    "Screenshot_2026-04-27-11-34-57-42_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: check if this is a trade confirmation or app screen"
+    },
+    "Screenshot_2026-04-27-12-45-25-18_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: check if this is a trade confirmation or app screen"
+    },
+    "Screenshot_2026-04-27-12-51-14-16_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": "BONY",
+      "shares": 100,
+      "pricePerShare": 4.40,
+      "tradeDate": "2026-04-27",
+      "direction": "sell",
+      "feesCents": 557,
+      "notes": "Thndr sell order, BONY (بنيان للتنمية والتجارة)"
+    },
+    "Screenshot_2026-04-28-12-12-40-25_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": "SEIG",
+      "shares": 6,
+      "pricePerShare": 197.70,
+      "tradeDate": "2026-04-28",
+      "direction": "buy",
+      "feesCents": 654,
+      "notes": "Thndr buy order, SEIG (السعودية المصرية للاس...)"
+    },
+    "Screenshot_2026-04-30-12-39-22-89_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from April 30"
+    },
+    "Screenshot_2026-05-03-11-19-27-91_a86fcb6efb2e26fa3cf3c2f542a7326f.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 3, batch 1"
+    },
+    "Screenshot_2026-05-03-11-25-46-91_a86fcb6efb2e26fa3cf3c2f542a7326f.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 3, batch 2"
+    },
+    "Screenshot_2026-05-03-11-31-13-14_a86fcb6efb2e26fa3cf3c2f542a7326f.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 3, batch 3"
+    },
+    "Screenshot_2026-05-04-12-55-56-44_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 4"
+    },
+    "Screenshot_2026-05-04-13-44-44-37_a86fcb6efb2e26fa3cf3c2f542a7326f.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 4, batch 2"
+    },
+    "Screenshot_2026-05-05-12-09-50-54_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 5"
+    },
+    "Screenshot_2026-05-05-12-11-40-87_bda0f23cec3455953d76872b6d5ecb7d.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 5, batch 2"
+    },
+    "Screenshot_2026-05-05-12-36-21-10_a86fcb6efb2e26fa3cf3c2f542a7326f.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 5, batch 3"
+    },
+    "Screenshot_2026-05-05-12-44-07-67_a86fcb6efb2e26fa3cf3c2f542a7326f.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 5, batch 4"
+    },
+    "Screenshot_2026-05-05-16-14-31-61_65c94d8b310ec51dc9119f3bb772fae7.jpg": {
+      "ticker": null,
+      "shares": null,
+      "pricePerShare": null,
+      "tradeDate": null,
+      "direction": null,
+      "feesCents": null,
+      "notes": "VERIFY: trade from May 5, batch 5"
+    }
+  }
+}

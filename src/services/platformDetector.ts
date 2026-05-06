@@ -39,7 +39,8 @@ export function detectPlatform(rawText: string): DetectionResult {
     const hasExplicitName = testPlatformPattern(
       signature.platform === 'robinhood' ? '(?:robinhood|\\bRH\\b)' :
       signature.platform === 'webull' ? 'webull' :
-      signature.platform === 'etoro' ? 'etoro' : '',
+      signature.platform === 'etoro' ? 'etoro' :
+      signature.platform === 'thndr' ? 'thndr' : '',
       text
     );
 

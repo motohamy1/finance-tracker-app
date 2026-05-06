@@ -181,7 +181,7 @@ export interface FailedOCRLog {
 }
 
 // ─── AI OCR Enhancement Types ───
-export type Platform = 'robinhood' | 'webull' | 'etoro' | 'generic';
+export type Platform = 'robinhood' | 'webull' | 'etoro' | 'thndr' | 'generic';
 
 export interface PlatformSignature {
   platform: Platform;
@@ -216,6 +216,19 @@ export const PLATFORM_SIGNATURES: PlatformSignature[] = [
       'Stop Loss', 'Take Profit', 'Leverage',
     ],
     confidenceKeywords: ['eToro', 'Investment amount', 'Close Trade', 'Open Trade'],
+  },
+  {
+    platform: 'thndr',
+    textPatterns: [
+      'Thndr', 'thndr',
+      'نوع الطلب', 'طلب شراء', 'طلب بيع',
+      'تفاصيل الطلب', 'وحدات',
+      'الرسوم المتوقعة', 'الاجمالي المتوقع',
+      'نوع الصلاحية', 'تاريخ انتهاء الصلاحية',
+      'سعر محدد', 'ج\\.م',
+      'الوقت',
+    ],
+    confidenceKeywords: ['Thndr', 'نوع الطلب', 'تفاصيل الطلب', 'وحدات', 'الرسوم المتوقعة', 'ج.م'],
   },
 ];
 
