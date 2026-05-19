@@ -219,17 +219,17 @@ export default function InvestmentsScreen() {
     });
   };
 
-  const getPnlForTrade = useCallback(
-    (tradeId: string): number | null => {
-      const pair = pnlPairs.find(
-        (p) => p.buyTradeId === tradeId || p.sellTradeId === tradeId,
-      );
-      if (!pair) return null;
-      if (pair.buyTradeId === tradeId) return -pair.realizedPnlCents;
-      return pair.realizedPnlCents;
-    },
-    [pnlPairs],
-  );
+  // O(1) P&L lookup via precomputed Map — avoids O(n²) scan in render
+  const pnlMap = useMemo(() => {
+    const map = new Map<string, { pnlCents: number; multiplier: number | null }>();
+    for (const pair of pnlPairs) {
+      const invested = pair.buyPriceCents * pair.matchedShares;
+      const multiplier = invested > 0 ? (invested + pair.realizedPnlCents) / invested : null;
+      map.set(pair.buyTradeId, { pnlCents: -pair.realizedPnlCents, multiplier: null });
+      map.set(pair.sellTradeId, { pnlCents: pair.realizedPnlCents, multiplier });
+    }
+    return map;
+  }, [pnlPairs]);
 
   if (!isInitialized || isLoading) {
     return (
@@ -245,15 +245,15 @@ export default function InvestmentsScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         <EmptyState
           icon="trending-up-outline"
-          title="No Trades Yet"
+          title="NO TRADES YET"
           body="Import your first trading screenshot and we'll extract the trade data automatically."
         >
           <View style={styles.previewCard}>
-            <Ionicons name="image-outline" size={40} color="#CBD5E1" />
+            <Ionicons name="image-outline" size={40} color={colors.textMuted} />
             <View style={styles.previewDetails}>
-              <Text style={styles.previewTicker}>AAPL</Text>
-              <Text style={styles.previewMeta}>10 shares · $185.50</Text>
-              <Text style={styles.previewMeta}>Buy · Apr 28, 2026</Text>
+              <Text style={[styles.previewTicker, { color: colors.textSecondary }]}>AAPL</Text>
+              <Text style={[styles.previewMeta, { color: colors.textMuted }]}>10 SHARES · $185.50</Text>
+              <Text style={[styles.previewMeta, { color: colors.textMuted }]}>BUY · APR 28, 2026</Text>
             </View>
           </View>
         </EmptyState>
@@ -264,20 +264,20 @@ export default function InvestmentsScreen() {
           ]}
         >
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, { backgroundColor: colors.primary, borderColor: '#FFFFFF' }]}
             onPress={handleGalleryImport}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
           >
-            <Ionicons name="images-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Import Screenshot</Text>
+            <Ionicons name="images-outline" size={20} color="#0A0A0F" />
+            <Text style={styles.primaryButtonText}>IMPORT SCREENSHOT</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { borderColor: colors.primary }]}
             onPress={handleManualEntry}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
           >
-            <Ionicons name="create-outline" size={20} color="#0891B2" />
-            <Text style={styles.secondaryButtonText}>Enter Manually</Text>
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
+            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>ENTER MANUALLY</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -293,23 +293,18 @@ export default function InvestmentsScreen() {
       <View style={styles.tabBar}>
         <View
           style={[
-            styles.segmentedPill,
+            styles.segmentedControl,
             { backgroundColor: colors.bgCard, borderColor: colors.border },
           ]}
         >
           <TouchableOpacity
-            style={[styles.segment]}
+            style={[
+              styles.segment,
+              activeTab === "holdings" && { backgroundColor: colors.primary },
+            ]}
             onPress={() => setActiveTab("holdings")}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
-            {activeTab === "holdings" && (
-              <View
-                style={[
-                  styles.segmentActiveBg,
-                  { backgroundColor: colors.primary },
-                ]}
-              />
-            )}
             <Text
               style={[
                 styles.segmentText,
@@ -317,30 +312,18 @@ export default function InvestmentsScreen() {
               ]}
               numberOfLines={1}
             >
-              Open
+              OPEN
             </Text>
           </TouchableOpacity>
-          {activeTab !== "pairs" && activeTab !== "holdings" && (
-            <View
-              style={[
-                styles.segmentDivider,
-                { backgroundColor: colors.border },
-              ]}
-            />
-          )}
+          <View style={[styles.segmentDivider, { backgroundColor: colors.border }]} />
           <TouchableOpacity
-            style={[styles.segment]}
+            style={[
+              styles.segment,
+              activeTab === "pairs" && { backgroundColor: colors.primary },
+            ]}
             onPress={() => setActiveTab("pairs")}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
-            {activeTab === "pairs" && (
-              <View
-                style={[
-                  styles.segmentActiveBg,
-                  { backgroundColor: colors.primary },
-                ]}
-              />
-            )}
             <Text
               style={[
                 styles.segmentText,
@@ -348,30 +331,18 @@ export default function InvestmentsScreen() {
               ]}
               numberOfLines={1}
             >
-              Closed
+              CLOSED
             </Text>
           </TouchableOpacity>
-          {activeTab !== "trades" && activeTab !== "pairs" && (
-            <View
-              style={[
-                styles.segmentDivider,
-                { backgroundColor: colors.border },
-              ]}
-            />
-          )}
+          <View style={[styles.segmentDivider, { backgroundColor: colors.border }]} />
           <TouchableOpacity
-            style={[styles.segment]}
+            style={[
+              styles.segment,
+              activeTab === "trades" && { backgroundColor: colors.primary },
+            ]}
             onPress={() => setActiveTab("trades")}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
-            {activeTab === "trades" && (
-              <View
-                style={[
-                  styles.segmentActiveBg,
-                  { backgroundColor: colors.primary },
-                ]}
-              />
-            )}
             <Text
               style={[
                 styles.segmentText,
@@ -379,7 +350,7 @@ export default function InvestmentsScreen() {
               ]}
               numberOfLines={1}
             >
-              Trades
+              TRADES
             </Text>
           </TouchableOpacity>
         </View>
@@ -387,15 +358,15 @@ export default function InvestmentsScreen() {
           style={[
             styles.filterIconButton,
             { backgroundColor: colors.bgCard, borderColor: colors.border },
-            isFiltered && styles.filterIconButtonActive,
+            isFiltered && { backgroundColor: colors.primary, borderColor: '#FFFFFF' },
           ]}
           onPress={() => setShowFilterSheet(true)}
-          activeOpacity={0.7}
+          activeOpacity={0.9}
         >
           <Ionicons
             name="filter"
             size={16}
-            color={isFiltered ? "#FFFFFF" : "#64748B"}
+            color={isFiltered ? '#0A0A0F' : colors.textMuted}
           />
         </TouchableOpacity>
       </View>
@@ -483,28 +454,14 @@ export default function InvestmentsScreen() {
           renderItem={({ item }: { item: Trade }) => {
             const trade = item;
             const paired = pairedTradeIds.has(trade.id);
-            const pnlCents =
-              trade.direction === "sell" ? getPnlForTrade(trade.id) : null;
-            let multiplier: number | null = null;
-            if (pnlCents !== null && trade.direction === "sell") {
-              const pair = pnlPairs.find((p) => p.sellTradeId === trade.id);
-              if (pair) {
-                const buyTrade = trades.find((t) => t.id === pair.buyTradeId);
-                if (buyTrade) {
-                  const invested =
-                    buyTrade.shares * buyTrade.pricePerShareCents;
-                  multiplier =
-                    invested > 0 ? (invested + pnlCents) / invested : null;
-                }
-              }
-            }
+            const pnlData = trade.direction === "sell" ? pnlMap.get(trade.id) : undefined;
             return (
               <TradeCard
                 trade={trade}
                 pnlCents={
-                  trade.direction === "sell" && paired ? pnlCents : null
+                  trade.direction === "sell" && paired ? (pnlData?.pnlCents ?? null) : null
                 }
-                pnlMultiplier={multiplier}
+                pnlMultiplier={trade.direction === "sell" ? (pnlData?.multiplier ?? null) : null}
                 onPress={() => handleTradePress(trade)}
               />
             );
@@ -581,15 +538,17 @@ export default function InvestmentsScreen() {
         style={[
           styles.fab,
           {
-            bottom: Math.max(insets.bottom, 16) + 60 + 20,
+            bottom: Math.max(insets.bottom, 16) + 64 + 20,
             zIndex: 100,
-            elevation: 100,
+            elevation: 0,
+            backgroundColor: colors.primary,
+            borderColor: '#FFFFFF',
           },
         ]}
         onPress={handleFabPress}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color="#0A0A0F" />
       </TouchableOpacity>
 
       <ActionSheetModal
@@ -767,80 +726,72 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
 
-  // Tab bar — segmented pill
+  // Tab bar — brutalist segmented control
   tabBar: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: 16,
     marginVertical: 8,
     gap: 8,
   },
-  segmentedPill: {
+  segmentedControl: {
     flex: 1,
-    flexDirection: "row",
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: "hidden",
+    flexDirection: 'row',
+    borderRadius: 0,
+    borderWidth: 2,
+    overflow: 'hidden',
     minHeight: 44,
+    backgroundColor: '#14141A',
   },
   segment: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 4,
   },
-  segmentActiveBg: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 13,
-    margin: 2,
-  },
   segmentDivider: {
-    width: 1,
-    marginVertical: 10,
+    width: 2,
+    backgroundColor: '#FFFFFF',
   },
   segmentText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#94A3B8",
-    zIndex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B6B78',
+    letterSpacing: 0.5,
   },
   segmentTextActive: {
-    color: "#FFFFFF",
+    color: '#0A0A0F',
+    fontWeight: '800',
   },
   filterIconButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  filterIconButtonActive: {
-    backgroundColor: "#0891B2",
-    borderColor: "#0891B2",
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    backgroundColor: '#14141A',
   },
 
   // Section headers
   sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
   },
   sectionHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   sectionItemContainer: {
@@ -850,141 +801,156 @@ const styles = StyleSheet.create({
 
   // Empty tab
   emptyTab: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 32,
     gap: 8,
   },
   emptyTabTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    color: "#475569",
+    fontWeight: '700',
+    color: '#F0F0F5',
+    letterSpacing: 0.5,
   },
   emptyTabBody: {
     fontSize: 14,
-    color: "#94A3B8",
-    textAlign: "center",
+    color: '#6B6B78',
+    textAlign: 'center',
     lineHeight: 20,
+    fontWeight: '600',
   },
 
   // Existing styles
   emptyActions: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 32,
     paddingBottom: 24,
   },
   primaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    backgroundColor: "#0891B2",
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 12,
-    width: "100%",
-    justifyContent: "center",
+    borderRadius: 0,
+    width: '100%',
+    justifyContent: 'center',
+    borderWidth: 2,
   },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  primaryButtonText: {
+    color: '#0A0A0F',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   secondaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 12,
-    width: "100%",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#0891B2",
+    borderRadius: 0,
+    width: '100%',
+    justifyContent: 'center',
+    borderWidth: 2,
+    backgroundColor: 'transparent',
   },
-  secondaryButtonText: { color: "#0891B2", fontSize: 16, fontWeight: "600" },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   fab: {
-    position: "absolute",
-    bottom: 24,
+    position: 'absolute',
     right: 24,
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: "#0891B2",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    borderRadius: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    borderWidth: 2,
   },
   previewCard: {
     marginTop: 24,
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    width: '100%',
+    backgroundColor: '#1A1A24',
+    borderRadius: 0,
     padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     opacity: 0.6,
     borderWidth: 2,
-    borderColor: "#E2E8F0",
-    borderStyle: "dashed",
+    borderColor: '#FFFFFF',
+    borderStyle: 'dashed',
   },
   previewDetails: { flex: 1, gap: 2 },
-  previewTicker: { fontSize: 18, fontWeight: "700", color: "#64748B" },
-  previewMeta: { fontSize: 13, color: "#94A3B8" },
+  previewTicker: { fontSize: 18, fontWeight: '700', letterSpacing: 0.5 },
+  previewMeta: { fontSize: 13, fontWeight: '600', letterSpacing: 0.3 },
   summaryCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    backgroundColor: '#1A1A24',
+    borderRadius: 0,
     marginHorizontal: 16,
     padding: 16,
     marginBottom: 8,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   summaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  summaryTicker: { fontSize: 20, fontWeight: "700", color: "#0F172A" },
+  summaryTicker: { fontSize: 20, fontWeight: '700', color: '#F0F0F5', letterSpacing: 0.5 },
   summaryMultiplierBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 0,
+    borderWidth: 2,
   },
-  summaryMultiplierGreen: { backgroundColor: "#DCFCE7" },
-  summaryMultiplierRed: { backgroundColor: "#FEE2E2" },
-  summaryMultiplierBadgeText: { fontSize: 14, fontWeight: "700" },
-  summaryMultiplierGreenText: { color: "#059669" },
-  summaryMultiplierRedText: { color: "#DC2626" },
-  summaryRow: { flexDirection: "row", gap: 8 },
+  summaryMultiplierGreen: { backgroundColor: 'rgba(57, 255, 20, 0.1)', borderColor: 'rgba(57, 255, 20, 0.3)' },
+  summaryMultiplierRed: { backgroundColor: 'rgba(255, 0, 0, 0.1)', borderColor: 'rgba(255, 0, 0, 0.3)' },
+  summaryMultiplierBadgeText: { fontSize: 14, fontWeight: '700' },
+  summaryMultiplierGreenText: { color: '#39FF14' },
+  summaryMultiplierRedText: { color: '#FF0000' },
+  summaryRow: { flexDirection: 'row', gap: 8 },
   summaryItem: { flex: 1 },
   summaryLabel: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "#64748B",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    color: '#6B6B78',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   summaryValue: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#0F172A",
+    fontWeight: '700',
+    color: '#F0F0F5',
     marginTop: 2,
   },
-  summaryDivider: { width: 1, backgroundColor: "#F1F5F9" },
-  gain: { color: "#059669" },
-  loss: { color: "#DC2626" },
+  summaryDivider: { width: 2, backgroundColor: '#FFFFFF' },
+  gain: { color: '#39FF14' },
+  loss: { color: '#FF0000' },
   sheetAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#14141A',
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
     padding: 16,
     marginBottom: 12,
     gap: 12,
@@ -992,52 +958,64 @@ const styles = StyleSheet.create({
   sheetActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#ECFEFF",
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 0,
+    backgroundColor: '#0A0A0F',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sheetActionText: { flex: 1 },
-  sheetActionTitle: { fontSize: 16, fontWeight: "600", color: "#0F172A" },
-  sheetActionSubtitle: { fontSize: 13, color: "#64748B", marginTop: 2 },
+  sheetActionTitle: { fontSize: 15, fontWeight: '700', color: '#F0F0F5', letterSpacing: 0.3 },
+  sheetActionSubtitle: { fontSize: 12, color: '#6B6B78', marginTop: 2, fontWeight: '600' },
 
   // Holding trades sheet
   sheetSummary: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#0A0A0F',
   },
-  sheetSummaryLabel: { fontSize: 14, fontWeight: "600" },
+  sheetSummaryLabel: { fontSize: 14, fontWeight: '700', color: '#F0F0F5' },
   sheetSellBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  sheetSellBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
+  sheetSellBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', letterSpacing: 0.3 },
   sheetTradeRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
     gap: 12,
+    backgroundColor: '#0A0A0F',
   },
-  sheetTradeLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sheetTradeLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sheetTradeDirBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
   },
-  sheetTradeDirText: { fontSize: 11, fontWeight: "600" },
-  sheetTradeDate: { fontSize: 12 },
-  sheetTradeRight: { flex: 1, alignItems: "flex-end" },
-  sheetTradeShares: { fontSize: 14, fontWeight: "600" },
-  sheetTradePrice: { fontSize: 12, marginTop: 2 },
+  sheetTradeDirText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  sheetTradeDate: { fontSize: 12, fontWeight: '600' },
+  sheetTradeRight: { flex: 1, alignItems: 'flex-end' },
+  sheetTradeShares: { fontSize: 14, fontWeight: '700' },
+  sheetTradePrice: { fontSize: 12, marginTop: 2, fontWeight: '600' },
 });

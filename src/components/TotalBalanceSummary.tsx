@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useTheme } from '@/services/theme';
+import { FONT_MONO } from '@/utils/typography';
 import { formatCurrency } from '@/utils/format';
 
 export function TotalBalanceSummary() {
@@ -15,9 +16,9 @@ export function TotalBalanceSummary() {
   const formattedTotal = formatCurrency(totalCents);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bgCard }]}>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Total Balance</Text>
-      <Text style={[styles.amount, { color: colors.text }]}>{formattedTotal}</Text>
+    <View style={[styles.container, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>TOTAL BALANCE</Text>
+      <Text style={[styles.amount, { color: colors.text, fontFamily: FONT_MONO }]}>{formattedTotal}</Text>
     </View>
   );
 }
@@ -29,8 +30,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 0,
+    borderWidth: 2,
     marginTop: 8,
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   label: {
     fontSize: 14,

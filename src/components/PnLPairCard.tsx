@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { PnLPair } from '@/types';
 import { useTheme } from '@/services/theme';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { FONT_MONO } from '@/utils/typography';
 
 interface PnLPairCardProps {
   pair: PnLPair;
@@ -18,22 +19,19 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
     ? ((pair.sellPriceCents - pair.buyPriceCents) / pair.buyPriceCents) * 100
     : 0;
 
-  const bgTint = 'rgba(5, 150, 105, 0.15)';
-  const borderTint = 'rgba(5, 150, 105, 0.3)';
-
   const handleEditPress = () => {
     if (!onEditTrade) return;
     Alert.alert(
-      'Edit Trade',
+      'EDIT TRADE',
       'Which side do you want to edit?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'CANCEL', style: 'cancel' },
         {
-          text: 'Edit Buy',
+          text: 'EDIT BUY',
           onPress: () => onEditTrade(pair.buyTradeId),
         },
         {
-          text: 'Edit Sell',
+          text: 'EDIT SELL',
           onPress: () => onEditTrade(pair.sellTradeId),
         },
       ]
@@ -42,19 +40,15 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: bgTint, borderColor: borderTint }]}
+      style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
       onPress={() => setExpanded(!expanded)}
-      activeOpacity={0.7}
+      activeOpacity={0.9}
     >
-      {/* Velvet fabric effects */}
-      <View style={[styles.velvetOverlay, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
-      <View style={[styles.velvetSheen, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
-      <View style={[styles.velvetHighlight, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
       {/* Header: Ticker + P&L percentage badge + Edit */}
       <View style={styles.header}>
         <View style={styles.tickerSection}>
           <Text style={[styles.ticker, { color: colors.text }]}>{pair.ticker}</Text>
-          <Text style={[styles.shares, { color: colors.textSecondary }]}>{pair.matchedShares} shares</Text>
+          <Text style={[styles.shares, { color: colors.textSecondary }]}>{pair.matchedShares} SHARES</Text>
         </View>
         <View style={styles.headerRight}>
           {onEditTrade && (
@@ -69,7 +63,7 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
               <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
-          <View style={[styles.pnlBadge, isPositive ? styles.pnlBadgeGain : styles.pnlBadgeLoss]}>
+          <View style={[styles.pnlBadge, { borderColor: isPositive ? colors.success : colors.danger }]}>
             <Ionicons
               name={isPositive ? 'arrow-up' : 'arrow-down'}
               size={12}
@@ -85,9 +79,9 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
       {/* Buy → Sell visual comparison */}
       <View style={styles.comparisonRow}>
         <View style={styles.side}>
-          <View style={styles.dirBadge}>
-            <Ionicons name="arrow-up-circle-outline" size={14} color="#059669" />
-            <Text style={styles.dirBadgeText}>Buy</Text>
+          <View style={[styles.dirBadge, { borderColor: colors.success }]}>
+            <Ionicons name="arrow-up-circle-outline" size={14} color={colors.success} />
+            <Text style={[styles.dirBadgeText, { color: colors.success }]}>BUY</Text>
           </View>
           <Text style={[styles.price, { color: colors.text }]}>{formatCurrency(pair.buyPriceCents)}</Text>
           <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(pair.buyDate)}</Text>
@@ -98,9 +92,9 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
         </View>
 
         <View style={styles.side}>
-          <View style={[styles.dirBadge, styles.dirBadgeSell]}>
+          <View style={[styles.dirBadge, { borderColor: colors.danger }]}>
             <Ionicons name="arrow-down-circle-outline" size={14} color={colors.danger} />
-            <Text style={[styles.dirBadgeText, styles.dirBadgeTextSell]}>Sell</Text>
+            <Text style={[styles.dirBadgeText, { color: colors.danger }]}>SELL</Text>
           </View>
           <Text style={[styles.price, { color: colors.text }]}>{formatCurrency(pair.sellPriceCents)}</Text>
           <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(pair.sellDate)}</Text>
@@ -108,14 +102,14 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
       </View>
 
       {/* Result row */}
-      <View style={[styles.resultRow, isPositive ? styles.resultGain : styles.resultLoss]}>
+      <View style={[styles.resultRow, { borderTopColor: colors.border }]}>
         <View style={styles.resultLeft}>
           <Ionicons
             name={isPositive ? 'checkmark-circle' : 'close-circle'}
             size={16}
             color={isPositive ? colors.success : colors.danger}
           />
-          <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>Realized P&L</Text>
+          <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>REALIZED P&L</Text>
         </View>
         <Text style={[styles.resultValue, { color: isPositive ? colors.success : colors.danger }]}>
           {isPositive ? '+' : ''}{formatCurrency(Math.abs(pair.realizedPnlCents))}
@@ -123,19 +117,19 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
       </View>
 
       {expanded && (
-        <View style={[styles.details, { borderTopColor: colors.divider }]}>
+        <View style={[styles.details, { borderTopColor: colors.border }]}>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Buy Fees</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>BUY FEES</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>{formatCurrency(pair.buyFeesCents)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Sell Fees</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>SELL FEES</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>{formatCurrency(pair.sellFeesCents)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Held for</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>HELD FOR</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>
-              {Math.max(1, Math.ceil((new Date(pair.sellDate).getTime() - new Date(pair.buyDate).getTime()) / (1000 * 60 * 60 * 24)))} days
+              {Math.max(1, Math.ceil((new Date(pair.sellDate).getTime() - new Date(pair.buyDate).getTime()) / (1000 * 60 * 60 * 24)))} DAYS
             </Text>
           </View>
         </View>
@@ -154,41 +148,36 @@ export function PnLPairCard({ pair, onEditTrade }: PnLPairCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 2,
     padding: 14,
     marginBottom: 8,
     position: 'relative',
     overflow: 'hidden',
-  },
-  velvetOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
-  },
-  velvetSheen: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 2,
-  },
-  velvetHighlight: {
-    position: 'absolute',
-    top: -15,
-    left: -20,
-    width: 120,
-    height: 40,
-    borderRadius: 60,
-    transform: [{ rotate: '-20deg' }],
-    zIndex: 3,
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
-    zIndex: 10,
   },
   tickerSection: {},
-  ticker: { fontSize: 16, fontWeight: '700' },
-  shares: { fontSize: 12, marginTop: 1 },
+  ticker: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  shares: {
+    fontSize: 12,
+    marginTop: 1,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -203,11 +192,15 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 0,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
   },
-  pnlBadgeGain: { backgroundColor: '#DCFCE7' },
-  pnlBadgeLoss: { backgroundColor: '#FEE2E2' },
-  pnlBadgeText: { fontSize: 12, fontWeight: '700' },
+  pnlBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
 
   comparisonRow: {
     flexDirection: 'row',
@@ -215,7 +208,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
     marginBottom: 12,
-    zIndex: 10,
   },
   side: {
     flex: 1,
@@ -226,18 +218,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    backgroundColor: 'transparent',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 2,
   },
-  dirBadgeSell: {
-    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+  dirBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  dirBadgeText: { fontSize: 11, fontWeight: '600', color: '#059669' },
-  dirBadgeTextSell: { color: '#DC2626' },
-  price: { fontSize: 15, fontWeight: '700' },
-  date: { fontSize: 11 },
+  price: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
+  date: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
   arrow: {
     paddingHorizontal: 4,
   },
@@ -247,45 +248,48 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 10,
-    borderTopWidth: 1,
-    zIndex: 10,
+    borderTopWidth: 2,
   },
   resultLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    zIndex: 10,
   },
-  resultGain: { borderTopColor: 'rgba(34, 197, 94, 0.15)' },
-  resultLoss: { borderTopColor: 'rgba(239, 68, 68, 0.15)' },
   resultLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    zIndex: 10,
+    letterSpacing: 0.8,
   },
-  resultValue: { fontSize: 16, fontWeight: '700', zIndex: 10 },
+  resultValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
 
   details: {
     marginTop: 12,
     paddingTop: 12,
-    borderTopWidth: 1,
+    borderTopWidth: 2,
     gap: 6,
-    zIndex: 10,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    zIndex: 10,
   },
-  detailLabel: { fontSize: 13, zIndex: 10 },
-  detailValue: { fontSize: 13, fontWeight: '500', zIndex: 10 },
+  detailLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
   expandHint: {
     alignItems: 'center',
     marginTop: 6,
-    zIndex: 10,
   },
-  gain: { color: '#059669' },
-  loss: { color: '#DC2626' },
 });

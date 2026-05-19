@@ -11,17 +11,24 @@ export function formatCurrency(cents: number, symbol: string = 'EGP'): string {
 /**
  * Format an ISO date string to a short display format.
  * e.g., "2026-04-29" → "Apr 29, 2026"
+ * Uses local timezone to avoid UTC offset shifting the displayed day.
  */
 export function formatDate(isoDate: string): string {
-  const date = new Date(isoDate + 'T00:00:00');
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /**
- * Get today's date as ISO string (YYYY-MM-DD).
+ * Get today's date as ISO string (YYYY-MM-DD) in local timezone.
+ * Avoids UTC midnight issues where negative-offset timezones get "yesterday".
  */
 export function getTodayISO(): string {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**

@@ -45,7 +45,15 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
           <View style={{ flex: 1 }} />
         </TouchableWithoutFeedback>
       </Animated.View>
-      <Animated.View style={[styles.sheet, sheetStyle, { backgroundColor: colors.bgCard, paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
+      <Animated.View style={[
+        styles.sheet,
+        sheetStyle,
+        {
+          backgroundColor: colors.bgCard,
+          borderTopColor: colors.border,
+          paddingBottom: Math.max(insets.bottom, 16) + 16,
+        },
+      ]}>
         <View style={styles.handleContainer}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
@@ -65,8 +73,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopWidth: 3,
     paddingBottom: 34,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -78,12 +85,14 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: 0,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

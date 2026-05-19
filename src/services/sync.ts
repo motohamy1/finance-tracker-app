@@ -136,18 +136,21 @@ function lwwMerge(
 /**
  * Import an array of records into a database table atomically.
  *
- * Uses DELETE ALL + INSERT OR REPLACE within a transaction for atomicity (T-04-10).
+ * By default uses INSERT OR REPLACE only — preserves local records not in the merged set.
+ * When `replaceAll` is true, clears the table first (used for restore operations).
  * Converts camelCase TS keys to snake_case DB column names for the SQL query.
  * Financial values are preserved as integers during import (T-04-07).
  */
-function importTable(table: SyncTable, records: Record<string, unknown>[]): void {
-  if (records.length === 0) return;
+function importTable(table: SyncTable, records: Record<string, unknown>[], replaceAll = false): void {
+  if (records.length === 0 && !replaceAll) return;
 
   const db = getDatabase();
   db.execSync('BEGIN TRANSACTION;');
   try {
-    // Clear existing data for this table
-    db.runSync(`DELETE FROM ${table};`);
+    if (replaceAll) {
+      // Clear existing data for this table (restore path)
+      db.runSync(`DELETE FROM ${table};`);
+    }
 
     // Insert each record with camelCase → snake_case key mapping
     for (const record of records) {
@@ -288,8 +291,9 @@ export async function syncAll(): Promise<{ success: boolean; error?: string }> {
       }
 
       // 3d. Save merged data to local database (atomic transaction)
+      // Use replaceAll=false so local records not in the merge set are preserved
       try {
-        importTable(table, mergedData);
+        importTable(table, mergedData, false);
       } catch (e) {
         console.error(`[sync] Failed to import ${table} to local DB:`, e);
         return { success: false, error: `Failed to import ${table}: ${e instanceof Error ? e.message : 'Unknown error'}` };
@@ -382,7 +386,7 @@ export async function restoreAll(): Promise<{ success: boolean; recordCount: num
       try {
         const remoteData = await downloadJSON(fileId);
         if (remoteData.length > 0) {
-          importTable(table, remoteData as Record<string, unknown>[]);
+          importTable(table, remoteData as Record<string, unknown>[], true);
           totalRecords += remoteData.length;
         }
       } catch (e) {

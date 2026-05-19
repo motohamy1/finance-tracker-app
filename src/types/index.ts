@@ -34,22 +34,24 @@ export interface MoneySource {
   updatedAt: string;       // ISO 8601 timestamp
 }
 
+// ─── Neo-Brutalist Money Source Palette ───
+// Saturated, clashing, unapologetic. No pastels, no softening.
 export const MONEY_SOURCE_PALETTE: readonly string[] = [
-  '#22C55E', // Cash green
-  '#0EA5E9', // Bank sky blue
-  '#14B8A6', // Savings teal
-  '#F43F5E', // Borrowed rose
-  '#A855F7', // Purple-500 (fallback)
-  '#F97316', // Orange-500 (fallback)
-  '#84CC16', // Lime-500 (fallback)
-  '#06B6D4', // Cyan-500 (fallback)
+  '#39FF14', // Neon green
+  '#00E5FF', // Electric cyan
+  '#FF006E', // Hot pink
+  '#FFEA00', // Electric yellow
+  '#FF4500', // Orange-red
+  '#BD00FF', // Electric purple
+  '#00FF9F', // Spring green
+  '#FF3D00', // Deep orange
 ] as const;
 
 export const MONEY_SOURCE_DEFAULTS = [
-  { name: 'Cash', colorHex: '#22C55E', iconName: 'cash-outline' },
-  { name: 'Bank', colorHex: '#0EA5E9', iconName: 'business-outline' },
-  { name: 'Savings', colorHex: '#14B8A6', iconName: 'trending-up-outline' },
-  { name: 'Borrowed', colorHex: '#F43F5E', iconName: 'card-outline' },
+  { name: 'Cash', colorHex: '#39FF14', iconName: 'cash-outline' },
+  { name: 'Bank', colorHex: '#00E5FF', iconName: 'business-outline' },
+  { name: 'Savings', colorHex: '#FF006E', iconName: 'trending-up-outline' },
+  { name: 'Borrowed', colorHex: '#FFEA00', iconName: 'card-outline' },
 ] as const;
 
 /** Supported currencies (EGP default, USD/SAR/AED/EUR as options) */
@@ -82,16 +84,16 @@ export interface Migration {
   sql: string;
 }
 
-// ─── Category Accent Palette (from UI-SPEC color section) ───
+// ─── Neo-Brutalist Category Accent Palette ───
 export const CATEGORY_ACCENT_PALETTE: readonly string[] = [
-  '#0891B2', // Cyan
-  '#7C3AED', // Violet
-  '#059669', // Emerald
-  '#EA580C', // Orange
-  '#DB2777', // Pink
-  '#2563EB', // Blue
-  '#CA8A04', // Amber
-  '#4F46E5', // Indigo
+  '#00E5FF', // Electric cyan
+  '#BD00FF', // Electric purple
+  '#39FF14', // Neon green
+  '#FF4500', // Orange-red
+  '#FF006E', // Hot pink
+  '#00FF9F', // Spring green
+  '#FFEA00', // Electric yellow
+  '#FF3D00', // Deep orange
 ] as const;
 
 export type CategoryAccentColor = typeof CATEGORY_ACCENT_PALETTE[number];

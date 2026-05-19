@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Holding } from '@/types';
 import { useTheme } from '@/services/theme';
 import { formatCurrency } from '@/utils/format';
+import { FONT_MONO } from '@/utils/typography';
 
 interface HoldingCardProps {
   holding: Holding;
@@ -24,41 +25,34 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
   const isProfitable = holding.unrealizedPnlCents !== null && holding.unrealizedPnlCents >= 0;
   const stale = isStale(holding.priceUpdatedAt);
 
-  const bgTint = '#475569';
-  const borderTint = 'rgba(71, 85, 105, 0.5)';
-
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: bgTint, borderColor: borderTint }]}
+      style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.9}
     >
-      {/* Velvet fabric effects */}
-      <View style={[styles.velvetOverlay, { backgroundColor: 'rgba(0,0,0,0.08)' }]} />
-      <View style={[styles.velvetSheen, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
-      <View style={[styles.velvetHighlight, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
       <View style={styles.row}>
         <View style={styles.leftCol}>
           <View style={styles.tickerRow}>
-            <Text style={[styles.ticker, { color: '#FFFFFF' }]}>{holding.ticker}</Text>
+            <Text style={[styles.ticker, { color: colors.text }]}>{holding.ticker}</Text>
             {stale && hasPrice && (
-              <Ionicons name="warning-outline" size={12} color="#D97706" style={styles.staleIcon} />
+              <Ionicons name="warning-outline" size={12} color={colors.warning} style={styles.staleIcon} />
             )}
           </View>
-          <Text style={[styles.shares, { color: 'rgba(255,255,255,0.8)' }]}>{holding.totalShares} shares</Text>
-          <Text style={[styles.costBasis, { color: 'rgba(255,255,255,0.65)' }]}>
-            Avg cost: {formatCurrency(holding.averageCostBasisCents)}
+          <Text style={[styles.shares, { color: colors.textSecondary }]}>{holding.totalShares} SHARES</Text>
+          <Text style={[styles.costBasis, { color: colors.textMuted }]}>
+            AVG COST: {formatCurrency(holding.averageCostBasisCents)}
           </Text>
         </View>
         <View style={styles.rightCol}>
-          <Text style={[styles.priceLabel, { color: 'rgba(255,255,255,0.7)' }]}>Current</Text>
-          <Text style={[styles.priceValue, { color: '#FFFFFF' }]}>
-            {hasPrice ? formatCurrency(holding.currentPriceCents!) : 'Set price'}
+          <Text style={[styles.priceLabel, { color: colors.textSecondary }]}>CURRENT</Text>
+          <Text style={[styles.priceValue, { color: colors.text }]}>
+            {hasPrice ? formatCurrency(holding.currentPriceCents!) : 'SET PRICE'}
           </Text>
         </View>
       </View>
       {hasPrice && (
-        <View style={[styles.pnlRow, { borderTopColor: 'rgba(255,255,255,0.15)' }, isProfitable ? styles.pnlPositive : styles.pnlNegative]}>
+        <View style={[styles.pnlRow, { borderTopColor: colors.border }]}>
           <Ionicons
             name={isProfitable ? 'trending-up' : 'trending-down'}
             size={14}
@@ -74,30 +68,31 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
         </View>
       )}
 
-      {/* Open Position badge + Add Sell CTA */}
-      <View style={[styles.sellSection, { borderTopColor: 'rgba(255,255,255,0.15)' }]}>
-        <View style={styles.awaitingBadge}>
-          <Ionicons name="wallet-outline" size={12} color="#D97706" />
-          <Text style={styles.awaitingText}>{holding.totalShares} share{holding.totalShares !== 1 ? 's' : ''} open</Text>
+      <View style={[styles.sellSection, { borderTopColor: colors.border }]}>
+        <View style={[styles.awaitingBadge, { borderColor: colors.border }]}>
+          <Ionicons name="wallet-outline" size={12} color={colors.warning} />
+          <Text style={[styles.awaitingText, { color: colors.warning }]}>
+            {holding.totalShares} OPEN
+          </Text>
         </View>
         {onAddSell && (
           <TouchableOpacity
-            style={styles.addSellButton}
+            style={[styles.addSellButton, { backgroundColor: colors.danger, borderColor: '#FFFFFF' }]}
             onPress={(e) => {
               e.stopPropagation?.();
               onAddSell(holding.ticker, holding.totalShares, holding.averageCostBasisCents);
             }}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
             <Ionicons name="swap-vertical" size={14} color="#FFFFFF" />
-            <Text style={styles.addSellText}>Add Sell</Text>
+            <Text style={styles.addSellText}>ADD SELL</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {hasPrice && holding.priceUpdatedAt && (
-        <Text style={[styles.updatedAt, { color: 'rgba(255,255,255,0.5)' }, stale && styles.stale]}>
-          Updated {new Date(holding.priceUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        <Text style={[styles.updatedAt, { color: colors.textMuted }, stale && { color: colors.warning }]}>
+          UPDATED {new Date(holding.priceUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </Text>
       )}
     </TouchableOpacity>
@@ -106,105 +101,115 @@ export function HoldingCard({ holding, onPress, onAddSell }: HoldingCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 2,
     padding: 14,
     marginBottom: 8,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  velvetOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
-  },
-  velvetSheen: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 2,
-  },
-  velvetHighlight: {
-    position: 'absolute',
-    top: -15,
-    left: -20,
-    width: 120,
-    height: 40,
-    borderRadius: 60,
-    transform: [{ rotate: '-20deg' }],
-    zIndex: 3,
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    zIndex: 10,
   },
-  leftCol: { flex: 1, zIndex: 10 },
-  rightCol: { alignItems: 'flex-end', zIndex: 10 },
+  leftCol: { flex: 1 },
+  rightCol: { alignItems: 'flex-end' },
   tickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginBottom: 2,
   },
-  ticker: { fontSize: 16, fontWeight: '700' },
+  ticker: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   staleIcon: { marginLeft: 2 },
-  shares: { fontSize: 13 },
-  costBasis: { fontSize: 12, marginTop: 2 },
-  priceLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
-  priceValue: { fontSize: 14, fontWeight: '600', marginTop: 2 },
+  shares: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  costBasis: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  priceLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  priceValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 2,
+    fontFamily: FONT_MONO,
+  },
   pnlRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginTop: 8,
     paddingTop: 8,
-    borderTopWidth: 1,
-    zIndex: 10,
+    borderTopWidth: 2,
   },
-  pnlPositive: {},
-  pnlNegative: {},
-  pnlText: { fontSize: 13, fontWeight: '600' },
+  pnlText: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
   sellSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 10,
     paddingTop: 10,
-    borderTopWidth: 1,
-    zIndex: 10,
+    borderTopWidth: 2,
   },
   awaitingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'transparent',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 2,
   },
   awaitingText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#D97706',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   addSellButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#DC2626',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 0,
+    borderWidth: 2,
   },
   addSellText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  updatedAt: { fontSize: 11, marginTop: 4 },
-  stale: { color: '#D97706' },
+  updatedAt: {
+    fontSize: 11,
+    marginTop: 4,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
 });

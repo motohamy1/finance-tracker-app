@@ -1,4 +1,5 @@
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTheme } from '@/services/theme';
 
 interface TickerChipsProps {
   tickers: string[];
@@ -7,6 +8,8 @@ interface TickerChipsProps {
 }
 
 export function TickerChips({ tickers, selected, onSelect }: TickerChipsProps) {
+  const { colors } = useTheme();
+
   return (
     <ScrollView
       horizontal
@@ -14,22 +17,36 @@ export function TickerChips({ tickers, selected, onSelect }: TickerChipsProps) {
       contentContainerStyle={styles.container}
     >
       <TouchableOpacity
-        style={[styles.chip, !selected && styles.chipActive]}
+        style={[
+          styles.chip,
+          { borderColor: !selected ? colors.primary : colors.border },
+          !selected && { backgroundColor: colors.primary },
+        ]}
         onPress={() => onSelect(null)}
-        activeOpacity={0.7}
+        activeOpacity={0.9}
       >
-        <Text style={[styles.chipText, !selected && styles.chipTextActive]}>All</Text>
+        <Text style={[
+          styles.chipText,
+          { color: !selected ? colors.textInverse : colors.textSecondary },
+        ]}>ALL</Text>
       </TouchableOpacity>
       {tickers.map(ticker => {
         const isActive = selected === ticker;
         return (
           <TouchableOpacity
             key={ticker}
-            style={[styles.chip, isActive && styles.chipActive]}
+            style={[
+              styles.chip,
+              { borderColor: isActive ? colors.primary : colors.border },
+              isActive && { backgroundColor: colors.primary },
+            ]}
             onPress={() => onSelect(isActive ? null : ticker)}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
-            <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+            <Text style={[
+              styles.chipText,
+              { color: isActive ? colors.textInverse : colors.textSecondary },
+            ]}>
               {ticker}
             </Text>
           </TouchableOpacity>
@@ -48,18 +65,14 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-  },
-  chipActive: {
-    backgroundColor: '#0891B2',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

@@ -3,12 +3,14 @@ import TextRecognition from "@react-native-ml-kit/text-recognition";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 
-// Track cancellation state
-let cancelled = false;
+// Per-operation cancellation controller
+let activeController: { cancelled: boolean } | null = null;
 
 /** Cancel any in-progress OCR operation */
 export function cancelOCR(): void {
-  cancelled = true;
+  if (activeController) {
+    activeController.cancelled = true;
+  }
 }
 
 /**
@@ -63,80 +65,88 @@ async function standardizeImageUri(uri: string): Promise<string> {
  * @throws If image format is unsupported or OCR fails entirely
  */
 export async function processScreenshot(imageUri: string): Promise<OCRResult> {
-  cancelled = false;
+  const controller = { cancelled: false };
+  activeController = controller;
 
-  // ─── Step 1: Standardize and Validate image ───
-  let safeUri = await standardizeImageUri(imageUri);
+  // Temp files to clean up on any exit path
+  let safeUri: string | null = null;
+  let downscaled: { uri: string } | null = null;
 
   try {
-    const fileInfo = await FileSystem.getInfoAsync(safeUri);
-    if (!fileInfo.exists) {
-      // If safeUri claims to not exist, check original
-      const origInfo = await FileSystem.getInfoAsync(imageUri);
-      if (!origInfo.exists) {
-        throw new Error("Image file not found");
+    // ─── Step 1: Standardize and Validate image ───
+    safeUri = await standardizeImageUri(imageUri);
+
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(safeUri);
+      if (!fileInfo.exists) {
+        // If safeUri claims to not exist, check original
+        const origInfo = await FileSystem.getInfoAsync(imageUri);
+        if (!origInfo.exists) {
+          throw new Error("Image file not found");
+        }
+        safeUri = imageUri;
+      } else if (fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
+        console.warn("Large image may be slow to process");
       }
-      safeUri = imageUri;
-    } else if (fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
-      console.warn("Large image may be slow to process");
+    } catch (err) {
+      // If getInfoAsync throws due to encoding bugs, proceed to manipulation anyway
+      console.warn("getInfoAsync failed, proceeding anyway", err);
     }
-  } catch (err) {
-    // If getInfoAsync throws due to encoding bugs, proceed to manipulation anyway
-    console.warn("getInfoAsync failed, proceeding anyway", err);
-  }
 
-  // ─── Step 2: Downscale image (D-09: max 1200px longest edge) ───
-  const MAX_EDGE = 1200;
-  let downscaled;
-  try {
-    downscaled = await ImageManipulator.manipulateAsync(
-      safeUri,
-      [{ resize: { width: MAX_EDGE } }], // aspect ratio preserved
-      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
-    );
-  } catch (error) {
-    throw new Error(
-      `Could not load the image: ${safeUri}\n\nTried URIs:\n1. ${imageUri}\n2. ${safeUri}\n\nLast error: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
-  }
+    // ─── Step 2: Downscale image (D-09: max 1200px longest edge) ───
+    const MAX_EDGE = 1200;
+    try {
+      downscaled = await ImageManipulator.manipulateAsync(
+        safeUri,
+        [{ resize: { width: MAX_EDGE } }], // aspect ratio preserved
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+      );
+    } catch (error) {
+      throw new Error(
+        `Could not load the image: ${safeUri}\n\nTried URIs:\n1. ${imageUri}\n2. ${safeUri}\n\nLast error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
 
-  if (cancelled) {
-    throw new Error("OCR cancelled by user");
-  }
+    if (controller.cancelled) {
+      throw new Error("OCR cancelled by user");
+    }
 
-  // ─── Step 3: Run ML Kit text recognition ───
-  let rawText: string;
-  try {
-    const result = await TextRecognition.recognize(downscaled.uri);
-    rawText = result.text || "";
+    // ─── Step 3: Run ML Kit text recognition ───
+    let rawText: string;
+    try {
+      const result = await TextRecognition.recognize(downscaled.uri);
+      rawText = result.text || "";
 
-    // Also collect block-level text for better structure
-    if (result.blocks) {
-      for (const block of result.blocks) {
-        if (block.text) rawText += "\n" + block.text;
+      // Also collect block-level text for better structure
+      if (result.blocks) {
+        for (const block of result.blocks) {
+          if (block.text) rawText += "\n" + block.text;
+        }
       }
+    } catch (error) {
+      throw new Error(
+        `OCR processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
-  } catch (error) {
-    throw new Error(
-      `OCR processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+
+    if (controller.cancelled) {
+      throw new Error("OCR cancelled by user");
+    }
+
+    // ─── Step 4: Parse extracted text into structured fields ───
+    const parsed = parseTradeFromText(rawText);
+
+    return parsed;
+  } finally {
+    // ─── Cleanup: delete all temp files on any exit path ───
+    if (downscaled?.uri && downscaled.uri !== imageUri) {
+      FileSystem.deleteAsync(downscaled.uri, { idempotent: true }).catch(() => {});
+    }
+    if (safeUri && safeUri !== imageUri) {
+      FileSystem.deleteAsync(safeUri, { idempotent: true }).catch(() => {});
+    }
+    activeController = null;
   }
-
-  if (cancelled) {
-    throw new Error("OCR cancelled by user");
-  }
-
-  // ─── Step 4: Parse extracted text into structured fields ───
-  const parsed = parseTradeFromText(rawText);
-
-  // ─── Step 5: Clean up downscaled temp file ───
-  if (downscaled.uri !== imageUri) {
-    FileSystem.deleteAsync(downscaled.uri, { idempotent: true }).catch(
-      () => {},
-    );
-  }
-
-  return parsed;
 }
 
 /**

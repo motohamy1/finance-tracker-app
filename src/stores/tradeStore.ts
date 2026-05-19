@@ -4,7 +4,7 @@ import { DEFAULT_INVESTMENT_KINDS } from '@/types';
 import {
   getAllTrades, createTrade as dbCreateTrade,
   updateTrade as dbUpdateTrade, deleteTrade as dbDeleteTrade,
-  upsertCurrentPrice, getAllCurrentPrices,
+  upsertCurrentPrice, getAllCurrentPrices, deleteCurrentPrice,
 } from '@/services/database';
 import { calculatePnLPairs, calculateHoldings } from '@/services/pnl';
 import { generateUUID, getTodayISO } from '@/utils/format';
@@ -89,9 +89,9 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
       data.tradeDate || getTodayISO(),
       data.direction,
       feesCents,
-      data.assetType || null,
+      null, // thumbnailUri
       data.notes?.trim() || null,
-      null
+      data.assetType || null
     );
 
     set({ trades: [trade, ...get().trades] });
@@ -118,8 +118,21 @@ export const useTradeStore = create<TradeStoreState>((set, get) => ({
   },
 
   removeTrade: (tradeId) => {
+    const trade = get().trades.find((t) => t.id === tradeId);
     dbDeleteTrade(tradeId);
-    set({ trades: get().trades.filter((t) => t.id !== tradeId) });
+    const remainingTrades = get().trades.filter((t) => t.id !== tradeId);
+    set({ trades: remainingTrades });
+
+    // Prune currentPrices for tickers with no remaining open positions
+    if (trade) {
+      const hasRemainingTrades = remainingTrades.some((t) => t.ticker === trade.ticker);
+      if (!hasRemainingTrades) {
+        deleteCurrentPrice(trade.ticker);
+        const prices = { ...get().currentPrices };
+        delete prices[trade.ticker];
+        set({ currentPrices: prices });
+      }
+    }
   },
 
   updateCurrentPrice: (ticker, priceCents) => {

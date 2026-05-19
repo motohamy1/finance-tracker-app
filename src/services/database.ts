@@ -1,6 +1,7 @@
 import { getDatabase } from '@/db/schema';
 import type { Category, Expense, MoneySource, Trade, TradeDirection, FailedOCRLog } from '@/types';
 import { generateUUID } from '@/utils/format';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // ─── Category Operations ───
 
@@ -310,6 +311,13 @@ export function updateTrade(
 
 export function deleteTrade(id: string): void {
   const db = getDatabase();
+  // Clean up thumbnail file to prevent storage bloat
+  const row = db.getFirstSync<{ thumbnail_uri: string | null }>(
+    'SELECT thumbnail_uri FROM trades WHERE id = ?;', [id]
+  );
+  if (row?.thumbnail_uri) {
+    FileSystem.deleteAsync(row.thumbnail_uri, { idempotent: true }).catch(() => {});
+  }
   db.runSync('DELETE FROM trades WHERE id = ?;', [id]);
 }
 
@@ -335,6 +343,24 @@ function rowToFailedOCRLog(row: FailedOCRLogRow): FailedOCRLog {
   };
 }
 
+/**
+ * Prune old failed OCR logs to prevent unbounded growth.
+ * Keeps the most recent 100 entries and deletes anything older than 30 days.
+ */
+export function pruneFailedOCRLogs(): void {
+  const db = getDatabase();
+  // Delete records older than 30 days
+  db.runSync(
+    "DELETE FROM failed_ocr_log WHERE created_at < datetime('now', '-30 days');"
+  );
+  // Cap to the most recent 100 records
+  db.runSync(
+    `DELETE FROM failed_ocr_log WHERE id NOT IN (
+      SELECT id FROM failed_ocr_log ORDER BY created_at DESC LIMIT 100
+    );`
+  );
+}
+
 export function logFailedOCR(imageUri: string, rawText: string, errorMessage: string): FailedOCRLog {
   const db = getDatabase();
   const id = generateUUID();
@@ -343,13 +369,15 @@ export function logFailedOCR(imageUri: string, rawText: string, errorMessage: st
     'INSERT INTO failed_ocr_log (id, image_uri, raw_text, error_message, created_at) VALUES (?, ?, ?, ?, ?);',
     [id, imageUri, rawText, errorMessage, now]
   );
+  // Prevent unbounded table growth
+  pruneFailedOCRLogs();
   return { id, imageUri, rawText, errorMessage, createdAt: now };
 }
 
 export function getFailedOCRLogs(): FailedOCRLog[] {
   const db = getDatabase();
   const rows = db.getAllSync<FailedOCRLogRow>(
-    'SELECT * FROM failed_ocr_log ORDER BY created_at DESC;'
+    'SELECT * FROM failed_ocr_log ORDER BY created_at DESC LIMIT 100;'
   );
   return rows.map(rowToFailedOCRLog);
 }
@@ -371,6 +399,11 @@ export function upsertCurrentPrice(ticker: string, priceCents: number): void {
        updated_at = excluded.updated_at;`,
     [ticker, priceCents]
   );
+}
+
+export function deleteCurrentPrice(ticker: string): void {
+  const db = getDatabase();
+  db.runSync('DELETE FROM current_prices WHERE ticker = ?;', [ticker]);
 }
 
 export function getAllCurrentPrices(): Record<string, { priceCents: number; updatedAt: string }> {

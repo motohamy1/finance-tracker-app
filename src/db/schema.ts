@@ -125,6 +125,13 @@ const MIGRATIONS: Migration[] = [
 export function runMigrations(): void {
   const database = getDatabase();
 
+  // Checkpoint WAL to prevent unbounded -wal/-shm file growth under heavy write load
+  try {
+    database.execSync('PRAGMA wal_checkpoint(TRUNCATE);');
+  } catch {
+    // Non-fatal: WAL checkpoint is best-effort
+  }
+
   database.execSync(`
     CREATE TABLE IF NOT EXISTS _migrations (
       version INTEGER PRIMARY KEY NOT NULL,

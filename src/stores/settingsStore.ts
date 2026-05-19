@@ -133,8 +133,13 @@ export const useSettingsStore = create<SyncState & { theme: ThemeMode; isOverlay
       const storedTheme = await AsyncStorage.getItem('@finance_tracker/theme');
       const theme = (storedTheme === 'light' || storedTheme === 'dark') ? storedTheme : 'dark';
 
+      // 7. Load sync enabled preference from AsyncStorage (default: false per D-07)
+      const storedSyncEnabled = await AsyncStorage.getItem('@finance_tracker/sync_enabled');
+      const isSyncEnabled = storedSyncEnabled === 'true';
+
       set({
         isAuthenticated: authed,
+        isSyncEnabled,
         googleEmail: email,
         restoreAvailable: restoreAvail,
         syncLogs,
@@ -189,6 +194,7 @@ export const useSettingsStore = create<SyncState & { theme: ThemeMode; isOverlay
       // Even on error, reset state — SecureStore is already cleared by auth service
     }
 
+    AsyncStorage.removeItem('@finance_tracker/sync_enabled').catch(console.error);
     set({
       isAuthenticated: false,
       isSyncEnabled: false,
@@ -203,9 +209,11 @@ export const useSettingsStore = create<SyncState & { theme: ThemeMode; isOverlay
 
   /**
    * Toggle sync on/off (D-07: user must explicitly enable).
+   * Persisted to AsyncStorage so it survives app restarts.
    */
   setSyncEnabled: (enabled: boolean) => {
     set({ isSyncEnabled: enabled });
+    AsyncStorage.setItem('@finance_tracker/sync_enabled', String(enabled)).catch(console.error);
   },
 
   /**

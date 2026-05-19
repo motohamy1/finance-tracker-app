@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '@/services/theme';
+import { FONT_MONO } from '@/utils/typography';
 import { useExpenseStore } from '@/stores/expenseStore';
 
 export function BalanceCard() {
+  const { colors } = useTheme();
   const expensesByCategory = useExpenseStore((s) => s.expensesByCategory);
 
   const totalCents = Object.values(expensesByCategory).reduce((acc, catExpenses) => {
@@ -16,13 +19,13 @@ export function BalanceCard() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
         <View style={styles.cardContent}>
-          <Text style={styles.label}>Total Balance</Text>
-          <Text style={styles.amount}>{totalAmount}</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>TOTAL BALANCE</Text>
+          <Text style={[styles.amount, { color: colors.text, fontFamily: FONT_MONO }]}>{totalAmount}</Text>
           <View style={styles.footer}>
-            <Text style={styles.cardNumber}>**** **** **** 1234</Text>
-            <View style={styles.chip} />
+            <Text style={[styles.cardNumber, { color: colors.textMuted, fontFamily: FONT_MONO }]}>**** **** **** 1234</Text>
+            <View style={[styles.chip, { backgroundColor: colors.primary }]} />
           </View>
         </View>
       </View>
@@ -32,19 +35,17 @@ export function BalanceCard() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 16,
   },
   card: {
     height: 180,
-    backgroundColor: '#0891B2',
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderWidth: 3,
+    borderRadius: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
     overflow: 'hidden',
   },
   cardContent: {
@@ -53,14 +54,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   label: {
-    color: '#E0F2FE',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   amount: {
-    color: '#FFFFFF',
     fontSize: 32,
     fontWeight: 'bold',
   },
@@ -70,16 +69,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardNumber: {
-    color: '#E0F2FE',
     fontSize: 16,
     letterSpacing: 2,
-    fontFamily: 'monospace',
   },
   chip: {
     width: 40,
     height: 30,
-    backgroundColor: '#FFD700',
-    borderRadius: 4,
-    opacity: 0.8,
+    borderRadius: 0,
   },
 });

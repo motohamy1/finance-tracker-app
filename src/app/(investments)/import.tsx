@@ -41,30 +41,22 @@ export default function ImportScreen() {
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
-      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
       let uri = result.assets[0].uri;
 
-      // Use the picker's base64 to write to a safe cache directory
-      // This bypasses Expo Go's Android path double-encoding bugs completely
-      if (result.assets[0].base64) {
-        try {
-          const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-          const cleanUri = `${FileSystem.cacheDirectory}ocr-import-${Date.now()}.${ext}`;
-          
-          await FileSystem.writeAsStringAsync(cleanUri, result.assets[0].base64, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          uri = cleanUri;
-        } catch (_err) {
-          console.warn('Failed to save clean copy, using original URI:', _err);
-        }
+      // Copy to a safe cache directory to avoid Expo Go Android path encoding bugs
+      try {
+        const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+        const cleanUri = `${FileSystem.cacheDirectory}ocr-import-${Date.now()}.${ext}`;
+        await FileSystem.copyAsync({ from: uri, to: cleanUri });
+        uri = cleanUri;
+      } catch (_err) {
+        console.warn('Failed to copy to cache, using original URI:', _err);
       }
 
-      // Check file size and warn if > 20MB (D-30) — wrapped in try/catch
-      // since getInfoAsync can fail on encoded URIs
+      // Check file size and warn if > 20MB (D-30)
       try {
         const fileInfo = await FileSystem.getInfoAsync(uri);
         if (fileInfo.exists && fileInfo.size && fileInfo.size > 20 * 1024 * 1024) {
@@ -236,68 +228,78 @@ export default function ImportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1, backgroundColor: '#0A0A0F' },
   backButton: {
     position: 'absolute', top: Platform.OS === 'ios' ? 60 : 40, left: 16, zIndex: 10,
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF',
+    width: 40, height: 40, borderRadius: 0, backgroundColor: '#FFFFFF',
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#0A0A0F',
   },
   fullImage: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center', alignItems: 'center',
   },
   progressCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 32,
+    backgroundColor: '#1A1A24', borderRadius: 0, padding: 32,
     alignItems: 'center', gap: 12, marginHorizontal: 32,
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  progressTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A' },
-  progressSubtitle: { fontSize: 14, color: '#64748B' },
-  successTitle: { fontSize: 18, fontWeight: '600', color: '#059669', marginTop: 8 },
+  progressTitle: { fontSize: 18, fontWeight: '700', color: '#F0F0F5', letterSpacing: 0.3 },
+  progressSubtitle: { fontSize: 14, color: '#6B6B78', fontWeight: '600' },
+  successTitle: { fontSize: 18, fontWeight: '700', color: '#39FF14', marginTop: 8, letterSpacing: 0.3 },
   continueButton: {
     marginTop: 16,
-    backgroundColor: '#0891B2',
-    borderRadius: 12,
+    backgroundColor: '#00E5FF',
+    borderRadius: 0,
     paddingVertical: 12,
     paddingHorizontal: 32,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  continueButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  continueButtonText: { color: '#0A0A0F', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
   cancelButton: {
     marginTop: 24, paddingHorizontal: 24, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#FFFFFF', borderRadius: 12,
+    borderWidth: 2, borderColor: '#FFFFFF', borderRadius: 0,
   },
-  cancelButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500' },
+  cancelButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   idleContent: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    padding: 32, backgroundColor: '#F0F4F8',
+    padding: 32, backgroundColor: '#0A0A0F',
   },
-  idleTitle: { fontSize: 24, fontWeight: '700', color: '#0F172A', marginTop: 16 },
-  idleBody: { fontSize: 14, color: '#475569', textAlign: 'center', marginTop: 8, lineHeight: 21 },
+  idleTitle: { fontSize: 24, fontWeight: '700', color: '#F0F0F5', marginTop: 16, letterSpacing: 0.5 },
+  idleBody: { fontSize: 14, color: '#6B6B78', textAlign: 'center', marginTop: 8, lineHeight: 21, fontWeight: '600' },
   galleryButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#0891B2', paddingHorizontal: 24, paddingVertical: 14,
-    borderRadius: 12, marginTop: 24,
+    backgroundColor: '#00E5FF', paddingHorizontal: 24, paddingVertical: 14,
+    borderRadius: 0, marginTop: 24,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  galleryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  galleryButtonText: { color: '#0A0A0F', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
-  errorTitle: { fontSize: 20, fontWeight: '600', color: '#0F172A', marginTop: 16 },
-  errorBody: { fontSize: 14, color: '#475569', textAlign: 'center', marginTop: 8, marginBottom: 16 },
+  errorTitle: { fontSize: 20, fontWeight: '700', color: '#F0F0F5', marginTop: 16, letterSpacing: 0.3 },
+  errorBody: { fontSize: 14, color: '#6B6B78', textAlign: 'center', marginTop: 8, marginBottom: 16, fontWeight: '600' },
   errorPreview: {
-    width: '100%', height: 200, borderRadius: 12,
-    marginBottom: 16, backgroundColor: '#1E293B',
+    width: '100%', height: 200, borderRadius: 0,
+    marginBottom: 16, backgroundColor: '#1A1A24',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   retryButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#0891B2', paddingHorizontal: 24, paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: '#00E5FF', paddingHorizontal: 24, paddingVertical: 14,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  retryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  retryButtonText: { color: '#0A0A0F', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
   manualButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12,
-    marginTop: 12, borderWidth: 1, borderColor: '#0891B2',
+    paddingHorizontal: 24, paddingVertical: 14, borderRadius: 0,
+    marginTop: 12, borderWidth: 2, borderColor: '#00E5FF',
   },
-  manualButtonText: { color: '#0891B2', fontSize: 16, fontWeight: '600' },
+  manualButtonText: { color: '#00E5FF', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 });

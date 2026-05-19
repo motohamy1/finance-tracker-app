@@ -25,28 +25,32 @@ export function ActionSheetModal({ visible, onClose, title, options }: ActionShe
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       {/* Full-screen backdrop */}
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose}>
         <View />
       </Pressable>
 
       {/* Sheet positioned at bottom, above backdrop */}
-      <View style={[styles.sheet, { backgroundColor: colors.bgCard, paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
+      <View style={[styles.sheet, {
+        backgroundColor: colors.bgCard,
+        borderColor: colors.border,
+        borderTopWidth: 3,
+        paddingBottom: Math.max(insets.bottom, 0) + 16,
+      }]}>
         {title && (
-          <Text style={[styles.title, { color: colors.textSecondary }]}>{title}</Text>
+          <Text style={[styles.title, { color: colors.textSecondary }]}>{title.toUpperCase()}</Text>
         )}
         {options.map((opt, i) => (
           <TouchableOpacity
             key={i}
             style={[
               styles.option,
-              i < options.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.divider },
+              i < options.length - 1 && { borderBottomWidth: 2, borderBottomColor: colors.border },
             ]}
             onPress={() => {
               onClose();
-              // Defer callback so modal close animation can start
               setTimeout(() => opt.onPress(), 0);
             }}
-            activeOpacity={0.6}
+            activeOpacity={0.9}
           >
             {opt.icon && (
               <Ionicons
@@ -61,16 +65,16 @@ export function ActionSheetModal({ visible, onClose, title, options }: ActionShe
                 { color: opt.destructive ? colors.danger : colors.text },
               ]}
             >
-              {opt.label}
+              {opt.label.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}
         <TouchableOpacity
-          style={[styles.cancelButton, { backgroundColor: colors.bgInput }]}
+          style={[styles.cancelButton, { backgroundColor: colors.bgInput, borderColor: colors.border }]}
           onPress={onClose}
-          activeOpacity={0.7}
+          activeOpacity={0.9}
         >
-          <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
+          <Text style={[styles.cancelText, { color: colors.textSecondary }]}>CANCEL</Text>
         </TouchableOpacity>
       </View>
     </Modal>
@@ -80,23 +84,22 @@ export function ActionSheetModal({ visible, onClose, title, options }: ActionShe
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     paddingHorizontal: 8,
     paddingTop: 8,
   },
   title: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     textAlign: 'center',
     paddingVertical: 12,
   },
@@ -106,21 +109,24 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 0,
   },
   optionText: {
-    fontSize: 17,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   cancelButton: {
-    borderRadius: 14,
+    borderRadius: 0,
+    borderWidth: 2,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
     marginHorizontal: 8,
   },
   cancelText: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

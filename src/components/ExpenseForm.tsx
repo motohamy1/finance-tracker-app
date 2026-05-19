@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Modal, Pressable, KeyboardAvoidingView, Platform, ScrollView, Alert,
+  Modal, Pressable, ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Expense, ExpenseFormData } from '@/types';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useTheme } from '@/services/theme';
+import { FONT_MONO } from '@/utils/typography';
 import { getTodayISO } from '@/utils/format';
 
 interface ExpenseFormProps {
@@ -97,28 +98,27 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.overlay}
-      >
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: colors.bgCard }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
           <ScrollView
             style={styles.scrollArea}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
             <Text style={[styles.heading, { color: colors.text }]}>
-              {isEditing ? 'Edit Expense' : 'New Expense'}
+              {isEditing ? 'EDIT EXPENSE' : 'NEW EXPENSE'}
             </Text>
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>CATEGORY</Text>
             <TouchableOpacity
               style={[styles.selectButton, { backgroundColor: colors.bgInput, borderColor: colors.border }]}
               onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+              activeOpacity={0.9}
             >
               <View style={[styles.colorDot, { backgroundColor: selectedCategory?.colorHex ?? colors.primary }]} />
               <Text style={[styles.selectText, { color: selectedCategory ? colors.text : colors.textMuted }]}>{selectedCategory?.name ?? 'Select category'}</Text>
@@ -130,16 +130,17 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
                 {categories.map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
-                    style={[styles.dropdownItem, cat.id === categoryId && { backgroundColor: colors.divider, borderRadius: 8 }]}
+                    style={[styles.dropdownItem, cat.id === categoryId && { backgroundColor: colors.divider }]}
                     onPress={() => { setCategoryId(cat.id); setShowCategoryPicker(false); }}
+                    activeOpacity={0.9}
                   >
                     <View style={[styles.colorDot, { backgroundColor: cat.colorHex }]} />
                     <Text style={[styles.dropdownItemText, { color: colors.text }]}>{cat.name}</Text>
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.dropdownItem} onPress={() => setShowNewCategoryInput(true)}>
+                <TouchableOpacity style={styles.dropdownItem} onPress={() => setShowNewCategoryInput(true)} activeOpacity={0.9}>
                   <Ionicons name="add" size={18} color={colors.primary} />
-                  <Text style={[styles.dropdownItemText, { color: colors.primary }]}>New Category</Text>
+                  <Text style={[styles.dropdownItemText, { color: colors.primary }]}>NEW CATEGORY</Text>
                 </TouchableOpacity>
                 {showNewCategoryInput && (
                   <View style={styles.newCategoryRow}>
@@ -152,19 +153,19 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
                       onSubmitEditing={handleCreateCategory}
                       autoFocus
                     />
-                    <TouchableOpacity onPress={handleCreateCategory}>
-                      <Text style={{ color: colors.primary, fontWeight: '600' }}>Create</Text>
+                    <TouchableOpacity onPress={handleCreateCategory} activeOpacity={0.9}>
+                      <Text style={{ color: colors.primary, fontWeight: '600' }}>CREATE</Text>
                     </TouchableOpacity>
                   </View>
                 )}
               </View>
             )}
 
-            {/* Money Source Picker — inserted between Category and Title */}
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Money Source (optional)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>MONEY SOURCE (OPTIONAL)</Text>
             <TouchableOpacity
               style={[styles.selectButton, { backgroundColor: colors.bgInput, borderColor: colors.border }]}
               onPress={() => setShowMoneySourcePicker(!showMoneySourcePicker)}
+              activeOpacity={0.9}
             >
               {moneySourceId && selectedMoneySource ? (
                 <>
@@ -181,79 +182,83 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
             </TouchableOpacity>
 
             {showMoneySourcePicker && (
-              <View style={styles.dropdown}>
-                {/* "None" option at top */}
+              <View style={[styles.dropdown, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                 <TouchableOpacity
-                  style={[styles.dropdownItem, moneySourceId === null && styles.dropdownItemActive]}
+                  style={[styles.dropdownItem, moneySourceId === null && { backgroundColor: colors.divider }]}
                   onPress={() => { setMoneySourceId(null); setShowMoneySourcePicker(false); }}
+                  activeOpacity={0.9}
                 >
-                  <View style={[styles.colorDot, { backgroundColor: '#94A3B8' }]} />
-                  <Text style={styles.dropdownItemText}>None</Text>
+                  <View style={[styles.colorDot, { backgroundColor: colors.textMuted }]} />
+                  <Text style={[styles.dropdownItemText, { color: colors.text }]}>None</Text>
                 </TouchableOpacity>
-                {/* All money sources */}
                 {moneySources.map((source) => (
                   <TouchableOpacity
                     key={source.id}
-                    style={[styles.dropdownItem, source.id === moneySourceId && styles.dropdownItemActive]}
+                    style={[styles.dropdownItem, source.id === moneySourceId && { backgroundColor: colors.divider }]}
                     onPress={() => { setMoneySourceId(source.id); setShowMoneySourcePicker(false); }}
+                    activeOpacity={0.9}
                   >
                     <View style={[styles.colorDot, { backgroundColor: source.colorHex }]} />
-                    <Text style={styles.dropdownItemText}>{source.name}</Text>
+                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>{source.name}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
 
-            <Text style={styles.label}>Title</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>TITLE</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
               placeholder="What did you spend on?"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
               value={title}
               onChangeText={setTitle}
               maxLength={100}
             />
 
-            <Text style={styles.label}>Amount</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>AMOUNT</Text>
             <View style={styles.amountRow}>
-              <Text style={styles.currencySymbol}>{selectedMoneySource?.currencySymbol ?? 'EGP'}</Text>
+              <Text style={[styles.currencySymbol, { color: colors.text, fontFamily: FONT_MONO }]}>{selectedMoneySource?.currencySymbol ?? 'EGP'}</Text>
               <TextInput
-                style={[styles.input, styles.amountInput]}
+                style={[styles.input, styles.amountInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text, fontFamily: FONT_MONO }]}
                 placeholder="0.00"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textMuted}
                 value={amountText}
                 onChangeText={setAmountText}
                 keyboardType="decimal-pad"
               />
             </View>
 
-            <Text style={styles.label}>Date</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>DATE</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
               value={date}
               onChangeText={setDate}
             />
 
-            <Text style={styles.label}>Notes (optional)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>NOTES (OPTIONAL)</Text>
             <TextInput
-              style={[styles.input, styles.notesInput]}
+              style={[styles.input, styles.notesInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
               placeholder="Add a note (optional)"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textMuted}
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
             />
-          </ScrollView>
+        </ScrollView>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
-            <Text style={styles.saveButtonText}>
-              {isEditing ? 'Save Changes' : 'Save Expense'}
-            </Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colors.primary }]}
+          onPress={handleSave}
+          activeOpacity={0.9}
+        >
+          <Text style={[styles.saveButtonText, { color: colors.textInverse }]}>
+            {isEditing ? 'SAVE CHANGES' : 'SAVE EXPENSE'}
+          </Text>
+        </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -262,55 +267,61 @@ export function ExpenseForm({ visible, onClose, editingExpense, preselectedCateg
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  backdrop: { ...StyleSheet.absoluteFillObject },
   sheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopWidth: 3,
     maxHeight: '75%',
     minHeight: '50%',
   },
-  handle: { width: 36, height: 5, backgroundColor: '#CBD5E1', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 8 },
+  handle: { width: 36, height: 5, borderRadius: 0, alignSelf: 'center', marginTop: 12, marginBottom: 8 },
   scrollArea: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
-  heading: { fontSize: 20, fontWeight: '700', color: '#0F172A', marginBottom: 8 },
-  label: { fontSize: 12, fontWeight: '500', color: '#475569', marginBottom: -8 },
+  heading: { fontSize: 20, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { fontSize: 12, fontWeight: '500', marginBottom: -8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
-    backgroundColor: '#F8FAFC', borderRadius: 10, padding: 14,
-    fontSize: 16, color: '#0F172A', borderWidth: 1, borderColor: '#E2E8F0',
+    padding: 14,
+    fontSize: 16,
+    borderWidth: 2,
+    borderRadius: 0,
   },
   notesInput: { minHeight: 80 },
   amountRow: { flexDirection: 'row', alignItems: 'center' },
-  currencySymbol: { fontSize: 20, fontWeight: '600', color: '#0F172A', marginRight: 8 },
+  currencySymbol: { fontSize: 20, fontWeight: '600', marginRight: 8 },
   amountInput: { flex: 1 },
   selectButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#F8FAFC', borderRadius: 10, padding: 14,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    padding: 14,
+    borderWidth: 2,
+    borderRadius: 0,
   },
-  selectText: { flex: 1, fontSize: 16, color: '#0F172A' },
+  selectText: { flex: 1, fontSize: 16 },
   dropdown: {
-    backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0',
-    marginTop: 4, padding: 4,
+    borderRadius: 0,
+    borderWidth: 2,
+    marginTop: 4,
+    padding: 4,
   },
   dropdownItem: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 12, paddingHorizontal: 12,
   },
-  dropdownItemActive: { backgroundColor: '#F0F4F8', borderRadius: 8 },
-  dropdownItemText: { fontSize: 16, color: '#0F172A' },
-  colorDot: { width: 8, height: 8, borderRadius: 4 },
+  dropdownItemText: { fontSize: 16 },
+  colorDot: { width: 8, height: 8, borderRadius: 0 },
   newCategoryRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 8, paddingHorizontal: 12,
   },
   newCategoryInput: {
-    flex: 1, backgroundColor: '#F8FAFC', borderRadius: 8,
-    padding: 10, fontSize: 14, borderWidth: 1, borderColor: '#E2E8F0',
+    flex: 1,
+    padding: 10, fontSize: 14,
+    borderWidth: 2,
+    borderRadius: 0,
   },
   saveButton: {
-    backgroundColor: '#0891B2', margin: 16, borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center',
+    margin: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 0,
   },
-  saveButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '600' },
+  saveButtonText: { fontSize: 17, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 });

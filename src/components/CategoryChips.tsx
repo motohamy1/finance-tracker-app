@@ -1,4 +1,5 @@
 import { ScrollView, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTheme } from '@/services/theme';
 
 interface CategoryChipsProps {
   categories: { id: string; label: string; tradeCount: number }[];
@@ -7,6 +8,8 @@ interface CategoryChipsProps {
 }
 
 export function CategoryChips({ categories, selected, onSelect }: CategoryChipsProps) {
+  const { colors } = useTheme();
+
   return (
     <ScrollView
       horizontal
@@ -14,23 +17,39 @@ export function CategoryChips({ categories, selected, onSelect }: CategoryChipsP
       contentContainerStyle={styles.container}
     >
       <TouchableOpacity
-        style={[styles.chip, !selected && styles.chipActive]}
+        style={[
+          styles.chip,
+          !selected && { backgroundColor: colors.primary, borderColor: '#FFFFFF' },
+          selected && { backgroundColor: colors.bgCard, borderColor: colors.border },
+        ]}
         onPress={() => onSelect(null)}
-        activeOpacity={0.7}
+        activeOpacity={0.9}
       >
-        <Text style={[styles.chipText, !selected && styles.chipTextActive]}>All</Text>
+        <Text style={[
+          styles.chipText,
+          !selected && { color: '#0A0A0F' },
+          selected && { color: colors.text },
+        ]}>ALL</Text>
       </TouchableOpacity>
       {categories.map(cat => {
         const isActive = selected === cat.id;
         return (
           <TouchableOpacity
             key={cat.id}
-            style={[styles.chip, isActive && styles.chipActive]}
+            style={[
+              styles.chip,
+              isActive && { backgroundColor: colors.primary, borderColor: '#FFFFFF' },
+              !isActive && { backgroundColor: colors.bgCard, borderColor: colors.border },
+            ]}
             onPress={() => onSelect(isActive ? null : cat.id)}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
-            <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-              {cat.label} {cat.tradeCount > 0 ? `(${cat.tradeCount})` : ''}
+            <Text style={[
+              styles.chipText,
+              isActive && { color: '#0A0A0F' },
+              !isActive && { color: colors.text },
+            ]}>
+              {cat.label.toUpperCase()} {cat.tradeCount > 0 ? ` ${cat.tradeCount}` : ''}
             </Text>
           </TouchableOpacity>
         );
@@ -48,18 +67,12 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-  },
-  chipActive: {
-    backgroundColor: '#0891B2',
+    borderRadius: 0,
+    borderWidth: 2,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/stores/expenseStore';
+import { useTheme } from '@/services/theme';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomSheet } from '@/components/BottomSheet';
 import { MoneySourceCard, MONEY_SOURCE_CARD_WIDTH } from '@/components/MoneySourceCard';
@@ -20,15 +21,16 @@ export interface MoneySourceRowProps {
 
 // ─── Add Source Button (ListFooterComponent) ───
 function AddSourceButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
-      style={styles.addButton}
+      style={[styles.addButton, { borderColor: colors.primary }]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
       accessibilityLabel="Add Money Source"
       accessibilityHint="Opens form to create a new money source"
     >
-      <Ionicons name="add" size={28} color="rgba(255,255,255,0.8)" />
+      <Ionicons name="add" size={28} color={colors.primary} />
     </TouchableOpacity>
   );
 }
@@ -43,6 +45,7 @@ function CreationSheet({
   onClose: () => void;
   onCreate: (name: string, colorHex: string, currencySymbol: string) => void;
 }) {
+  const { colors } = useTheme();
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(MONEY_SOURCE_PALETTE[0]);
   const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
@@ -59,18 +62,18 @@ function CreationSheet({
   }, [name, selectedColor, selectedCurrency, onCreate, onClose]);
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} title="New Money Source">
+    <BottomSheet visible={visible} onClose={onClose} title="NEW MONEY SOURCE">
       <View style={styles.sheetContent}>
         {/* Name input */}
-        <Text style={styles.fieldLabel}>Source Name</Text>
-        <View style={styles.nameInputContainer}>
-          <Ionicons name="wallet-outline" size={20} color="#475569" />
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>SOURCE NAME</Text>
+        <View style={[styles.nameInputContainer, { backgroundColor: colors.bgInput, borderColor: colors.border }]}>
+          <Ionicons name="wallet-outline" size={20} color={colors.textSecondary} />
           <TextInput
-            style={styles.nameInput}
+            style={[styles.nameInput, { color: colors.text }]}
             value={name}
             onChangeText={setName}
             placeholder="Source name"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textMuted}
             autoFocus
             autoCapitalize="words"
             returnKeyType="done"
@@ -78,7 +81,7 @@ function CreationSheet({
         </View>
 
         {/* Color swatch grid */}
-        <Text style={styles.fieldLabel}>Color</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>COLOR</Text>
         <View style={styles.colorGrid}>
           {MONEY_SOURCE_PALETTE.map((color) => (
             <TouchableOpacity
@@ -86,35 +89,39 @@ function CreationSheet({
               style={[
                 styles.colorSwatch,
                 { backgroundColor: color },
-                selectedColor === color && styles.colorSwatchSelected,
+                selectedColor === color && [styles.colorSwatchSelected, { borderColor: colors.border }],
               ]}
               onPress={() => setSelectedColor(color)}
-              accessibilityLabel={`Select color for money source`}
+              accessibilityLabel="Select color for money source"
               accessibilityHint="Tap a color to apply it"
+              activeOpacity={0.9}
             >
               {selectedColor === color && (
-                <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={18} color={colors.textInverse} />
               )}
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Currency selection */}
-        <Text style={styles.fieldLabel}>Currency</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>CURRENCY</Text>
         <View style={styles.currencyRow}>
           {CURRENCIES.map((symbol) => (
             <TouchableOpacity
               key={symbol}
               style={[
                 styles.currencyChip,
-                selectedCurrency === symbol && styles.currencyChipSelected,
+                { backgroundColor: colors.bgInput, borderColor: colors.border },
+                selectedCurrency === symbol && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
               onPress={() => setSelectedCurrency(symbol)}
+              activeOpacity={0.9}
             >
               <Text
                 style={[
                   styles.currencyChipText,
-                  selectedCurrency === symbol && styles.currencyChipTextSelected,
+                  { color: colors.textSecondary },
+                  selectedCurrency === symbol && { color: colors.textInverse },
                 ]}
               >
                 {symbol}
@@ -125,12 +132,16 @@ function CreationSheet({
 
         {/* Create button */}
         <TouchableOpacity
-          style={[styles.createButton, !name.trim() && styles.createButtonDisabled]}
+          style={[
+            styles.createButton,
+            { backgroundColor: colors.primary },
+            !name.trim() && { backgroundColor: colors.textMuted },
+          ]}
           onPress={handleCreate}
           disabled={!name.trim()}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
-          <Text style={styles.createButtonText}>Create</Text>
+          <Text style={[styles.createButtonText, { color: colors.textInverse }]}>CREATE</Text>
         </TouchableOpacity>
       </View>
     </BottomSheet>
@@ -146,14 +157,11 @@ export function MoneySourceRow({ onSelectSource }: MoneySourceRowProps) {
   const [showCreateSheet, setShowCreateSheet] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
-  // Available width accounts for parent FlatList padding (16px each side)
-  const availableWidth = screenWidth - 32;
-  // Total width of all cards + gaps + trailing add button
-  const totalWidth = moneySources.length * (MONEY_SOURCE_CARD_WIDTH + CARD_GAP) + ADD_BUTTON_WIDTH - CARD_GAP;
-  // Center all content when it fits; when scrolling, center the first card on screen
-  const sidePad = totalWidth < availableWidth
-    ? (availableWidth - totalWidth) / 2
-    : (availableWidth - MONEY_SOURCE_CARD_WIDTH) / 2;
+  // Container spans edge-to-edge
+  const availableWidth = screenWidth;
+  
+  // Always center the card based on screen width
+  const sidePad = Math.max(12, (availableWidth - MONEY_SOURCE_CARD_WIDTH) / 2);
 
   const handleCreateSource = useCallback(
     (name: string, colorHex: string, currencySymbol: string) => {
@@ -180,6 +188,11 @@ export function MoneySourceRow({ onSelectSource }: MoneySourceRowProps) {
     );
   }
 
+  // Calculate explicit snap offsets to avoid Android padding bugs with snapToInterval
+  const snapOffsets = moneySources.map((_, i) => i * (MONEY_SOURCE_CARD_WIDTH + CARD_GAP));
+  // Add a final snap point for the "Add" button so it doesn't bounce back
+  snapOffsets.push(moneySources.length * (MONEY_SOURCE_CARD_WIDTH + CARD_GAP));
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -194,9 +207,8 @@ export function MoneySourceRow({ onSelectSource }: MoneySourceRowProps) {
           />
         )}
         showsHorizontalScrollIndicator={false}
-        snapToInterval={MONEY_SOURCE_CARD_WIDTH + CARD_GAP}
+        snapToOffsets={snapOffsets}
         decelerationRate="fast"
-        snapToAlignment="start"
         contentContainerStyle={[
           styles.listContent,
           { paddingHorizontal: sidePad },
@@ -230,10 +242,9 @@ const styles = StyleSheet.create({
   addButton: {
     width: ADD_BUTTON_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 24,
-    backgroundColor: 'rgba(8,145,178,0.15)',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#0891B2',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -246,24 +257,21 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   nameInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
   },
   nameInput: {
     flex: 1,
     fontSize: 16,
-    color: '#0F172A',
   },
   placeholder: {
     color: '#94A3B8',
@@ -276,22 +284,18 @@ const styles = StyleSheet.create({
   colorSwatch: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
   colorSwatchSelected: {
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   createButton: {
-    backgroundColor: '#0891B2',
-    borderRadius: 12,
+    borderRadius: 0,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
@@ -300,9 +304,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   createButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   currencyRow: {
     flexDirection: 'row',
@@ -313,21 +318,11 @@ const styles = StyleSheet.create({
   currencyChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  currencyChipSelected: {
-    backgroundColor: '#0891B2',
-    borderColor: '#0891B2',
+    borderRadius: 0,
+    borderWidth: 2,
   },
   currencyChipText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#475569',
-  },
-  currencyChipTextSelected: {
-    color: '#FFFFFF',
   },
 });

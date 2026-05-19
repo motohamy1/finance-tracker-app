@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform, Modal, Pressable,
+  Alert, Image, Modal, Pressable,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -226,10 +226,7 @@ export default function ReviewScreen() {
   const themedStyles = useMemo(() => getThemedStyles(colors), [colors]);
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -240,7 +237,11 @@ export default function ReviewScreen() {
         }}
       />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         {/* Screenshot preview if available */}
         {params.imageUri && (
           <View style={[styles.imagePreview, { backgroundColor: colors.bgInput }]}>
@@ -699,7 +700,7 @@ export default function ReviewScreen() {
           </View>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -774,45 +775,48 @@ const styles = StyleSheet.create({
   discardText: { fontSize: 16, fontWeight: '500' },
   content: { padding: 16, paddingBottom: 40 },
   imagePreview: {
-    width: '100%', height: 180, borderRadius: 14,
+    width: '100%', height: 180, borderRadius: 0,
     overflow: 'hidden', marginBottom: 16,
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
   image: { width: '100%', height: '100%' },
   card: {
-    borderRadius: 16, padding: 20,
-    elevation: 2, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+    borderRadius: 0, padding: 20,
+    elevation: 0, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, shadowRadius: 0,
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  cardTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 16, letterSpacing: 0.5, textTransform: 'uppercase' },
   fieldRow: {
     flexDirection: 'column', gap: 4,
     paddingVertical: 12, paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderRadius: 8,
+    borderBottomWidth: 2,
+    borderRadius: 0,
+    borderColor: '#FFFFFF',
   },
-  fieldRowWarning: { borderRadius: 8 },
-  fieldRowError: { borderRadius: 8 },
-  label: { fontSize: 12, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldRowWarning: { borderRadius: 0 },
+  fieldRowError: { borderRadius: 0 },
+  label: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
   value: { fontSize: 16, fontWeight: '500' },
-  errorText: { fontSize: 12, marginTop: 2 },
-  warningText: { fontSize: 12, marginTop: 2 },
+  errorText: { fontSize: 12, marginTop: 2, fontWeight: '600' },
+  warningText: { fontSize: 12, marginTop: 2, fontWeight: '600' },
   input: {
     fontSize: 16, fontWeight: '500',
-    borderRadius: 8, padding: 10,
-    borderWidth: 1,
+    borderRadius: 0, padding: 10,
+    borderWidth: 2,
   },
   notesInput: { minHeight: 60, textAlignVertical: 'top' },
 
   toggleRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   toggleOption: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1,
+    gap: 6, paddingVertical: 10, borderRadius: 0,
+    borderWidth: 2,
   },
   toggleBuyActive: {},
   toggleSellActive: {},
-  toggleText: { fontSize: 14, fontWeight: '600' },
-  toggleTextActive: { color: '#FFFFFF' },
+  toggleText: { fontSize: 13, fontWeight: '700', letterSpacing: 0.3 },
+  toggleTextActive: { color: '#0A0A0F' },
 
   confidenceRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -844,7 +848,8 @@ const styles = StyleSheet.create({
   aiPill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 0,
+    borderWidth: 2,
   },
   aiPillHigh: {},
   aiPillLow: {},
@@ -861,9 +866,11 @@ const styles = StyleSheet.create({
   confidenceDot: {
     width: 28,
     height: 18,
-    borderRadius: 9,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
   },
   confidenceDotText: {
     fontSize: 10,
@@ -876,19 +883,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    backgroundColor: 'rgba(0,0,0,0.85)',
   },
   tooltipContent: {
-    borderRadius: 16,
+    borderRadius: 0,
     padding: 24,
     width: '100%',
     maxWidth: 300,
     alignItems: 'center',
     gap: 12,
-    elevation: 8,
+    elevation: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#1A1A24',
   },
   assetTypeScroll: {
     paddingVertical: 8,
@@ -900,8 +911,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 2,
   },
   assetTypeOptionActive: {},
   assetTypeText: {
@@ -923,28 +934,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   tooltipClose: {
-    borderRadius: 10,
+    borderRadius: 0,
     paddingVertical: 10,
     paddingHorizontal: 24,
     marginTop: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#00E5FF',
   },
   tooltipCloseText: {
-    color: '#FFFFFF',
+    color: '#0A0A0F',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 
   // P&L Preview styles
   pnlPreviewCard: {
-    borderRadius: 14,
+    borderRadius: 0,
     padding: 16,
     marginTop: 16,
-    borderWidth: 1,
-    elevation: 2,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    elevation: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    backgroundColor: '#1A1A24',
   },
   pnlPreviewTitle: {
     fontSize: 13,
@@ -970,11 +987,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 2,
   },
   pnlPreviewBuyText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   pnlPreviewSellBadge: {
     flexDirection: 'row',
@@ -982,11 +1001,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 2,
   },
   pnlPreviewSellText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   pnlPreviewPrice: {
     fontSize: 13,
@@ -1016,8 +1037,9 @@ const styles = StyleSheet.create({
   },
 
   saveButton: {
-    borderRadius: 14, paddingVertical: 16,
+    borderRadius: 0, paddingVertical: 16,
     alignItems: 'center', marginTop: 16,
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: '#0A0A0F', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
 });

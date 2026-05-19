@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Trade } from '@/types';
 import { useTheme } from '@/services/theme';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { FONT_MONO } from '@/utils/typography';
 
 interface TradeCardProps {
   trade: Trade;
@@ -15,14 +16,14 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
   const { colors } = useTheme();
   const isBuy = trade.direction === 'buy';
   const directionColor = isBuy ? colors.success : colors.danger;
-  const directionLabel = isBuy ? 'Buy' : 'Sell';
+  const directionLabel = isBuy ? 'BUY' : 'SELL';
   const hasPnl = pnlCents !== null && pnlCents !== undefined;
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.bgCard }]}
+      style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.9}
     >
       <View style={styles.thumbnailContainer}>
         {trade.thumbnailUri ? (
@@ -32,7 +33,7 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.thumbnailPlaceholder, { backgroundColor: colors.bgInput }]}>
+          <View style={[styles.thumbnailPlaceholder, { backgroundColor: colors.bgInput, borderColor: colors.border }]}>
             <Ionicons name="document-text-outline" size={28} color={colors.textMuted} />
           </View>
         )}
@@ -41,13 +42,13 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
       <View style={styles.details}>
         <Text style={[styles.ticker, { color: colors.text }]}>{trade.ticker}</Text>
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
-          {trade.shares} shares · {formatCurrency(trade.pricePerShareCents)}
+          {trade.shares} SHARES · {formatCurrency(trade.pricePerShareCents)}
         </Text>
         <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(trade.tradeDate)}</Text>
       </View>
 
       <View style={styles.rightCol}>
-        <View style={[styles.directionBadge, { backgroundColor: directionColor }]}>
+        <View style={[styles.directionBadge, { backgroundColor: directionColor, borderColor: '#FFFFFF', borderWidth: 2 }]}>
           <Text style={styles.directionText}>{directionLabel}</Text>
         </View>
         <Text style={[styles.totalValue, { color: colors.text }]}>
@@ -67,7 +68,7 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
         )}
         {pnlMultiplier !== null && pnlMultiplier !== undefined && (
           <View style={[styles.multiplierBadge, pnlMultiplier >= 1 ? styles.multiplierGain : styles.multiplierLoss]}>
-            <Text style={[styles.multiplierText, pnlMultiplier >= 1 ? styles.multiplierGainText : styles.multiplierLossText]}>
+            <Text style={[styles.multiplierText, { color: pnlMultiplier >= 1 ? colors.success : colors.danger }]}>
               {pnlMultiplier >= 1 ? '+' : ''}{((pnlMultiplier - 1) * 100).toFixed(1)}%
             </Text>
           </View>
@@ -79,51 +80,109 @@ export function TradeCard({ trade, pnlCents, pnlMultiplier, onPress }: TradeCard
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 0,
+    borderWidth: 2,
     padding: 14,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
   },
   thumbnailContainer: {
-    width: 56, height: 56, borderRadius: 10, overflow: 'hidden',
+    width: 56,
+    height: 56,
+    borderRadius: 0,
+    overflow: 'hidden',
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   thumbnail: { width: 56, height: 56 },
   thumbnailPlaceholder: {
-    width: 56, height: 56, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   details: { flex: 1, gap: 3 },
-  ticker: { fontSize: 18, fontWeight: '700' },
-  meta: { fontSize: 13 },
-  date: { fontSize: 12 },
+  ticker: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  meta: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  date: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
   rightCol: { alignItems: 'flex-end', gap: 6 },
   directionBadge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 0,
   },
-  directionText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
-  totalValue: { fontSize: 16, fontWeight: '700' },
+  directionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0A0A0F',
+    letterSpacing: 0.5,
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
   pnlBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 1,
   },
-  pnlGain: { backgroundColor: 'rgba(5, 150, 105, 0.1)' },
-  pnlLoss: { backgroundColor: 'rgba(220, 38, 38, 0.1)' },
-  pnlText: { fontSize: 11, fontWeight: '700' },
-  multiplierBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  multiplierGain: { backgroundColor: '#DCFCE7' },
-  multiplierLoss: { backgroundColor: '#FEE2E2' },
-  multiplierText: { fontSize: 12, fontWeight: '700' },
-  multiplierGainText: { color: '#059669' },
-  multiplierLossText: { color: '#DC2626' },
+  pnlGain: {
+    backgroundColor: 'rgba(57, 255, 20, 0.1)',
+    borderColor: 'rgba(57, 255, 20, 0.3)',
+  },
+  pnlLoss: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 0, 0, 0.3)',
+  },
+  pnlText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
+  multiplierBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 0,
+    borderWidth: 1,
+  },
+  multiplierGain: {
+    backgroundColor: 'rgba(57, 255, 20, 0.1)',
+    borderColor: 'rgba(57, 255, 20, 0.3)',
+  },
+  multiplierLoss: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 0, 0, 0.3)',
+  },
+  multiplierText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: FONT_MONO,
+  },
 });

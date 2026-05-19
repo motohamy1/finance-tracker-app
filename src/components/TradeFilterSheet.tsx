@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/services/theme';
 import type { TradeDirection } from '@/types';
 
 export interface FilterState {
@@ -18,6 +19,7 @@ interface TradeFilterSheetProps {
 }
 
 export function TradeFilterSheet({ visible, filters, onApply, onClose }: TradeFilterSheetProps) {
+  const { colors } = useTheme();
   const [direction, setDirection] = useState<TradeDirection | 'all'>(filters.direction);
   const [dateFrom, setDateFrom] = useState(filters.dateFrom || '');
   const [dateTo, setDateTo] = useState(filters.dateTo || '');
@@ -54,40 +56,49 @@ export function TradeFilterSheet({ visible, filters, onApply, onClose }: TradeFi
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Filter Trades</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#64748B" />
+      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
+          <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+            <Text style={[styles.title, { color: colors.text }]}>FILTER TRADES</Text>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.9}>
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.body}>
             <View style={styles.section}>
-              <Text style={styles.label}>Search</Text>
-              <View style={styles.searchRow}>
-                <Ionicons name="search" size={16} color="#94A3B8" />
+              <Text style={[styles.label, { color: colors.textSecondary }]}>SEARCH</Text>
+              <View style={[styles.searchRow, { backgroundColor: colors.bgInput, borderColor: colors.border }]}>
+                <Ionicons name="search" size={16} color={colors.textMuted} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { color: colors.text }]}
                   value={search}
                   onChangeText={setSearch}
                   placeholder="Search ticker or notes..."
-                  placeholderTextColor="#CBD5E1"
+                  placeholderTextColor={colors.textMuted}
                 />
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.label}>Direction</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>DIRECTION</Text>
               <View style={styles.toggleRow}>
                 {(['all', 'buy', 'sell'] as const).map(d => (
                   <TouchableOpacity
                     key={d}
-                    style={[styles.toggleOption, direction === d && styles.toggleActive]}
+                    style={[
+                      styles.toggleOption,
+                      { backgroundColor: colors.bgInput, borderColor: colors.border },
+                      direction === d && { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
                     onPress={() => setDirection(d)}
+                    activeOpacity={0.9}
                   >
-                    <Text style={[styles.toggleText, direction === d && styles.toggleTextActive]}>
+                    <Text style={[
+                      styles.toggleText,
+                      { color: colors.textSecondary },
+                      direction === d && { color: colors.textInverse },
+                    ]}>
                       {d === 'all' ? 'All' : d === 'buy' ? 'Buy' : 'Sell'}
                     </Text>
                   </TouchableOpacity>
@@ -96,28 +107,28 @@ export function TradeFilterSheet({ visible, filters, onApply, onClose }: TradeFi
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.label}>Date Range</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>DATE RANGE</Text>
               <View style={styles.dateRow}>
                 <View style={styles.dateField}>
-                  <Text style={styles.dateLabel}>From</Text>
+                  <Text style={[styles.dateLabel, { color: colors.textMuted }]}>FROM</Text>
                   <TextInput
-                    style={styles.dateInput}
+                    style={[styles.dateInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
                     value={dateFrom}
                     onChangeText={setDateFrom}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#CBD5E1"
+                    placeholderTextColor={colors.textMuted}
                     maxLength={10}
                   />
                 </View>
-                <Text style={styles.dateSep}>to</Text>
+                <Text style={[styles.dateSep, { color: colors.textMuted }]}>TO</Text>
                 <View style={styles.dateField}>
-                  <Text style={styles.dateLabel}>To</Text>
+                  <Text style={[styles.dateLabel, { color: colors.textMuted }]}>TO</Text>
                   <TextInput
-                    style={styles.dateInput}
+                    style={[styles.dateInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
                     value={dateTo}
                     onChangeText={setDateTo}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#CBD5E1"
+                    placeholderTextColor={colors.textMuted}
                     maxLength={10}
                   />
                 </View>
@@ -125,14 +136,22 @@ export function TradeFilterSheet({ visible, filters, onApply, onClose }: TradeFi
             </View>
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, { borderTopColor: colors.divider }]}>
             {isFiltered && (
-              <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-                <Text style={styles.resetText}>Reset</Text>
+              <TouchableOpacity
+                style={[styles.resetButton, { borderColor: colors.border }]}
+                onPress={handleReset}
+                activeOpacity={0.9}
+              >
+                <Text style={[styles.resetText, { color: colors.textSecondary }]}>RESET</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.applyButton} onPress={handleApply} activeOpacity={0.8}>
-              <Text style={styles.applyText}>Apply Filters</Text>
+            <TouchableOpacity
+              style={[styles.applyButton, { backgroundColor: colors.primary }]}
+              onPress={handleApply}
+              activeOpacity={0.9}
+            >
+              <Text style={[styles.applyText, { color: colors.textInverse }]}>APPLY FILTERS</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -144,13 +163,10 @@ export function TradeFilterSheet({ visible, filters, onApply, onClose }: TradeFi
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopWidth: 3,
     paddingBottom: 34,
     maxHeight: '70%',
   },
@@ -159,16 +175,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 2,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  title: { fontSize: 18, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   body: { padding: 16 },
   section: { marginBottom: 20 },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -176,65 +190,52 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
     paddingHorizontal: 12,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#0F172A',
     paddingVertical: 10,
   },
   toggleRow: { flexDirection: 'row', gap: 8 },
   toggleOption: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    borderRadius: 0,
     alignItems: 'center',
+    borderWidth: 2,
   },
-  toggleActive: { backgroundColor: '#0891B2' },
-  toggleText: { fontSize: 14, fontWeight: '600', color: '#475569' },
-  toggleTextActive: { color: '#FFFFFF' },
+  toggleText: { fontSize: 14, fontWeight: '600' },
   dateRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   dateField: { flex: 1 },
-  dateLabel: { fontSize: 12, color: '#94A3B8', marginBottom: 4 },
+  dateLabel: { fontSize: 12, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   dateInput: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
   },
-  dateSep: { fontSize: 14, color: '#94A3B8', paddingBottom: 12 },
+  dateSep: { fontSize: 14, paddingBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   footer: {
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopWidth: 2,
     flexDirection: 'row',
     gap: 12,
   },
   resetButton: {
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 0,
+    borderWidth: 2,
   },
-  resetText: { fontSize: 15, fontWeight: '600', color: '#64748B' },
+  resetText: { fontSize: 15, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   applyButton: {
     flex: 1,
-    backgroundColor: '#0891B2',
-    borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
+    borderRadius: 0,
   },
-  applyText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  applyText: { fontSize: 15, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 });

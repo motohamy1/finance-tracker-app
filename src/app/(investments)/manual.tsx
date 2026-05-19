@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -160,10 +159,7 @@ export default function ManualEntryScreen() {
   const toggleTextTheme = { color: colors.text };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -175,7 +171,11 @@ export default function ManualEntryScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
 
         {/* Context banner when selling from a holding */}
         {buyContext && isPrefilledSell && (
@@ -398,7 +398,7 @@ export default function ManualEntryScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -406,31 +406,35 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   fieldGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { fontSize: 12, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 },
   input: {
-    borderRadius: 12, padding: 14,
-    fontSize: 16, borderWidth: 1,
+    borderRadius: 0, padding: 14,
+    fontSize: 16, borderWidth: 2,
+    backgroundColor: '#0A0A0F',
+    color: '#F0F0F5',
   },
-  inputError: { borderColor: '#DC2626', backgroundColor: '#FEF2F2' },
-  inputLocked: { color: '#64748B' },
+  inputError: { borderColor: '#FF0000', backgroundColor: 'rgba(255,0,0,0.08)' },
+  inputLocked: { color: '#6B6B78' },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
-  errorText: { fontSize: 12, color: '#DC2626', marginTop: 4 },
+  errorText: { fontSize: 12, color: '#FF0000', marginTop: 4, fontWeight: '600' },
   toggleRow: { flexDirection: 'row', gap: 8 },
   toggleOption: {
     flex: 1, alignItems: 'center', paddingVertical: 12,
-    borderRadius: 12, borderWidth: 1,
+    borderRadius: 0, borderWidth: 2,
+    backgroundColor: '#1A1A24',
   },
-  toggleBuyActive: { backgroundColor: '#059669', borderColor: '#059669' },
-  toggleSellActive: { backgroundColor: '#DC2626', borderColor: '#DC2626' },
-  toggleText: { fontSize: 15, fontWeight: '600' },
-  toggleTextActive: { color: '#FFFFFF' },
+  toggleBuyActive: { backgroundColor: '#39FF14', borderColor: '#FFFFFF' },
+  toggleSellActive: { backgroundColor: '#FF0000', borderColor: '#FFFFFF' },
+  toggleText: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
+  toggleTextActive: { color: '#0A0A0F' },
   saveButton: {
-    backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 16,
+    backgroundColor: '#00E5FF', borderRadius: 0, paddingVertical: 16,
     alignItems: 'center', marginTop: 8,
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  saveButtonDisabled: { backgroundColor: '#CBD5E1' },
-  saveButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', flexShrink: 1 },
-  saveButtonTextDisabled: { color: '#94A3B8' },
+  saveButtonDisabled: { backgroundColor: '#3A3A45', borderColor: '#3A3A45' },
+  saveButtonText: { color: '#0A0A0F', fontSize: 14, fontWeight: '700', flexShrink: 1, letterSpacing: 0.5 },
+  saveButtonTextDisabled: { color: '#6B6B78' },
   saveRow: {
     flexDirection: 'row',
     gap: 10,
@@ -439,53 +443,58 @@ const styles = StyleSheet.create({
   saveAddButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#0891B2',
-    borderRadius: 14,
+    backgroundColor: '#00E5FF',
+    borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   saveCloseButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#ECFEFF',
-    borderRadius: 14,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    borderWidth: 1,
-    borderColor: '#0891B2',
+    borderWidth: 2,
+    borderColor: '#00E5FF',
   },
-  saveCloseText: { color: '#0891B2', fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  saveCloseText: { color: '#00E5FF', fontSize: 14, fontWeight: '700', flexShrink: 1, letterSpacing: 0.5 },
   savedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#DCFCE7',
-    borderRadius: 10,
+    backgroundColor: 'rgba(57, 255, 20, 0.1)',
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#39FF14',
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginTop: 12,
   },
   savedBannerText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
+    fontWeight: '700',
+    color: '#39FF14',
+    letterSpacing: 0.3,
   },
 
   // Context banner styles
   contextBanner: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255, 0, 0, 0.08)',
+    borderRadius: 0,
     padding: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    borderWidth: 2,
+    borderColor: '#FF0000',
   },
   contextHeader: {
     flexDirection: 'row',
@@ -496,7 +505,8 @@ const styles = StyleSheet.create({
   contextTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#FF0000',
+    letterSpacing: 0.3,
   },
   contextDetails: {
     flexDirection: 'row',
@@ -505,42 +515,42 @@ const styles = StyleSheet.create({
   contextItem: { flex: 1 },
   contextLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
+    fontWeight: '700',
+    color: '#6B6B78',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   contextValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#F0F0F5',
     marginTop: 2,
   },
   contextDivider: {
-    width: 1,
-    backgroundColor: '#FECACA',
+    width: 2,
+    backgroundColor: 'rgba(255,0,0,0.3)',
   },
 
   // P&L Preview styles
   pnlPreviewCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: '#1A1A24',
+    borderRadius: 0,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    elevation: 2,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    elevation: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   pnlPreviewTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B6B78',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
   pnlPreviewRow: {
@@ -558,30 +568,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: 'transparent',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: '#39FF14',
   },
   pnlPreviewBadgeSell: {
-    backgroundColor: '#FEE2E2',
+    borderColor: '#FF0000',
   },
   pnlPreviewBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#059669',
+    fontWeight: '700',
+    color: '#39FF14',
+    letterSpacing: 0.3,
   },
   pnlPreviewBadgeTextSell: {
-    color: '#DC2626',
+    color: '#FF0000',
   },
   pnlPreviewPrice: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: '700',
+    color: '#F0F0F5',
   },
   pnlPreviewDivider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
+    height: 2,
+    backgroundColor: '#FFFFFF',
     marginVertical: 12,
   },
   pnlPreviewResult: {
@@ -591,35 +604,36 @@ const styles = StyleSheet.create({
   },
   pnlPreviewLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
+    fontWeight: '700',
+    color: '#F0F0F5',
   },
   pnlPreviewValue: {
     fontSize: 20,
     fontWeight: '700',
   },
-  gain: { color: '#059669' },
-  loss: { color: '#DC2626' },
+  gain: { color: '#39FF14' },
+  loss: { color: '#FF0000' },
   typeScroll: { marginBottom: 4 },
   typeRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
   typeOption: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: '#1A1A24',
+    borderRadius: 0,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   typeOptionActive: {
-    backgroundColor: '#0891B2',
-    borderColor: '#0891B2',
+    backgroundColor: '#00E5FF',
+    borderColor: '#FFFFFF',
   },
   typeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F0F0F5',
+    letterSpacing: 0.3,
   },
   typeTextActive: {
-    color: '#FFFFFF',
+    color: '#0A0A0F',
   },
 });

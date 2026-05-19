@@ -23,6 +23,50 @@ import { useTheme } from '@/services/theme';
 import { getCategoryLightTint } from '@/types';
 import type { Category, Expense } from '@/types';
 
+// ─── ExpenseRow (memo'd, extracted to avoid nested FlatList measurement issues) ───
+
+const EXPENSE_CARD_WIDTH = 100;
+
+const ExpenseRow = memo(function ExpenseRow({
+  expenses,
+  moneySourceById,
+  onEdit,
+  onLongPress,
+}: {
+  expenses: Expense[];
+  moneySourceById: Record<string, { currencySymbol?: string }>;
+  onEdit: (exp: Expense) => void;
+  onLongPress: (exp: Expense) => void;
+}) {
+  return (
+    <FlatList
+      horizontal
+      data={expenses}
+      keyExtractor={(exp) => exp.id}
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.expenseRow}
+      getItemLayout={(_, index) => ({
+        length: EXPENSE_CARD_WIDTH,
+        offset: EXPENSE_CARD_WIDTH * index,
+        index,
+      })}
+      renderItem={({ item: exp }) => (
+        <TouchableOpacity
+          style={styles.expenseItem}
+          onPress={() => onEdit(exp)}
+          onLongPress={() => onLongPress(exp)}
+        >
+          <Text style={styles.expenseTitle} numberOfLines={1}>{exp.title}</Text>
+          <Text style={styles.expenseAmount}>
+            {moneySourceById[exp.moneySourceId ?? '']?.currencySymbol ?? 'EGP'}{' '}
+            {(exp.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
+});
+
 // ─── CategoryInputBar (memo'd, outside render to prevent remount on keystrokes) ───
 
 const CategoryInputBar = memo(function CategoryInputBar({
@@ -203,8 +247,10 @@ export default function ExpensesScreen() {
   }, [openEditForm, showActionSheet]);
 
   const ListHeader = () => (
-    <View style={[styles.moneySection, { backgroundColor: colors.bgSecondary }]}>
-      <TotalBalanceSummary />
+    <View style={styles.moneySection}>
+      <View style={{ paddingHorizontal: 12 }}>
+        <TotalBalanceSummary />
+      </View>
       <MoneySourceRow onSelectSource={(source) => setSelectedMoneySourceId(source.id)} />
     </View>
   );
@@ -221,36 +267,32 @@ export default function ExpensesScreen() {
   if (categories.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <View style={{ flex: 1 }}>
-          <TotalBalanceSummary />
-          <MoneySourceRow onSelectSource={(source) => setSelectedMoneySourceId(source.id)} />
-          <EmptyState
-            icon="wallet-outline"
-            title="Start Tracking"
-            body="Create your first spending category to begin logging expenses."
-            ctaText={showCategoryInput ? undefined : 'Create Category'}
-            onCtaPress={() => setShowCategoryInput(true)}
-          />
-        </View>
-      </KeyboardAvoidingView>
-
-      {showCategoryInput && (
-        <View style={styles.categoryInputAbsolute}>
-          <CategoryInputBar
-            value={categoryNameInput}
-            onChangeText={setCategoryNameInput}
-            onSubmit={handleCreateCategory}
-            onDismiss={dismissCategoryInput}
-            colors={colors}
-          />
-        </View>
-      )}
-    </SafeAreaView>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 12 }}>
+            <ListHeader />
+            <EmptyState
+              icon="wallet-outline"
+              title="START TRACKING"
+              body="Create your first spending category to begin logging expenses."
+              ctaText={showCategoryInput ? undefined : 'CREATE CATEGORY'}
+              onCtaPress={() => setShowCategoryInput(true)}
+            />
+          </View>
+          {showCategoryInput && (
+            <CategoryInputBar
+              value={categoryNameInput}
+              onChangeText={setCategoryNameInput}
+              onSubmit={handleCreateCategory}
+              onDismiss={dismissCategoryInput}
+              colors={colors}
+            />
+          )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   }
 
@@ -282,11 +324,42 @@ export default function ExpensesScreen() {
           ListHeaderComponent={<ListHeader />}
           data={categories}
           keyExtractor={(item) => item.id}
+          numColumns={2}
           contentContainerStyle={styles.list}
-          ListFooterComponent={
-            showCategoryInput ? null : (
+          columnWrapperStyle={{ justifyContent: 'space-between' }}
+          renderItem={({ item }) => {
+            const expenses = expensesByCategory[item.id] || [];
+            return (
               <TouchableOpacity
-                style={[styles.addCategoryButton, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                style={[styles.categoryBlock, { backgroundColor: item.colorHex, borderColor: '#FFFFFF' }]}
+                onPress={() => openAddForm(item.id)}
+                onLongPress={() => handleCategoryLongPress(item)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.blockHeader}>
+                  <Text style={styles.blockName}>{item.name.toUpperCase()}</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#0A0A0F" />
+                </View>
+
+                {expenses.length === 0 ? (
+                  <View style={styles.emptyBlockContent}>
+                    <Text style={styles.emptyBlockText}>NO EXPENSES</Text>
+                  </View>
+                ) : (
+                  <ExpenseRow
+                    expenses={expenses}
+                    moneySourceById={moneySourceById}
+                    onEdit={openEditForm}
+                    onLongPress={handleExpenseLongPress}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          ListFooterComponent={
+            !showCategoryInput ? (
+              <TouchableOpacity
+                style={[styles.addCategoryButton, { backgroundColor: colors.bgCard, borderColor: colors.border, marginTop: 16 }]}
                 onPress={() => setShowCategoryInput(true)}
                 activeOpacity={0.8}
               >
@@ -295,57 +368,8 @@ export default function ExpensesScreen() {
                   <Text style={[styles.addCategoryText, { color: colors.primary }]}>Create Category</Text>
                 </View>
               </TouchableOpacity>
-            )
+            ) : null
           }
-          renderItem={({ item }) => {
-            const expenses = expensesByCategory[item.id] || [];
-            return (
-              <TouchableOpacity
-                style={[styles.categoryBlock, { backgroundColor: item.colorHex }]}
-                onPress={() => openAddForm(item.id)}
-                onLongPress={() => handleCategoryLongPress(item)}
-                activeOpacity={0.9}
-              >
-                <View style={styles.velvetOverlay} />
-                <View style={styles.velvetSheen} />
-                <View style={styles.velvetHighlight} />
-                <View style={styles.velvetShadow} />
-                <View style={styles.velvetTexture} />
-
-                <View style={styles.blockHeader}>
-                  <Text style={styles.blockName}>{item.name}</Text>
-                  <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
-                </View>
-
-                {expenses.length === 0 ? (
-                  <View style={styles.emptyBlockContent}>
-                    <Text style={styles.emptyBlockText}>No expenses yet</Text>
-                  </View>
-                ) : (
-                  <FlatList
-                    horizontal
-                    data={expenses}
-                    keyExtractor={(exp) => exp.id}
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.expenseRow}
-                    renderItem={({ item: exp }) => (
-                      <TouchableOpacity
-                        style={styles.expenseItem}
-                        onPress={() => openEditForm(exp)}
-                        onLongPress={() => handleExpenseLongPress(exp)}
-                      >
-                        <Text style={styles.expenseTitle} numberOfLines={1}>{exp.title}</Text>
-                        <Text style={styles.expenseAmount}>
-                          {moneySourceById[exp.moneySourceId ?? '']?.currencySymbol ?? 'EGP'}{' '}
-                          {(exp.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                )}
-              </TouchableOpacity>
-            );
-          }}
         />
 
         <ExpenseForm
@@ -366,11 +390,9 @@ export default function ExpensesScreen() {
           title={actionSheetTitle}
           options={actionSheetOptions}
         />
-      </KeyboardAvoidingView>
 
-      {/* CategoryInputBar — absolute, sits above tab bar & keyboard */}
-      {showCategoryInput && (
-        <View style={styles.categoryInputAbsolute}>
+        {/* CategoryInputBar — KeyboardAvoidingView pushes it above keyboard */}
+        {showCategoryInput && (
           <CategoryInputBar
             value={categoryNameInput}
             onChangeText={setCategoryNameInput}
@@ -378,113 +400,81 @@ export default function ExpensesScreen() {
             onDismiss={dismissCategoryInput}
             colors={colors}
           />
-        </View>
-      )}
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { paddingHorizontal: 16, paddingVertical: 12, paddingBottom: 100 },
+  list: { paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 100 },
   categoryBlock: {
-    marginBottom: 16,
-    borderRadius: 24,
+    width: '48%',
+    borderRadius: 0,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
     position: 'relative',
-    backgroundColor: '#334155',
-  },
-  velvetOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.12)',
-  },
-  velvetSheen: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  velvetHighlight: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    width: 300,
-    height: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 150,
-    transform: [{ rotate: '-30deg' }],
-  },
-  velvetShadow: {
-    position: 'absolute',
-    bottom: -20,
-    right: -20,
-    width: 200,
-    height: 200,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    borderRadius: 100,
-  },
-  velvetTexture: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   blockHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 12,
-    zIndex: 2,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   blockName: {
-    color: '#FFFFFF',
-    fontSize: 20,
+    color: '#0A0A0F',
+    fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    flexShrink: 1,
   },
   emptyBlockContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    opacity: 0.6,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    opacity: 0.7,
   },
   emptyBlockText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontStyle: 'italic',
+    color: '#0A0A0F',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   expenseRow: {
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingBottom: 20,
-    zIndex: 2,
-    gap: 10,
+    paddingLeft: 10,
+    paddingRight: 10,
+    paddingBottom: 10,
+    gap: 8,
   },
   expenseItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    minWidth: 120,
-    maxWidth: 160,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#1A1A24',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 0,
+    width: EXPENSE_CARD_WIDTH,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   expenseTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: '#F0F0F5',
+    fontSize: 13,
     fontWeight: '700',
     marginBottom: 4,
+    letterSpacing: 0.3,
   },
   expenseAmount: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    fontWeight: '800',
+    color: '#F0F0F5',
+    fontSize: 15,
+    fontWeight: '700',
   },
   fab: {
     position: 'absolute',
@@ -493,67 +483,74 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 0,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   addCategoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginBottom: 24,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 2,
   },
-  addCategoryText: { fontSize: 16, fontWeight: '600' },
+  addCategoryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   categoryInputBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderTopWidth: 1,
+    borderTopWidth: 3,
+    borderTopColor: '#FFFFFF',
+    backgroundColor: '#14141A',
   },
   categoryInputField: {
     flex: 1,
     fontSize: 16,
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    color: '#F0F0F5',
+    backgroundColor: '#0A0A0F',
+    borderRadius: 0,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#0891B2',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   createBtn: {
-    backgroundColor: '#0891B2',
-    borderRadius: 8,
+    backgroundColor: '#00E5FF',
+    borderRadius: 0,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  createBtnText: {
+    color: '#0A0A0F',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   dismissBtn: { padding: 4 },
   moneySection: {
     paddingBottom: 12,
     marginBottom: 8,
     marginTop: 8,
-    borderRadius: 20,
-  },
-  // Absolute overlay for category input — sits above tab bar & keyboard
-  categoryInputAbsolute: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    elevation: 9999,
+    borderRadius: 0,
+    marginHorizontal: -12,
   },
 });
